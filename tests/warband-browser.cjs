@@ -252,7 +252,12 @@ const os = require("node:os");
     await close();
     await page.getByRole("link", { name: "戦闘", exact: true }).click();
     assert.equal(await page.locator(".wound-count").textContent(), "4");
-    assert.equal(await page.getByRole("checkbox").isChecked(), true);
+    assert.equal(
+      await page
+        .getByRole("checkbox", { name: "行動済み", exact: true })
+        .isChecked(),
+      true,
+    );
     await page
       .getByRole("button", { name: "ウォーバンドステータス", exact: true })
       .click();

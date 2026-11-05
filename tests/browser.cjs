@@ -47,29 +47,47 @@ const assert = require("node:assert/strict");
     await page
       .getByRole("button", { name: "アッシュの負傷を1増やす", exact: true })
       .click();
-  let ash = page
-    .locator("article")
-    .filter({
-      has: page.getByRole("heading", { name: "アッシュ", exact: true }),
-    });
-  assert.equal(await ash.getByRole("checkbox").isDisabled(), true);
+  let ash = page.locator("article").filter({
+    has: page.getByRole("heading", { name: "アッシュ", exact: true }),
+  });
+  assert.equal(
+    await ash
+      .getByRole("checkbox", { name: "行動済み", exact: true })
+      .isDisabled(),
+    true,
+  );
   assert.equal(
     await page.locator("article").last().getByRole("heading").textContent(),
     "アッシュ",
   );
   await ash.getByRole("button", { name: "アッシュの負傷を1減らす" }).click();
-  assert.equal(await ash.getByRole("checkbox").isChecked(), true);
-  assert.equal(await ash.getByRole("checkbox").isDisabled(), false);
+  assert.equal(
+    await ash
+      .getByRole("checkbox", { name: "行動済み", exact: true })
+      .isChecked(),
+    true,
+  );
+  assert.equal(
+    await ash
+      .getByRole("checkbox", { name: "行動済み", exact: true })
+      .isDisabled(),
+    false,
+  );
   await page.getByRole("button", { name: "次のラウンド", exact: true }).click();
   await page.getByRole("button", { name: "確認して実行" }).click();
-  assert.equal(await ash.getByRole("checkbox").isChecked(), false);
+  assert.equal(
+    await ash
+      .getByRole("checkbox", { name: "行動済み", exact: true })
+      .isChecked(),
+    false,
+  );
   await ash.getByText("状態・効果（0）").click();
   await ash.getByRole("button", { name: "＋ 状態・効果を追加" }).click();
   await page.getByRole("textbox", { name: "名前", exact: true }).fill("毒");
   await page.getByRole("textbox", { name: "説明（任意）" }).fill("手動で処理");
   await page.getByRole("button", { name: "追加", exact: true }).click();
   await page
-    .getByRole("status")
+    .locator("#save-status")
     .filter({ hasText: "端末に保存済み" })
     .waitFor();
   await page.reload();
@@ -101,37 +119,48 @@ const assert = require("node:assert/strict");
   await page.getByRole("link", { name: "ホーム", exact: true }).click();
   await page.getByRole("link", { name: /ラウンド 3 を再開/ }).waitFor();
   // Hold a real IndexedDB write lock to reproduce a slow restore deterministically.
-  await page.getByRole("status").filter({ hasText: "端末に保存済み" }).waitFor();
-  await page.evaluate(() => new Promise((resolve, reject) => {
-    const request = indexedDB.open("bb-helper", 1);
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => {
-      const db = request.result;
-      const tx = db.transaction("data", "readwrite");
-      let held = true;
-      window.releaseRestoreLock = () => { held = false; };
-      tx.oncomplete = () => db.close();
-      tx.onabort = () => { db.close(); reject(tx.error); };
-      const keepAlive = () => {
-        tx.objectStore("data").get("app").onsuccess = () => {
-          resolve();
-          if (held) keepAlive();
+  await page
+    .locator("#save-status")
+    .filter({ hasText: "端末に保存済み" })
+    .waitFor();
+  await page.evaluate(
+    () =>
+      new Promise((resolve, reject) => {
+        const request = indexedDB.open("bb-helper", 1);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+          const db = request.result;
+          const tx = db.transaction("data", "readwrite");
+          let held = true;
+          window.releaseRestoreLock = () => {
+            held = false;
+          };
+          tx.oncomplete = () => db.close();
+          tx.onabort = () => {
+            db.close();
+            reject(tx.error);
+          };
+          const keepAlive = () => {
+            tx.objectStore("data").get("app").onsuccess = () => {
+              resolve();
+              if (held) keepAlive();
+            };
+          };
+          keepAlive();
         };
-      };
-      keepAlive();
-    };
-  }));
+      }),
+  );
   await page.getByRole("button", { name: "JSON から復元" }).click();
   await page.locator("#restore-file").setInputFiles(file);
   await page.getByRole("button", { name: "確認して実行" }).click();
   await page.getByRole("heading", { name: "復元中…", exact: true }).waitFor();
-  assert.equal(await page.getByRole("status").textContent(), "復元中…");
+  assert.equal(await page.locator("#save-status").textContent(), "復元中…");
   assert.equal(await page.locator("#modal").isVisible(), true);
   await page.evaluate(() => window.releaseRestoreLock());
   await page.locator("#modal").waitFor({ state: "hidden" });
   await page.getByRole("link", { name: /ラウンド 2 を再開/ }).waitFor();
   await page
-    .getByRole("status")
+    .locator("#save-status")
     .filter({ hasText: "端末に保存済み" })
     .waitFor();
   // Reload only after the restored snapshot is committed and rendered.
@@ -172,8 +201,13 @@ const assert = require("node:assert/strict");
   await page.getByRole("button", { name: "キャンセル", exact: true }).click();
   await page.getByRole("button", { name: "複製", exact: true }).first().click();
   assert.equal(await page.locator("article").count(), 3);
-  await page.getByRole("button", { name: "アッシュ の複製を上へ", exact: true }).click();
-  assert.equal(await page.locator("article").first().getByRole("heading").textContent(), "アッシュ の複製");
+  await page
+    .getByRole("button", { name: "アッシュ の複製を上へ", exact: true })
+    .click();
+  assert.equal(
+    await page.locator("article").first().getByRole("heading").textContent(),
+    "アッシュ の複製",
+  );
   await page.getByRole("button", { name: "削除", exact: true }).first().click();
   await page.getByRole("button", { name: "キャンセル", exact: true }).click();
   assert.equal(await page.locator("article").count(), 3);
@@ -181,20 +215,39 @@ const assert = require("node:assert/strict");
   await page.getByRole("button", { name: "確認して実行" }).click();
   assert.equal(await page.locator("article").count(), 2);
   await page.getByRole("button", { name: "名前変更", exact: true }).click();
-  await page.getByRole("textbox", { name: "名前", exact: true }).fill("森の守り手");
+  await page
+    .getByRole("textbox", { name: "名前", exact: true })
+    .fill("森の守り手");
   await page.getByRole("button", { name: "保存", exact: true }).click();
-  await page.getByRole("button", { name: "ウォーバンド一覧へ", exact: true }).click();
+  await page
+    .getByRole("button", { name: "ウォーバンド一覧へ", exact: true })
+    .click();
   await page.getByRole("button", { name: "＋ ウォーバンドを登録" }).click();
   await page.getByRole("textbox", { name: "名前", exact: true }).fill("予備");
   await page.getByRole("button", { name: "保存", exact: true }).click();
-  await page.getByRole("button", { name: "ウォーバンド削除", exact: true }).click();
+  await page
+    .getByRole("button", { name: "ウォーバンド削除", exact: true })
+    .click();
   await page.getByRole("button", { name: "確認して実行" }).click();
-  assert.equal(await page.getByRole("button", { name: "開く", exact: true }).count(), 1);
-  await page.emulateMedia({colorScheme:"dark"});
-  await page.setViewportSize({width:768,height:1024});
-  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
-  await page.setViewportSize({width:1440,height:900});
-  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  assert.equal(
+    await page.getByRole("button", { name: "開く", exact: true }).count(),
+    1,
+  );
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.setViewportSize({ width: 768, height: 1024 });
+  assert.equal(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+    true,
+  );
+  await page.setViewportSize({ width: 1440, height: 900 });
+  assert.equal(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+    true,
+  );
   assert.deepEqual(errors, []);
   console.log(
     "PASS: mobile CRUD, photo resize, wound bounds, ordering, round, effects, IndexedDB reload, JSON roundtrip, offline reload, end-game isolation, no overflow / console errors",
