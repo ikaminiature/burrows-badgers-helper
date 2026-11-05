@@ -17,6 +17,8 @@ const character = (id) => ({
   name: id,
   species: "ネズミ",
   level: 0,
+  fate: 0,
+  experience: 0,
   photo: "",
   stats: Object.fromEntries(stats.map((s) => [s, "D6"])),
   equipment: "剣",
@@ -191,4 +193,36 @@ test("ステータス・独立リストのJSON往復とゲームスナップシ�
     mutate(bad.warbands[0].status);
     assert.throws(() => validateData(bad));
   }
+});
+
+test("旧キャラクターの点数は0で補完し、ゲーム記録は変更しない", () => {
+  const d = emptyData(),
+    c = character("old");
+  delete c.fate;
+  delete c.experience;
+  d.warbands.push({
+    id: "w",
+    name: "旧バンド",
+    status: emptyBandStatus(),
+    characters: [c],
+  });
+  d.game = startGame(d.warbands[0]);
+  const game = structuredClone(d.game);
+  const loaded = loadData(d);
+  assert.deepEqual(loaded.warbands[0].characters[0], {
+    ...c,
+    fate: 0,
+    experience: 0,
+  });
+  assert.deepEqual(loaded.game, game);
+  assert.equal(c.fate, undefined);
+  loaded.warbands[0].characters[0].fate = 5;
+  loaded.warbands[0].characters[0].experience = 3;
+  assert.deepEqual(loadData(JSON.parse(JSON.stringify(loaded))), loaded);
+  for (const key of ["fate", "experience"])
+    for (const n of [-1, 6, 1.5, "3", null]) {
+      const bad = structuredClone(loaded);
+      bad.warbands[0].characters[0][key] = n;
+      assert.throws(() => loadData(bad));
+    }
 });

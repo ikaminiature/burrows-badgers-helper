@@ -98,6 +98,14 @@ const os = require("node:os");
       await page
         .getByRole("link", { name: "ウォーバンド", exact: true })
         .click();
+      if (
+        await page
+          .getByRole("button", { name: "ウォーバンド一覧へ", exact: true })
+          .count()
+      )
+        await page
+          .getByRole("button", { name: "ウォーバンド一覧へ", exact: true })
+          .click();
       await page
         .locator("section.card")
         .filter({ has: page.getByRole("heading", { name, exact: true }) })
@@ -151,11 +159,27 @@ const os = require("node:os");
     await page
       .getByRole("textbox", { name: "アジト・アップグレード 1", exact: true })
       .fill("工房");
-    await page.getByRole("textbox", { name: "アジト・アップグレード 1", exact: true }).fill("鍛冶場");
-    await page.getByRole("button", { name: "アジト・アップグレード 1 を削除", exact: true }).click();
-    assert.equal(await page.getByRole("textbox", { name: "アジト・アップグレード 1", exact: true }).count(), 0);
-    await page.getByRole("button", { name: "＋ アジト・アップグレード", exact: true }).click();
-    await page.getByRole("textbox", { name: "アジト・アップグレード 1", exact: true }).fill("工房");
+    await page
+      .getByRole("textbox", { name: "アジト・アップグレード 1", exact: true })
+      .fill("鍛冶場");
+    await page
+      .getByRole("button", {
+        name: "アジト・アップグレード 1 を削除",
+        exact: true,
+      })
+      .click();
+    assert.equal(
+      await page
+        .getByRole("textbox", { name: "アジト・アップグレード 1", exact: true })
+        .count(),
+      0,
+    );
+    await page
+      .getByRole("button", { name: "＋ アジト・アップグレード", exact: true })
+      .click();
+    await page
+      .getByRole("textbox", { name: "アジト・アップグレード 1", exact: true })
+      .fill("工房");
     await page
       .getByRole("textbox", { name: "隠しておいた装備 1", exact: true })
       .fill("長弓");
@@ -180,8 +204,15 @@ const os = require("node:os");
       .filter({ hasText: "保存できません" })
       .waitFor();
     await page.getByRole("spinbutton", { name: "年金", exact: true }).fill("4");
-    assert.equal(await page.locator('#modal').evaluate(e=>e.scrollWidth<=e.clientWidth),true);
-    await page.screenshot({path:path.join(os.tmpdir(),'bb-warband-status.png')});
+    assert.equal(
+      await page
+        .locator("#modal")
+        .evaluate((e) => e.scrollWidth <= e.clientWidth),
+      true,
+    );
+    await page.screenshot({
+      path: path.join(os.tmpdir(), "bb-warband-status.png"),
+    });
     await close();
     await saved();
     await page.reload();
@@ -246,7 +277,11 @@ const os = require("node:os");
     assert.deepEqual(backup.game, legacy.game);
     assert.deepEqual(
       backup.warbands[0].characters,
-      legacy.warbands[0].characters,
+      legacy.warbands[0].characters.map((c) => ({
+        ...c,
+        fate: 0,
+        experience: 0,
+      })),
     );
     assert.deepEqual(backup.warbands[0].status, {
       rating: 123.5,

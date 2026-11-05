@@ -45,6 +45,11 @@ export function loadData(input) {
       if (w && w.status === undefined) w.status = emptyBandStatus();
     d.version = 2;
   }
+  for (const w of d.warbands)
+    for (const c of w.characters || []) {
+      if (c.fate === undefined) c.fate = 0;
+      if (c.experience === undefined) c.experience = 0;
+    }
   return validateData(d);
 }
 export const id = () => crypto.randomUUID();
@@ -121,6 +126,11 @@ export function validateData(d) {
       !Number.isInteger(c.level) ||
       c.level < 0 ||
       c.level > 100 ||
+      !["fate", "experience"].every(
+        (k) =>
+          c[k] === undefined ||
+          (Number.isInteger(c[k]) && c[k] >= 0 && c[k] <= 5),
+      ) ||
       !c.stats ||
       !stats.every((s) => dice.includes(c.stats[s])) ||
       !["equipment", "skills", "spells", "notes"].every((k) => str(c[k])) ||
