@@ -79,6 +79,7 @@ function confirmAction(title, message, action) {
 }
 function navigate() {
   const route = location.hash.slice(1) || "home";
+  if (route === "bands" && screen !== "bands") bandId = undefined;
   screen = ["home", "bands", "battle", "choose"].includes(route)
     ? route
     : "home";
@@ -99,7 +100,9 @@ function render() {
   if (screen === "home")
     app.innerHTML = `<div class="hero"><div class="eyebrow">BURROWS & BADGERS · 2ND EDITION</div><h1>小さな戦士たちの、<br>次の冒険へ。</h1><p>ウォーバンドを整えて、卓上の戦いに集中。</p><div class="stack"><a class="button primary" href="#choose">ゲームを開始</a>${data.game ? `<a class="button" href="#battle">${esc(data.game.name)} · ラウンド ${data.game.round} を再開</a>` : ""}</div></div><h2>冒険の準備</h2><a class="button" href="#bands">ウォーバンドを管理（${data.warbands.length}）</a><section class="card"><h2>データのバックアップ</h2><p class="muted">データと写真はこの端末・ブラウザ内に保存されます。定期的に写真を含む JSON を保管してください。</p><div class="actions">${btn("JSON を書き出す", "export")}${btn("JSON から復元", "import")}</div><input id="restore-file" type="file" accept="application/json,.json" hidden></section><details class="card"><summary>オフラインで使う・ホーム画面に追加</summary><p>一度オンラインで開き、読み込みを終えてから使ってください。iPhone は Safari の共有メニューから「ホーム画面に追加」を選びます。</p><p class="muted">非公式の補助ツールです。ルールの自動判定は負傷管理のみ。ブラウザのデータ削除で保存内容が消えるため、バックアップを推奨します。</p></details>`;
   if (screen === "bands")
-    app.innerHTML = `<div class="eyebrow">WARBANDS</div><h1>ウォーバンド管理</h1>${btn("＋ ウォーバンドを登録", "new-band", 'class="primary"')}${data.warbands.length ? data.warbands.map((w) => `<section class="card"><div class="row between"><div><h2>${esc(w.name)}</h2><span class="muted">${w.characters.length} キャラクター</span></div>${btn("開く", "open-band", `data-id="${w.id}"`)}</div></section>`).join("") : '<p class="empty">最初のウォーバンドを登録しましょう。</p>'}${band() ? bandView(band()) : ""}`;
+    app.innerHTML = band()
+      ? bandView(band())
+      : `<div class="eyebrow">WARBANDS</div><h1>ウォーバンド管理</h1>${btn("＋ ウォーバンドを登録", "new-band", 'class="primary"')}${data.warbands.map((w) => `<section class="card"><h2>${esc(w.name)}</h2><p>${w.characters.length} キャラクター</p>${btn("開く", "open-band", `data-id="${w.id}"`)}</section>`).join("") || '<p class="empty">最初のウォーバンドを登録しましょう。</p>'}`;
   if (screen === "choose")
     app.innerHTML = `<div class="eyebrow">NEW GAME</div><h1>出陣するウォーバンド</h1>${data.game ? '<p class="muted">進行中のゲームがあります。新しく開始する場合は確認後に置き換えます。</p>' : ""}${data.warbands.map((w) => `<section class="card"><h2>${esc(w.name)}</h2><p>${w.characters.length} キャラクター</p>${btn("このウォーバンドで開始", "start", `class="primary" data-id="${w.id}" ${w.characters.length ? "" : "disabled"}`)}</section>`).join("") || '<p class="empty">ウォーバンドとキャラクターを登録してください。</p>'}<a class="button" href="#bands">ウォーバンド管理へ</a>`;
   if (screen === "battle")
@@ -107,8 +110,49 @@ function render() {
       ? battleView()
       : `<h1>戦闘管理</h1><p class="empty">進行中のゲームはありません。</p><a class="button primary" href="#choose">ゲームを開始</a>`;
 }
+const cardStats = [
+  ["M", "Movement"],
+  ["S", "Strike"],
+  ["R", "Ranged"],
+  ["C", "Concealment"],
+  ["F", "Fortitude"],
+  null,
+  ["B", "Block"],
+  ["N", "Nimbleness"],
+  ["A", "Awareness"],
+  ["P", "Presence"],
+];
+function points(c, key, label, form = false) {
+  return `<fieldset class="points"><legend>${label}</legend><div>${Array.from({ length: 5 }, (_, i) => `<label><input type="checkbox" ${form ? `data-form-point="${key}"` : `data-point="${key}" data-id="${c.id}"`} data-value="${i + 1}" aria-label="${form ? "" : esc(c.name) + "の"}${label} ${i + 1}" ${(c[key] || 0) > i ? "checked" : ""}></label>`).join("")}</div></fieldset>`;
+}
 function bandView(w) {
-  return `<section class="card"><div class="row between"><h2>${esc(w.name)}</h2>${btn("名前変更", "rename-band")}${btn("ステータス編集", "band-status")}</div><div class="actions">${btn("＋ キャラクター登録", "new-character", 'class="primary"')}${btn("ウォーバンド削除", "delete-band", 'class="danger"')}</div></section>${w.characters.map((c, i) => `<article class="card"><div class="row">${portrait(c)}<div class="identity"><h3>${esc(c.name)}</h3><span class="muted">${esc(c.species)} · Lv.${c.level}</span></div></div><div class="actions">${btn("編集", "edit-character", `data-id="${c.id}"`)}${btn("複製", "duplicate", `data-id="${c.id}"`)}${btn("↑", "up", `data-id="${c.id}" aria-label="${esc(c.name)}を上へ" ${i === 0 ? "disabled" : ""}`)}${btn("↓", "down", `data-id="${c.id}" aria-label="${esc(c.name)}を下へ" ${i === w.characters.length - 1 ? "disabled" : ""}`)}${btn("削除", "delete-character", `data-id="${c.id}" class="danger"`)}</div></article>`).join("")}`;
+  const s = w.status;
+  const fields = (keys) =>
+    keys
+      .map(
+        ([k, l]) =>
+          `<div><dt>${l}</dt><dd class="detail-text">${esc(s[k]) || "—"}</dd></div>`,
+      )
+      .join("");
+  return `${btn("ウォーバンド一覧へ", "close-band")}<section class="card band-overview"><h1>${esc(w.name)}</h1><dl class="status-grid">${fields(
+    [
+      ["rating", "レーティング"],
+      ["alliance", "アライアンス"],
+      ["archetype", "アーキタイプ"],
+    ],
+  )}</dl><dl class="resources">${fields([
+    ["pension", "年金"],
+    ["labour", "労働力"],
+    ["materials", "資材"],
+    ["treasury", "トレジャリー"],
+  ])}</dl>${Object.entries(bandLists)
+    .map(
+      ([k, l]) =>
+        `<h2>${l}</h2><ul>${s[k].map((e) => `<li class="detail-text">${esc(e.name) || "（未入力）"}</li>`).join("") || "<li>登録なし</li>"}</ul>`,
+    )
+    .join(
+      "",
+    )}<h2>メモ</h2><p class="detail-text">${esc(s.notes) || "—"}</p></section><h2>登録キャラクター</h2>${w.characters.map((c, i) => `<article class="card roster-card"><div class="roster-top">${portrait(c)}<div class="identity"><h3>${btn(esc(c.name), "roster-detail", `data-id="${c.id}" class="character-name" title="${esc(c.name)}"`)}</h3><span class="muted">${esc(c.species)} · <span class="level">Lv. ${String(c.level).padStart(2, "0")}</span></span></div><div class="point-trackers">${points(c, "fate", "運命点")}${points(c, "experience", "経験値")}</div></div><div class="card-stats">${cardStats.map((pair) => (pair ? `<span aria-label="${pair[1]} ${esc(c.stats[pair[1]])}">${pair[0]}${esc(c.stats[pair[1]].replace(/^D/, ""))}</span>` : '<span aria-hidden="true"></span>')).join("")}</div><div class="actions">${btn("編集", "edit-character", `data-id="${c.id}"`)}${btn("複製", "duplicate", `data-id="${c.id}"`)}${btn("↑", "up", `data-id="${c.id}" aria-label="${esc(c.name)}を上へ" ${i === 0 ? "disabled" : ""}`)}${btn("↓", "down", `data-id="${c.id}" aria-label="${esc(c.name)}を下へ" ${i === w.characters.length - 1 ? "disabled" : ""}`)}${btn("削除", "delete-character", `data-id="${c.id}" class="danger"`)}</div></article>`).join("") || '<p class="empty">キャラクターは未登録です。</p>'}<section class="card"><h2>管理・編集メニュー</h2><div class="actions">${btn("ステータス編集", "band-status")}${btn("名前変更", "rename-band")}${btn("＋ キャラクター登録", "new-character", 'class="primary"')}${btn("ウォーバンド削除", "delete-band", 'class="danger"')}</div></section>`;
 }
 function battleView() {
   const g = data.game;
@@ -270,7 +314,7 @@ async function resize(file) {
 function characterForm(c) {
   let photo = c?.photo || "";
   show(
-    `<h2>${c ? "キャラクター編集" : "キャラクター登録"}</h2><form id="character-form"><label>名前<input name="name" value="${esc(c?.name || "")}" required maxlength="200"></label><label>種族<input name="species" value="${esc(c?.species || "")}" maxlength="200"></label><label>Level<input type="number" name="level" min="0" max="100" step="1" value="${c?.level ?? 0}" required></label><div id="photo-preview">${portrait({ photo, name: c?.name || "" })}</div><label>写真ライブラリ・ファイル<input id="photo-library" type="file" accept="image/*"></label><label>カメラで撮影<input id="photo-camera" type="file" accept="image/*" capture="environment"></label>${btn("写真を削除", "clear-photo")}<p class="muted">長辺 800px 以下に縮小して端末に保存します。</p><h3>能力値</h3><div class="stats">${stats.map((s) => `<label>${s}<select name="${s}">${dice.map((d) => `<option ${c?.stats[s] === d ? "selected" : ""}>${d}</option>`).join("")}</select></label>`).join("")}</div>${[
+    `<h2>${c ? "キャラクター編集" : "キャラクター登録"}</h2><form id="character-form"><label>名前<input name="name" value="${esc(c?.name || "")}" required maxlength="200"></label><label>種族<input name="species" value="${esc(c?.species || "")}" maxlength="200"></label><label>Level<input type="number" name="level" min="0" max="100" step="1" value="${c?.level ?? 0}" required></label><div id="photo-preview">${portrait({ photo, name: c?.name || "" })}</div><label>写真ライブラリ・ファイル<input id="photo-library" type="file" accept="image/*"></label><label>カメラで撮影<input id="photo-camera" type="file" accept="image/*" capture="environment"></label>${btn("写真を削除", "clear-photo")}<p class="muted">長辺 800px 以下に縮小して端末に保存します。</p>${points(c || {}, "fate", "運命点", true)}${points(c || {}, "experience", "経験値", true)}<h3>能力値</h3><div class="stats">${stats.map((s) => `<label>${s}<select name="${s}">${dice.map((d) => `<option ${c?.stats[s] === d ? "selected" : ""}>${d}</option>`).join("")}</select></label>`).join("")}</div>${[
       ["equipment", "装備"],
       ["skills", "スキル"],
       ["spells", "呪文"],
@@ -322,6 +366,10 @@ function characterForm(c) {
       species: f.get("species").trim(),
       level: Number(f.get("level")),
       photo,
+      fate: modal.querySelectorAll('[data-form-point="fate"]:checked').length,
+      experience: modal.querySelectorAll(
+        '[data-form-point="experience"]:checked',
+      ).length,
       stats: Object.fromEntries(stats.map((s) => [s, f.get(s)])),
       ...Object.fromEntries(
         ["equipment", "skills", "spells", "notes"].map((k) => [k, f.get(k)]),
@@ -334,7 +382,7 @@ function characterForm(c) {
     modal.close();
   };
 }
-function detail(c) {
+function detail(c, editable = false) {
   show(
     `<div class="row">${portrait(c)}<div><h2>${esc(c.name)}</h2><p>${esc(c.species)} · Lv.${c.level}</p></div></div><div class="stats">${stats.map((s) => `<div><span class="muted">${s}</span><br><strong>${esc(c.stats[s])}</strong></div>`).join("")}</div>${[
       ["equipment", "装備"],
@@ -346,7 +394,9 @@ function detail(c) {
         ([k, l]) =>
           `<h3>${l}</h3><p class="detail-text">${esc(c[k]) || "—"}</p>`,
       )
-      .join("")}${btn("閉じる", "close")}`,
+      .join(
+        "",
+      )}${editable ? btn("編集", "edit-character", `data-id="${c.id}"`) : ""}${btn("閉じる", "close")}`,
   );
 }
 function effectForm(c) {
@@ -432,6 +482,13 @@ document.addEventListener("click", (e) => {
     case "open-band":
       bandId = b.dataset.id;
       render();
+      break;
+    case "close-band":
+      bandId = undefined;
+      render();
+      break;
+    case "roster-detail":
+      detail(wc, true);
       break;
     case "band-status":
       bandStatusForm(w);
@@ -543,6 +600,26 @@ document.addEventListener("click", (e) => {
   }
 });
 document.addEventListener("change", (e) => {
+  if (e.target.dataset.point) {
+    const c = band()?.characters.find((c) => c.id === e.target.dataset.id);
+    if (c)
+      change(
+        () =>
+          (c[e.target.dataset.point] = e.target.checked
+            ? Number(e.target.dataset.value)
+            : Number(e.target.dataset.value) - 1),
+      );
+  }
+  if (e.target.dataset.formPoint) {
+    const key = e.target.dataset.formPoint,
+      n = e.target.checked
+        ? Number(e.target.dataset.value)
+        : Number(e.target.dataset.value) - 1;
+    modal
+      .querySelectorAll(`[data-form-point="${key}"]`)
+      .forEach((input) => (input.checked = Number(input.dataset.value) <= n));
+  }
+
   if (e.target.dataset.acted) {
     const c = data.game.characters.find((c) => c.id === e.target.dataset.acted);
     if (c.wounds !== 17) change(() => (c.acted = e.target.checked));

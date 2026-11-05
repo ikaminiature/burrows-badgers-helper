@@ -183,6 +183,7 @@ const assert = require("node:assert/strict");
   await page.getByRole("button", { name: "名前変更", exact: true }).click();
   await page.getByRole("textbox", { name: "名前", exact: true }).fill("森の守り手");
   await page.getByRole("button", { name: "保存", exact: true }).click();
+  await page.getByRole("button", { name: "ウォーバンド一覧へ", exact: true }).click();
   await page.getByRole("button", { name: "＋ ウォーバンドを登録" }).click();
   await page.getByRole("textbox", { name: "名前", exact: true }).fill("予備");
   await page.getByRole("button", { name: "保存", exact: true }).click();

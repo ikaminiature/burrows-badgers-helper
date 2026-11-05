@@ -415,4 +415,123 @@ dialog li {
   margin-bottom: 8px;
 }
 
-#band-status-form input,#band-status-form textarea,.status-item textarea{font-size:16px}.status-toolbar{position:sticky;top:-22px;background:var(--panel);padding:8px 0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:8px}.status-toolbar h2{font-size:18px;margin:0}.status-toolbar button{flex-shrink:0}
+#band-status-form input,
+#band-status-form textarea,
+.status-item textarea {
+  font-size: 16px;
+}
+.status-toolbar {
+  position: sticky;
+  top: -22px;
+  background: var(--panel);
+  padding: 8px 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.status-toolbar h2 {
+  font-size: 18px;
+  margin: 0;
+}
+.status-toolbar button {
+  flex-shrink: 0;
+}
+
+.resources {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+.resources dt {
+  font-size: 12px;
+  color: var(--muted);
+}
+.resources dd {
+  margin: 0;
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.roster-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.roster-top .portrait {
+  width: 48px;
+  height: 62px;
+}
+.character-name {
+  background: none;
+  border: 0;
+  padding: 0;
+  min-height: 44px;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-size: 17px;
+  display: block;
+  width: 100%;
+}
+.points {
+  padding: 0;
+  margin: 0;
+  border: 0;
+  min-width: 0;
+}
+.points legend {
+  font-size: 11px;
+  color: var(--muted);
+}
+.points > div {
+  display: flex;
+  gap: 0;
+}
+.points label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  margin: 0;
+  width: 24px;
+  cursor: pointer;
+}
+.points input[type="checkbox"] {
+  width: 19px;
+  height: 19px;
+  margin: 0;
+}
+.point-trackers {
+  flex-shrink: 0;
+}
+.card-stats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 5px;
+  margin-top: 14px;
+}
+.card-stats span {
+  padding: 7px 0;
+  text-align: center;
+  border-radius: 6px;
+  background: var(--bg);
+  font-weight: 700;
+}
+.card-stats span:empty {
+  background: none;
+}
+#character-form > .points {
+  margin: 14px 0;
+}
+#character-form > .points label {
+  width: 42px;
+  min-height: 44px;
+}
+#character-form > .points input {
+  width: 24px;
+  height: 24px;
+}
+
+.resources dt{min-height:2.8em;line-height:1.4}.point-trackers{align-self:start}.character-name{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden}.level{white-space:nowrap;display:inline-block}

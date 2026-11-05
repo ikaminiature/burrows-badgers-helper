@@ -1,4 +1,4 @@
-const CACHE = "bb-helper-v3";
+const CACHE = "bb-helper-v4";
 const FILES = [
   "./",
   "./index.html",
