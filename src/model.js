@@ -11,6 +11,29 @@ export const stats = [
 ];
 export const dice = ["D4", "D6", "D8", "D10", "D12", "D20"];
 export const emptyData = () => ({ version: 2, warbands: [], game: null });
+export const equipmentCategories = {
+  weapon1: "武器1",
+  weapon2: "武器2",
+  armour1: "鎧1",
+  armour2: "鎧2",
+  item: "アイテム",
+  special: "スペシャル",
+};
+// Preserve original free text. Only line breaks are safe item separators.
+export function characterInventory(c = {}) {
+  const lines = (value) =>
+    (value || "").split(/\r\n|\n|\r/).filter((line) => line.trim().length > 0);
+  return {
+    equipmentSlots: structuredClone(
+      c.equipmentSlots ||
+        Object.fromEntries(
+          Object.keys(equipmentCategories).map((k) => [k, ""]),
+        ),
+    ),
+    skillEntries: structuredClone(c.skillEntries || lines(c.skills)),
+    spellEntries: structuredClone(c.spellEntries || lines(c.spells)),
+  };
+}
 export const alliances = {
   王党派: "戦士",
   ならず者: "レンジャー",
@@ -152,6 +175,19 @@ export function validateData(d) {
       !c.stats ||
       !stats.every((s) => dice.includes(c.stats[s])) ||
       !["equipment", "skills", "spells", "notes"].every((k) => str(c[k])) ||
+      (c.equipmentSlots !== undefined &&
+        (!c.equipmentSlots ||
+          !Object.keys(equipmentCategories).every((k) =>
+            str(c.equipmentSlots[k]),
+          ) ||
+          Object.keys(c.equipmentSlots).some(
+            (k) => !Object.hasOwn(equipmentCategories, k),
+          ))) ||
+      !["skillEntries", "spellEntries"].every(
+        (k) =>
+          c[k] === undefined ||
+          (Array.isArray(c[k]) && c[k].every((v) => str(v))),
+      ) ||
       !str(c.photo, 2000000) ||
       (c.photo &&
         !/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(c.photo))

@@ -1,4 +1,4 @@
-const VERSION = "6";
+const VERSION = "7";
 const PREFIX = "bb-helper:" + self.registration.scope + ":";
 const CACHE = PREFIX + VERSION;
 const FILES = [

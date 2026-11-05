@@ -653,3 +653,12 @@ dialog li {
 #band-status-form select {
   font-size: 16px;
 }
+
+.character-entry {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 10px;
+}
+#character-form input,
+#character-form textarea {
+  font-size: 16px;
+}

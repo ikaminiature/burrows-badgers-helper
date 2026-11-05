@@ -81,9 +81,8 @@ const http = require("node:http");
       .locator("#update-status")
       .filter({ hasText: "現在、最新版です" })
       .waitFor();
-    const { emptyBandStatus, stats, startGame } = await import(
-      "../src/model.js"
-    );
+    const { emptyBandStatus, stats, startGame, characterInventory } =
+      await import("../src/model.js");
     const c = {
       id: "c",
       name: "保存を待つ戦士",
@@ -207,6 +206,7 @@ const http = require("node:http");
       );
     const expected = structuredClone(data);
     expected.warbands[0].characters[0].fate = 4;
+    Object.assign(expected.warbands[0].characters[0], characterInventory(c));
     assert.deepEqual(await stored(), expected);
     await page
       .getByRole("button", { name: "最新版を確認", exact: true })
