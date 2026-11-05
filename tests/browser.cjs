@@ -27,8 +27,11 @@ const assert = require("node:assert/strict");
     await page.getByRole("button", { name: "＋ キャラクター登録" }).click();
     await page.getByRole("textbox", { name: "名前", exact: true }).fill(name);
     await page
-      .getByRole("textbox", { name: "種族", exact: true })
-      .fill("ネズミ");
+      .getByRole("combobox", { name: "サイズ分類", exact: true })
+      .selectOption("small");
+    await page
+      .getByRole("combobox", { name: "種族", exact: true })
+      .selectOption("small-01");
     if (name === "アッシュ") {
       await page
         .locator("#photo-library")

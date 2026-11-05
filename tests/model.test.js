@@ -11,6 +11,8 @@ import {
   emptyData,
   loadData,
   emptyBandStatus,
+  characterInventory,
+  equipmentCategories,
   alliances,
   selectAlliance,
 } from "../src/model.js";
@@ -271,5 +273,58 @@ test("旧アライアンスと未設定値は読み込みだけで変更せず�
     assert.deepEqual(loadData(JSON.parse(JSON.stringify(d))), d);
     assert.throws(() => selectAlliance(d.warbands[0].status, name));
     assert.equal(d.warbands[0].status.archetype, "独自の型");
+  }
+});
+
+test("個別装備・スキル・呪文は原文を保持して移行し、ゲームと独立してJSON往復する", () => {
+  const c = {
+    ...character("c"),
+    equipment: "剣、革鎧\n用途不明の品",
+    skills: "Strong (1)\nSkill, with comma\n\n Scout",
+    spells: "Fire (2)\nHeal",
+  };
+  const original = structuredClone(c),
+    v = characterInventory(c);
+  assert.equal(Object.keys(v.equipmentSlots).length, 6);
+  assert.ok(Object.values(v.equipmentSlots).every((x) => x === ""));
+  assert.deepEqual(v.skillEntries, [
+    "Strong (1)",
+    "Skill, with comma",
+    " Scout",
+  ]);
+  assert.deepEqual(v.spellEntries, ["Fire (2)", "Heal"]);
+  assert.deepEqual(c, original);
+  Object.assign(c, v);
+  c.equipmentSlots.weapon1 = "剣";
+  c.skillEntries[0] = "Strong (2)";
+  c.spellEntries.splice(0, 1);
+  const d = emptyData();
+  d.warbands.push({
+    id: "w",
+    name: "森",
+    status: emptyBandStatus(),
+    characters: [c],
+  });
+  d.game = startGame(d.warbands[0]);
+  d.game.characters[0].skillEntries.push("ゲーム中のみ");
+  assert.equal(c.skillEntries.length, 3);
+  assert.deepEqual(loadData(JSON.parse(JSON.stringify(d))), d);
+  assert.equal(c.equipment, original.equipment);
+  assert.equal(c.skills, original.skills);
+  c.skillEntries = Array.from({ length: 350 }, (_, i) => String(i));
+  assert.equal(
+    loadData(JSON.parse(JSON.stringify(d))).warbands[0].characters[0]
+      .skillEntries.length,
+    350,
+  );
+  for (const mutate of [
+    (x) => delete x.equipmentSlots.weapon1,
+    (x) => (x.equipmentSlots.extra = "追加不可"),
+    (x) => (x.skillEntries = "不正"),
+    (x) => (x.spellEntries = [{}]),
+  ]) {
+    const bad = structuredClone(d);
+    mutate(bad.warbands[0].characters[0]);
+    assert.throws(() => loadData(bad));
   }
 });

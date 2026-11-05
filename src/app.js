@@ -13,11 +13,14 @@ import {
   bandNumbers,
   bandTexts,
   bandLists,
+  equipmentCategories,
+  characterInventory,
   alliances,
   selectAlliance,
 } from "./model.js";
 import { read, write } from "./db.js";
 import { createUpdater } from "./update.js";
+import { speciesGroups, speciesPresets, presetValues } from "./species.js";
 const app = document.querySelector("#app"),
   modal = document.querySelector("#modal"),
   status = document.querySelector("#save-status");
@@ -367,27 +370,123 @@ async function resize(file) {
 }
 function characterForm(c) {
   let photo = c?.photo || "";
+  const inventory = characterInventory(c);
+  let processing = false;
+  const initialPreset =
+    speciesPresets.find(
+      (p) => p.id === c?.speciesPresetId && p.name === c?.species,
+    ) || speciesPresets.find((p) => p.name === c?.species);
+  let chosenId = initialPreset?.id || "",
+    storedPresetId = c?.speciesPresetId,
+    draftSpecies = c?.species || "",
+    acceptedGroup = initialPreset?.group || "";
   show(
-    `<h2>${c ? "キャラクター編集" : "キャラクター登録"}</h2><form id="character-form"><label>名前<input name="name" value="${esc(c?.name || "")}" required maxlength="200"></label><label>種族<input name="species" value="${esc(c?.species || "")}" maxlength="200"></label><label>Level<input type="number" name="level" min="0" max="100" step="1" value="${c?.level ?? 0}" required></label><div id="photo-preview">${portrait({ photo, name: c?.name || "" })}</div><label>写真ライブラリ・ファイル<input id="photo-library" type="file" accept="image/*"></label><label>カメラで撮影<input id="photo-camera" type="file" accept="image/*" capture="environment"></label>${btn("写真を削除", "clear-photo")}<p class="muted">長辺 800px 以下に縮小して端末に保存します。</p>${points(c || {}, "fate", "運命点", true)}${points(c || {}, "experience", "経験値", true)}<h3>能力値</h3><div class="stats">${stats.map((s) => `<label>${s}<select name="${s}">${dice.map((d) => `<option ${c?.stats[s] === d ? "selected" : ""}>${d}</option>`).join("")}</select></label>`).join("")}</div>${[
-      ["equipment", "装備"],
-      ["skills", "スキル"],
-      ["spells", "呪文"],
-      ["notes", "特殊効果・メモ"],
-    ]
+    `<h2>${c ? "キャラクター編集" : "キャラクター登録"}</h2><form id="character-form"><label>名前<input name="name" value="${esc(c?.name || "")}" required maxlength="200"></label><label>サイズ分類<select id="species-size"><option value="">サイズ分類を選択</option>${speciesGroups.map((g) => `<option value="${g.id}" ${g.id === acceptedGroup ? "selected" : ""}>${g.name}：${g.base}mmベース</option>`).join("")}</select></label><label>種族<select name="species" id="species-preset" required></select></label><section id="species-confirm" hidden role="alert"><h3>種族の初期値に置き換えますか？</h3><p>レベル・9能力値・スキル一覧を選択した種族の初期値に置き換えます。装備・呪文・写真・運命点・経験値は維持します。</p><div class="actions"><button type="button" id="species-apply">初期値に置き換える</button><button type="button" id="species-cancel">変更を取り消す</button></div></section><label>Level<input type="number" name="level" min="0" max="100" step="1" value="${c?.level ?? 0}" required></label><div id="photo-preview">${portrait({ photo, name: c?.name || "" })}</div><label>写真ライブラリ・ファイル<input id="photo-library" type="file" accept="image/*"></label><label>カメラで撮影<input id="photo-camera" type="file" accept="image/*" capture="environment"></label>${btn("写真を削除", "clear-photo")}<p class="muted">長辺 800px 以下に縮小して端末に保存します。</p>${points(c || {}, "fate", "運命点", true)}${points(c || {}, "experience", "経験値", true)}<h3>能力値</h3><div class="stats">${stats.map((s) => `<label>${s}<select name="${s}">${dice.map((d) => `<option ${c?.stats[s] === d ? "selected" : ""}>${d}</option>`).join("")}</select></label>`).join("")}</div><h3>装備</h3>${Object.entries(
+      equipmentCategories,
+    )
       .map(
         ([key, label]) =>
-          `<label>${label}<textarea name="${key}" maxlength="20000">${esc(c?.[key] || "")}</textarea></label>`,
+          `<label>${label}<input name="slot-${key}" maxlength="20000" value="${esc(inventory.equipmentSlots[key])}"></label>`,
       )
       .join(
         "",
-      )}<p id="form-error" class="error" role="alert"></p><div class="actions"><button id="character-save" class="primary">保存</button>${btn("キャンセル", "close")}</div></form>`,
+      )}${c?.equipment ? `<details><summary>旧装備（未分類・原文）</summary><p class="muted">原文を保持しています。必要な装備を上の6枠へ手動で割り振ってください。</p><textarea readonly aria-label="旧装備の原文">${esc(c.equipment)}</textarea></details>` : ""}<section aria-label="スキル"><h3>スキル</h3><div id="character-skillEntries"></div>${btn("＋ スキル", "add-character-entry", 'data-list="skillEntries"')}</section><section aria-label="呪文"><h3>呪文</h3><div id="character-spellEntries"></div>${btn("＋ 呪文", "add-character-entry", 'data-list="spellEntries"')}</section><label>特殊効果・メモ<textarea name="notes" maxlength="20000">${esc(c?.notes || "")}</textarea></label><p id="form-error" class="error" role="alert"></p><div class="actions"><button id="character-save" class="primary">保存</button>${btn("キャンセル", "close")}</div></form>`,
   );
+  const drawEntries = (key) => {
+    const label = key === "skillEntries" ? "スキル" : "呪文",
+      node = modal.querySelector("#character-" + key);
+    node.innerHTML =
+      inventory[key]
+        .map(
+          (text, i) =>
+            `<div class="character-entry"><label>${label} ${i + 1}<textarea data-index="${i}" maxlength="20000">${esc(text)}</textarea></label>${btn("削除", "delete-character-entry", `data-index="${i}" aria-label="${label} ${i + 1} を削除"`)}</div>`,
+        )
+        .join("") || '<p class="muted">登録なし</p>';
+    node.oninput = (e) => {
+      if (e.target.dataset.index !== undefined)
+        inventory[key][Number(e.target.dataset.index)] = e.target.value;
+    };
+    node.onclick = (e) => {
+      const b = e.target.closest('[data-action="delete-character-entry"]');
+      if (b) {
+        inventory[key].splice(Number(b.dataset.index), 1);
+        drawEntries(key);
+      }
+    };
+  };
+  for (const key of ["skillEntries", "spellEntries"]) drawEntries(key);
+  for (const b of modal.querySelectorAll('[data-action="add-character-entry"]'))
+    b.onclick = () => {
+      const key = b.dataset.list;
+      inventory[key].push("");
+      drawEntries(key);
+      modal
+        .querySelector(
+          "#character-" + key + " .character-entry:last-child textarea",
+        )
+        .focus();
+    };
+  const speciesSelect = modal.querySelector("#species-preset"),
+    groupSelect = modal.querySelector("#species-size"),
+    confirmation = modal.querySelector("#species-confirm");
+  let pendingPreset = "";
+  const drawSpecies = () => {
+    const options = speciesPresets.filter((p) => p.group === groupSelect.value),
+      inGroup = options.some((p) => p.id === chosenId);
+    speciesSelect.innerHTML = `${!inGroup ? `<option value="${c || chosenId ? "__legacy__" : ""}" selected disabled>${draftSpecies ? esc(draftSpecies) + "（現在の値を保持）" : "種族を選択"}</option>` : ""}${options.map((p) => `<option value="${p.id}" ${p.id === chosenId ? "selected" : ""}>${esc(p.name)}</option>`).join("")}`;
+  };
+  const applySpecies = (id) => {
+    const values = presetValues(id),
+      p = speciesPresets.find((p) => p.id === id);
+    chosenId = id;
+    storedPresetId = id;
+    draftSpecies = values.species;
+    acceptedGroup = p.group;
+    groupSelect.value = p.group;
+    modal.querySelector('[name="level"]').value = values.level;
+    for (const key of stats)
+      modal.querySelector(`[name="${key}"]`).value = values.stats[key];
+    inventory.skillEntries = values.skillEntries;
+    drawEntries("skillEntries");
+    drawSpecies();
+  };
+  groupSelect.onchange = () => {
+    if (confirmation.hidden) drawSpecies();
+  };
+  speciesSelect.onchange = () => {
+    const id = speciesSelect.value;
+    if (id === chosenId || id === "__legacy__") return;
+    if (c || chosenId) {
+      pendingPreset = id;
+      confirmation.hidden = false;
+      modal.querySelector("#character-save").disabled = true;
+      groupSelect.disabled = true;
+      speciesSelect.disabled = true;
+      modal.querySelector("#species-apply").focus();
+    } else applySpecies(id);
+  };
+  const finishSelection = () => {
+    confirmation.hidden = true;
+    modal.querySelector("#character-save").disabled = processing;
+    groupSelect.disabled = false;
+    speciesSelect.disabled = false;
+    pendingPreset = "";
+  };
+  modal.querySelector("#species-apply").onclick = () => {
+    applySpecies(pendingPreset);
+    finishSelection();
+  };
+  modal.querySelector("#species-cancel").onclick = () => {
+    groupSelect.value = acceptedGroup;
+    drawSpecies();
+    finishSelection();
+  };
+  drawSpecies();
   const preview = () =>
     (modal.querySelector("#photo-preview").innerHTML = portrait({
       photo,
       name: c?.name || "",
     }));
-  let processing = false;
   for (const input of modal.querySelectorAll("input[type=file]"))
     input.onchange = async () => {
       if (!input.files[0]) return;
@@ -401,7 +500,7 @@ function characterForm(c) {
         modal.querySelector("#form-error").textContent = e.message;
       } finally {
         processing = false;
-        modal.querySelector("#character-save").disabled = false;
+        modal.querySelector("#character-save").disabled = !confirmation.hidden;
       }
     };
   modal.querySelector("[data-action=clear-photo]").onclick = () => {
@@ -410,14 +509,16 @@ function characterForm(c) {
   };
   modal.querySelector("form").onsubmit = (e) => {
     e.preventDefault();
-    if (processing) return;
+    if (processing || !confirmation.hidden) return;
     const f = new FormData(e.target),
       name = f.get("name").trim();
     if (!name) return;
     const n = {
+      ...structuredClone(c || {}),
       id: c?.id || id(),
       name,
-      species: f.get("species").trim(),
+      species: draftSpecies,
+      ...(storedPresetId ? { speciesPresetId: storedPresetId } : {}),
       level: Number(f.get("level")),
       photo,
       fate: modal.querySelectorAll('[data-form-point="fate"]:checked').length,
@@ -425,9 +526,15 @@ function characterForm(c) {
         '[data-form-point="experience"]:checked',
       ).length,
       stats: Object.fromEntries(stats.map((s) => [s, f.get(s)])),
-      ...Object.fromEntries(
-        ["equipment", "skills", "spells", "notes"].map((k) => [k, f.get(k)]),
+      equipment: c?.equipment || "",
+      skills: c?.skills || "",
+      spells: c?.spells || "",
+      notes: f.get("notes"),
+      equipmentSlots: Object.fromEntries(
+        Object.keys(equipmentCategories).map((k) => [k, f.get("slot-" + k)]),
       ),
+      skillEntries: structuredClone(inventory.skillEntries),
+      spellEntries: structuredClone(inventory.spellEntries),
     };
     change(() => {
       if (c) band().characters[band().characters.indexOf(c)] = n;
@@ -438,19 +545,33 @@ function characterForm(c) {
 }
 function detail(c, editable = false) {
   show(
-    `<div class="row">${portrait(c)}<div><h2>${esc(c.name)}</h2><p>${esc(c.species)} · Lv.${c.level}</p></div></div><div class="stats">${stats.map((s) => `<div><span class="muted">${s}</span><br><strong>${esc(c.stats[s])}</strong></div>`).join("")}</div>${[
-      ["equipment", "装備"],
-      ["skills", "スキル"],
-      ["spells", "呪文"],
-      ["notes", "特殊効果・メモ"],
-    ]
+    `<div class="row">${portrait(c)}<div><h2>${esc(c.name)}</h2><p>${esc(c.species)} · Lv.${c.level}</p></div></div><div class="stats">${stats.map((s) => `<div><span class="muted">${s}</span><br><strong>${esc(c.stats[s])}</strong></div>`).join("")}</div><h3>装備</h3><dl class="status-grid">${Object.entries(
+      equipmentCategories,
+    )
       .map(
-        ([k, l]) =>
-          `<h3>${l}</h3><p class="detail-text">${esc(c[k]) || "—"}</p>`,
+        ([key, label]) =>
+          `<div><dt>${label}</dt><dd class="detail-text">${esc(characterInventory(c).equipmentSlots[key]) || "—"}</dd></div>`,
       )
       .join(
         "",
-      )}${editable ? btn("編集", "edit-character", `data-id="${c.id}"`) : ""}${btn("閉じる", "close")}`,
+      )}</dl>${c.equipment ? `<details><summary>旧装備（未分類・原文）</summary><p class="detail-text">${esc(c.equipment)}</p></details>` : ""}${[
+      ["skillEntries", "スキル"],
+      ["spellEntries", "呪文"],
+    ]
+      .map(
+        ([key, label]) =>
+          `<h3>${label}</h3><ol>${
+            characterInventory(c)
+              [key].map(
+                (text) =>
+                  `<li class="detail-text">${esc(text) || "（未入力）"}</li>`,
+              )
+              .join("") || "<li>登録なし</li>"
+          }</ol>`,
+      )
+      .join(
+        "",
+      )}${c.skills || c.spells ? `<details><summary>移行前のスキル・呪文の原文</summary><h3>スキル</h3><p class="detail-text">${esc(c.skills)}</p><h3>呪文</h3><p class="detail-text">${esc(c.spells)}</p></details>` : ""}<h3>特殊効果・メモ</h3><p class="detail-text">${esc(c.notes) || "—"}</p>${editable ? btn("編集", "edit-character", `data-id="${c.id}"`) : ""}${btn("閉じる", "close")}`,
   );
 }
 function effectForm(c) {
