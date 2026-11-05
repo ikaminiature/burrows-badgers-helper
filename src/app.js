@@ -30,6 +30,12 @@ let data,
   saveQueue = Promise.resolve(),
   failed = false,
   pending = 0;
+let rosterEditMode = false;
+const expandedCards = new Set();
+function resetRosterView() {
+  rosterEditMode = false;
+  expandedCards.clear();
+}
 let restoreQueue = Promise.resolve(),
   updateBusy = false;
 const updater = createUpdater({
@@ -106,7 +112,10 @@ function confirmAction(title, message, action) {
 }
 function navigate() {
   const route = location.hash.slice(1) || "home";
-  if (route === "bands" && screen !== "bands") bandId = undefined;
+  if (route !== screen) {
+    resetRosterView();
+    if (route === "bands") bandId = undefined;
+  }
   screen = ["home", "bands", "battle", "choose"].includes(route)
     ? route
     : "home";
@@ -150,7 +159,14 @@ const cardStats = [
   ["P", "Presence"],
 ];
 function points(c, key, label, form = false, battle = false) {
-  return `<fieldset class="points"><legend>${label}</legend><div>${Array.from({ length: 5 }, (_, i) => `<label><input type="checkbox" ${form ? `data-form-point="${key}"` : `data-point="${key}" data-id="${c.id}" ${battle ? 'data-battle-point="true"' : "disabled"}`} data-value="${i + 1}" aria-label="${form ? "" : esc(c.name) + "の"}${label} ${i + 1}" ${(c[key] || 0) > i ? "checked" : ""}></label>`).join("")}</div></fieldset>`;
+  const checks = Array.from(
+    { length: 5 },
+    (_, i) =>
+      `<label><input type="checkbox" ${form ? `data-form-point="${key}"` : `data-point="${key}" data-id="${c.id}" ${battle ? 'data-battle-point="true"' : "disabled"}`} data-value="${i + 1}" aria-label="${form ? "" : esc(c.name) + "の"}${label} ${i + 1}" ${(c[key] || 0) > i ? "checked" : ""}></label>`,
+  ).join("");
+  return !form && !battle
+    ? `<div class="points readonly-points" role="group" aria-label="${label}"><span class="point-caption">${label}</span><div>${checks}</div></div>`
+    : `<fieldset class="points"><legend>${label}</legend><div>${checks}</div></fieldset>`;
 }
 function bandView(w) {
   const s = w.status;
@@ -179,7 +195,7 @@ function bandView(w) {
     )
     .join(
       "",
-    )}<h2>メモ</h2><p class="detail-text">${esc(s.notes) || "—"}</p></section><h2>登録キャラクター</h2>${w.characters.map((c, i) => `<article class="card roster-card"><div class="roster-top"><div class="roster-photo">${portrait(c)}<span class="level">Lv. ${String(c.level).padStart(2, "0")}</span></div><div class="roster-info"><div class="identity"><h3>${btn(esc(c.name), "roster-detail", `data-id="${c.id}" class="character-name" title="${esc(c.name)}"`)}</h3><span class="muted">${esc(c.species)}</span></div><div class="point-trackers">${points(c, "fate", "運命点")}${points(c, "experience", "経験値")}</div></div></div><div class="card-stats">${cardStats.map((pair) => (pair ? `<span aria-label="${pair[1]} ${esc(c.stats[pair[1]])}">${pair[0]}${esc(c.stats[pair[1]].replace(/^D/, ""))}</span>` : '<span aria-hidden="true"></span>')).join("")}</div><div class="actions">${btn("編集", "edit-character", `data-id="${c.id}"`)}${btn("複製", "duplicate", `data-id="${c.id}"`)}${btn("↑", "up", `data-id="${c.id}" aria-label="${esc(c.name)}を上へ" ${i === 0 ? "disabled" : ""}`)}${btn("↓", "down", `data-id="${c.id}" aria-label="${esc(c.name)}を下へ" ${i === w.characters.length - 1 ? "disabled" : ""}`)}${btn("削除", "delete-character", `data-id="${c.id}" class="danger"`)}</div></article>`).join("") || '<p class="empty">キャラクターは未登録です。</p>'}<section class="card"><h2>管理・編集メニュー</h2><div class="actions">${btn("ステータス編集", "band-status")}${btn("名前変更", "rename-band")}${btn("＋ キャラクター登録", "new-character", 'class="primary"')}${btn("ウォーバンド削除", "delete-band", 'class="danger"')}</div></section>`;
+    )}<h2>メモ</h2><p class="detail-text">${esc(s.notes) || "—"}</p></section><div class="row between"><h2>登録キャラクター</h2>${btn(rosterEditMode ? "編集モードを終了" : "編集モード", "toggle-roster-edit", `aria-pressed="${rosterEditMode}"`)}</div>${w.characters.map((c, i) => `<article class="card roster-card"><div class="roster-top"><div class="roster-photo">${portrait(c)}<span class="level">Lv. ${String(c.level).padStart(2, "0")}</span></div><div class="roster-info"><div class="identity"><h3>${btn(esc(c.name), "roster-detail", `data-id="${c.id}" class="character-name" title="${esc(c.name)}"`)}</h3><span class="muted">${esc(c.species)}</span></div><div class="point-trackers">${points(c, "fate", "運命点")}${points(c, "experience", "経験値")}</div></div></div><div class="card-stats">${cardStats.map((pair) => (pair ? `<span aria-label="${pair[1]} ${esc(c.stats[pair[1]])}">${pair[0]}${esc(c.stats[pair[1]].replace(/^D/, ""))}</span>` : '<span aria-hidden="true"></span>')).join("")}</div>${btn(expandedCards.has(c.id) ? "装備・スキル・呪文を閉じる" : "装備・スキル・呪文を表示", "toggle-character-info", `data-id="${c.id}" aria-expanded="${expandedCards.has(c.id)}" aria-controls="character-info-${c.id}"`)}<section id="character-info-${c.id}" class="character-extra" aria-label="${esc(c.name)}の装備・スキル・呪文" ${expandedCards.has(c.id) ? "" : "hidden"}>${characterExtras(c)}</section>${rosterEditMode ? `<div class="actions">${btn("編集", "edit-character", `data-id="${c.id}"`)}${btn("複製", "duplicate", `data-id="${c.id}"`)}${btn("↑", "up", `data-id="${c.id}" aria-label="${esc(c.name)}を上へ" ${i === 0 ? "disabled" : ""}`)}${btn("↓", "down", `data-id="${c.id}" aria-label="${esc(c.name)}を下へ" ${i === w.characters.length - 1 ? "disabled" : ""}`)}${btn("削除", "delete-character", `data-id="${c.id}" class="danger"`)}</div>` : ""}</article>`).join("") || '<p class="empty">キャラクターは未登録です。</p>'}<section class="card"><h2>管理・編集メニュー</h2><div class="actions">${btn("ステータス編集", "band-status")}${btn("名前変更", "rename-band")}${btn("＋ キャラクター登録", "new-character", 'class="primary"')}${btn("ウォーバンド削除", "delete-band", 'class="danger"')}</div></section>`;
 }
 function battleView() {
   const g = data.game;
@@ -543,35 +559,39 @@ function characterForm(c) {
     modal.close();
   };
 }
+function characterExtras(c) {
+  const inventory = characterInventory(c);
+  return `<h3>装備</h3><dl class="status-grid">${Object.entries(
+    equipmentCategories,
+  )
+    .map(
+      ([key, label]) =>
+        `<div><dt>${label}</dt><dd class="detail-text">${esc(inventory.equipmentSlots[key]) || "—"}</dd></div>`,
+    )
+    .join(
+      "",
+    )}</dl>${c.equipment ? `<details><summary>旧装備（未分類・原文）</summary><p class="detail-text">${esc(c.equipment)}</p></details>` : ""}${[
+    ["skillEntries", "スキル"],
+    ["spellEntries", "呪文"],
+  ]
+    .map(
+      ([key, label]) =>
+        `<h3>${label}</h3><ol>${
+          inventory[key]
+            .map(
+              (text) =>
+                `<li class="detail-text">${esc(text) || "（未入力）"}</li>`,
+            )
+            .join("") || "<li>登録なし</li>"
+        }</ol>`,
+    )
+    .join(
+      "",
+    )}${c.skills || c.spells ? `<details><summary>移行前のスキル・呪文の原文</summary><h3>スキル</h3><p class="detail-text">${esc(c.skills)}</p><h3>呪文</h3><p class="detail-text">${esc(c.spells)}</p></details>` : ""}<h3>特殊効果・メモ</h3><p class="detail-text">${esc(c.notes) || "—"}</p>`;
+}
 function detail(c, editable = false) {
   show(
-    `<div class="row">${portrait(c)}<div><h2>${esc(c.name)}</h2><p>${esc(c.species)} · Lv.${c.level}</p></div></div><div class="stats">${stats.map((s) => `<div><span class="muted">${s}</span><br><strong>${esc(c.stats[s])}</strong></div>`).join("")}</div><h3>装備</h3><dl class="status-grid">${Object.entries(
-      equipmentCategories,
-    )
-      .map(
-        ([key, label]) =>
-          `<div><dt>${label}</dt><dd class="detail-text">${esc(characterInventory(c).equipmentSlots[key]) || "—"}</dd></div>`,
-      )
-      .join(
-        "",
-      )}</dl>${c.equipment ? `<details><summary>旧装備（未分類・原文）</summary><p class="detail-text">${esc(c.equipment)}</p></details>` : ""}${[
-      ["skillEntries", "スキル"],
-      ["spellEntries", "呪文"],
-    ]
-      .map(
-        ([key, label]) =>
-          `<h3>${label}</h3><ol>${
-            characterInventory(c)
-              [key].map(
-                (text) =>
-                  `<li class="detail-text">${esc(text) || "（未入力）"}</li>`,
-              )
-              .join("") || "<li>登録なし</li>"
-          }</ol>`,
-      )
-      .join(
-        "",
-      )}${c.skills || c.spells ? `<details><summary>移行前のスキル・呪文の原文</summary><h3>スキル</h3><p class="detail-text">${esc(c.skills)}</p><h3>呪文</h3><p class="detail-text">${esc(c.spells)}</p></details>` : ""}<h3>特殊効果・メモ</h3><p class="detail-text">${esc(c.notes) || "—"}</p>${editable ? btn("編集", "edit-character", `data-id="${c.id}"`) : ""}${btn("閉じる", "close")}`,
+    `<div class="row">${portrait(c)}<div><h2>${esc(c.name)}</h2><p>${esc(c.species)} · Lv.${c.level}</p></div></div><div class="stats">${stats.map((s) => `<div><span class="muted">${s}</span><br><strong>${esc(c.stats[s])}</strong></div>`).join("")}</div>${characterExtras(c)}${editable ? btn("編集", "edit-character", `data-id="${c.id}"`) : ""}${btn("閉じる", "close")}`,
   );
 }
 function effectForm(c) {
@@ -619,6 +639,7 @@ async function restore(file) {
           try {
             await write(incoming);
             data = incoming;
+            resetRosterView();
             failed = false;
             bandId = undefined;
             status.textContent = "端末に保存済み";
@@ -650,23 +671,52 @@ document.addEventListener("click", (e) => {
     w = band(),
     c = data.game?.characters.find((c) => c.id === b.dataset.id),
     wc = w?.characters.find((c) => c.id === b.dataset.id);
+  if (
+    ["edit-character", "duplicate", "delete-character", "up", "down"].includes(
+      a,
+    ) &&
+    (!rosterEditMode || screen !== "bands" || !wc)
+  )
+    return;
   switch (a) {
     case "close":
       modal.close();
       break;
+    case "toggle-roster-edit":
+      rosterEditMode = !rosterEditMode;
+      render();
+      document
+        .querySelector('[data-action="toggle-roster-edit"]')
+        ?.focus({ preventScroll: true });
+      break;
+    case "toggle-character-info": {
+      if (!wc) break;
+      const open = !expandedCards.has(wc.id);
+      if (open) expandedCards.add(wc.id);
+      else expandedCards.delete(wc.id);
+      document.getElementById("character-info-" + wc.id).hidden = !open;
+      b.textContent = open
+        ? "装備・スキル・呪文を閉じる"
+        : "装備・スキル・呪文を表示";
+      b.setAttribute("aria-expanded", String(open));
+      break;
+    }
     case "new-band":
+      resetRosterView();
       nameForm();
       break;
     case "open-band":
+      resetRosterView();
       bandId = b.dataset.id;
       render();
       break;
     case "close-band":
+      resetRosterView();
       bandId = undefined;
       render();
       break;
     case "roster-detail":
-      detail(wc, true);
+      detail(wc, rosterEditMode);
       break;
     case "band-status":
       bandStatusForm(w);

@@ -1,3 +1,4 @@
+const { enableRosterEditing } = require("./support/roster.cjs");
 const { chromium } = require("playwright");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -158,6 +159,7 @@ const http = require("node:http");
         .getByRole("link", { name: "ウォーバンド", exact: true })
         .click();
       await page.getByRole("button", { name: "開く", exact: true }).click();
+      await enableRosterEditing(page);
       await page.getByRole("button", { name: "編集", exact: true }).click();
       await page
         .getByRole("checkbox", { name: "運命点 " + n, exact: true })

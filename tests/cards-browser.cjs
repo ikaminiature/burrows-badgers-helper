@@ -1,3 +1,4 @@
+const { enableRosterEditing } = require("./support/roster.cjs");
 const { chromium } = require("playwright");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -118,6 +119,7 @@ const os = require("node:os");
       .first()
       .evaluate((e) => e.click());
     assert.equal(await card.locator('[data-point="fate"]:checked').count(), 5);
+    await enableRosterEditing(page);
     await card.getByRole("button", { name: "編集", exact: true }).click();
     await page
       .getByRole("checkbox", { name: "運命点 4", exact: true })
@@ -138,6 +140,7 @@ const os = require("node:os");
       5,
     );
     // Selecting the name opens full information and the existing edit form.
+    await enableRosterEditing(page);
     await card.getByRole("button", { name, exact: true }).click();
     await page
       .getByRole("button", { name: "編集", exact: true })
@@ -183,6 +186,7 @@ const os = require("node:os");
       await card.locator('[data-point="experience"]:checked').count(),
       1,
     );
+    await enableRosterEditing(page);
     await card.getByRole("button", { name: "編集", exact: true }).click();
     await page
       .getByRole("checkbox", { name: "運命点 1", exact: true })
