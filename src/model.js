@@ -10,7 +10,43 @@ export const stats = [
   "Presence",
 ];
 export const dice = ["D4", "D6", "D8", "D10", "D12", "D20"];
-export const emptyData = () => ({ version: 1, warbands: [], game: null });
+export const emptyData = () => ({ version: 2, warbands: [], game: null });
+export const bandNumbers = {
+  rating: "レーティング",
+  pension: "年金",
+  labour: "労働力",
+  materials: "資材",
+  treasury: "トレジャリー",
+};
+export const bandTexts = {
+  alliance: "アライアンス",
+  archetype: "アーキタイプ",
+  notes: "メモ",
+};
+export const bandLists = {
+  stash: "隠しておいた装備",
+  upgrades: "アジト・アップグレード",
+};
+export const emptyBandStatus = () => ({
+  ...Object.fromEntries(Object.keys(bandNumbers).map((k) => [k, 0])),
+  alliance: "",
+  archetype: "",
+  notes: "",
+  stash: [],
+  upgrades: [],
+});
+// Migrate a copy: never rewrite characters, photos or an existing battle record.
+export function loadData(input) {
+  const d = structuredClone(input);
+  if (!d || ![1, 2].includes(d.version) || !Array.isArray(d.warbands))
+    throw Error("対応していないバックアップ形式です");
+  if (d.version === 1) {
+    for (const w of d.warbands)
+      if (w && w.status === undefined) w.status = emptyBandStatus();
+    d.version = 2;
+  }
+  return validateData(d);
+}
 export const id = () => crypto.randomUUID();
 export function penalty(w) {
   return w === 17
@@ -34,6 +70,7 @@ export function startGame(w) {
   return {
     id: id(),
     name: w.name,
+    status: structuredClone(w.status || emptyBandStatus()),
     round: 1,
     characters: structuredClone(w.characters).map((c) => ({
       ...c,
@@ -48,16 +85,32 @@ export function nextRound(g) {
   for (const c of g.characters) c.acted = c.wounds === 17;
 }
 export function validateData(d) {
-  if (
-    !d ||
-    d.version !== 1 ||
-    !Array.isArray(d.warbands)
-  )
+  if (!d || d.version !== 2 || !Array.isArray(d.warbands))
     throw Error("対応していないバックアップ形式です");
   const ids = new Set();
   const validId = (v) =>
     typeof v === "string" && /^[A-Za-z0-9_-]{1,100}$/.test(v);
   const str = (v, max = 20000) => typeof v === "string" && v.length <= max;
+  const checkStatus = (s) => {
+    if (
+      !s ||
+      !Object.keys(bandNumbers).every(
+        (k) => typeof s[k] === "number" && Number.isFinite(s[k]),
+      ) ||
+      !Object.keys(bandTexts).every((k) => str(s[k])) ||
+      !Object.keys(bandLists).every((k) => {
+        if (!Array.isArray(s[k])) return false;
+        const seen = new Set();
+        return s[k].every((e) => {
+          if (!e || !validId(e.id) || seen.has(e.id) || !str(e.name))
+            return false;
+          seen.add(e.id);
+          return true;
+        });
+      })
+    )
+      throw Error("ウォーバンドステータスが不正です");
+  };
   const character = (c) => {
     if (
       !c ||
@@ -87,6 +140,7 @@ export function validateData(d) {
       !Array.isArray(w.characters)
     )
       throw Error("ウォーバンドデータが不正です");
+    checkStatus(w.status);
     ids.add(w.id);
     const cs = new Set();
     for (const c of w.characters) {
@@ -106,6 +160,7 @@ export function validateData(d) {
       !Array.isArray(g.characters)
     )
       throw Error("ゲームデータが不正です");
+    if (g.status !== undefined) checkStatus(g.status);
     const cs = new Set();
     for (const c of g.characters) {
       character(c);
