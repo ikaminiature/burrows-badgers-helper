@@ -1,3 +1,4 @@
+const { enableRosterEditing } = require("./support/roster.cjs");
 const { chromium } = require("playwright");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -67,6 +68,7 @@ const os = require("node:os");
         .getByRole("link", { name: "ウォーバンド", exact: true })
         .click();
       await page.getByRole("button", { name: "開く", exact: true }).click();
+      await enableRosterEditing(page);
       await page.getByRole("button", { name: "編集", exact: true }).click();
     }
     await edit();
@@ -100,7 +102,7 @@ const os = require("node:os");
         .inputValue(),
       "Heal",
     );
-    await page.getByText("旧装備（未分類・原文）", { exact: true }).click();
+    await page.locator('#character-form').getByText("旧装備（未分類・原文）", { exact: true }).click();
     assert.equal(
       await page.getByRole("textbox", { name: "旧装備の原文" }).inputValue(),
       c.equipment,

@@ -671,3 +671,51 @@ dialog li {
 #character-form select {
   font-size: 16px;
 }
+
+.roster-card .points {
+  display: grid;
+  grid-template-columns: 42px 120px;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.roster-card .points legend {
+  display: contents;
+  float: none;
+  line-height: 32px;
+}
+.roster-card .points > div {
+  display: flex;
+  flex-wrap: nowrap;
+  grid-column: 2;
+  grid-row: 1;
+}
+.roster-card .points > div label {
+  flex: 0 0 24px;
+}
+.roster-card .character-extra {
+  border-top: 1px solid var(--line);
+  margin-top: 12px;
+  padding-top: 12px;
+}
+.character-extra h3 {
+  font-size: 16px;
+  margin-top: 14px;
+}
+.character-extra dl {
+  margin-top: 8px;
+}
+.roster-card > [data-action="toggle-character-info"] {
+  margin-top: 12px;
+  width: 100%;
+}
+
+.roster-card .point-caption {
+  grid-column: 1;
+  grid-row: 1;
+  width: 42px;
+  font-size: 12px;
+  line-height: 32px;
+  color: var(--muted);
+  white-space: nowrap;
+}

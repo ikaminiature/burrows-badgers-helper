@@ -1,3 +1,4 @@
+const { enableRosterEditing } = require("./support/roster.cjs");
 const { chromium } = require("playwright");
 const assert = require("node:assert/strict");
 (async () => {
@@ -196,6 +197,7 @@ const assert = require("node:assert/strict");
   await page.getByRole("button", { name: "確認して実行" }).click();
   await page.getByRole("link", { name: /ウォーバンドを管理/ }).click();
   await page.getByRole("button", { name: "開く", exact: true }).click();
+  await enableRosterEditing(page);
   await page.getByRole("button", { name: "編集", exact: true }).first().click();
   assert.equal(
     await page.getByRole("textbox", { name: "名前", exact: true }).inputValue(),

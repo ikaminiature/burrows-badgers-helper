@@ -1,3 +1,4 @@
+const { enableRosterEditing } = require("./support/roster.cjs");
 const { chromium } = require("playwright");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -55,20 +56,18 @@ const os = require("node:os");
             .getByRole("button", { name: "初期値に置き換える", exact: true })
             .click();
         first = false;
-        const actual = await page
-          .locator("#character-form")
-          .evaluate(
-            (form, keys) => ({
-              level: Number(form.elements.level.value),
-              stats: Object.fromEntries(
-                keys.map((k) => [k, form.elements[k].value]),
-              ),
-              skills: [
-                ...form.querySelectorAll("#character-skillEntries textarea"),
-              ].map((e) => e.value),
-            }),
-            stats,
-          );
+        const actual = await page.locator("#character-form").evaluate(
+          (form, keys) => ({
+            level: Number(form.elements.level.value),
+            stats: Object.fromEntries(
+              keys.map((k) => [k, form.elements[k].value]),
+            ),
+            skills: [
+              ...form.querySelectorAll("#character-skillEntries textarea"),
+            ].map((e) => e.value),
+          }),
+          stats,
+        );
         assert.deepEqual(
           actual,
           { level: p.level, stats: p.stats, skills: p.skills },
@@ -108,6 +107,7 @@ const os = require("node:os");
       .waitFor();
     await page.reload();
     await page.getByRole("button", { name: "開く", exact: true }).click();
+    await enableRosterEditing(page);
     await page.getByRole("button", { name: "編集", exact: true }).click();
     assert.equal(
       await page
@@ -227,6 +227,7 @@ const os = require("node:os");
     await page.reload();
     await page.getByRole("link", { name: "ウォーバンド", exact: true }).click();
     await page.getByRole("button", { name: "開く", exact: true }).click();
+    await enableRosterEditing(page);
     await page.getByRole("button", { name: "編集", exact: true }).click();
     assert.equal(
       await page
