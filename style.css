@@ -534,4 +534,51 @@ dialog li {
   height: 24px;
 }
 
-.resources dt{min-height:2.8em;line-height:1.4}.point-trackers{align-self:start}.character-name{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden}.level{white-space:nowrap;display:inline-block}
+.resources dt {
+  min-height: 2.8em;
+  line-height: 1.4;
+}
+.point-trackers {
+  align-self: start;
+}
+.character-name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+}
+.level {
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.resources > div {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 3px;
+  background: var(--bg);
+  text-align: center;
+  min-width: 0;
+}
+.resources dt {
+  font-size: 11px;
+}
+.resources dd {
+  font-size: clamp(18px, 5.4vw, 22px);
+  letter-spacing: -0.04em;
+}
+.roster-card .points input:disabled {
+  opacity: 1;
+  cursor: default;
+}
+.roster-card .points label {
+  cursor: default;
+}
+.battle > .points {
+  display: inline-block;
+  margin: 10px 14px 10px 0;
+}
+.battle > .points label {
+  width: 32px;
+  min-height: 40px;
+}

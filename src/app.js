@@ -15,6 +15,7 @@ import {
   bandLists,
 } from "./model.js";
 import { read, write } from "./db.js";
+import { createUpdater } from "./update.js";
 const app = document.querySelector("#app"),
   modal = document.querySelector("#modal"),
   status = document.querySelector("#save-status");
@@ -24,6 +25,27 @@ let data,
   saveQueue = Promise.resolve(),
   failed = false,
   pending = 0;
+let restoreQueue = Promise.resolve(),
+  updateBusy = false;
+const updater = createUpdater({
+  beforeReload: async () => {
+    await saveQueue;
+    await restoreQueue;
+    await saveQueue;
+    if (pending || failed || !data) throw Error("unsaved");
+  },
+  busy: (active) => {
+    updateBusy = active;
+    if (active)
+      show(
+        "<h2>更新しています…</h2><p>保存完了を待っています。この画面を閉じずにお待ちください。</p>",
+      );
+    else if (modal.open) modal.close();
+  },
+});
+modal.addEventListener("cancel", (e) => {
+  if (updateBusy) e.preventDefault();
+});
 const esc = (s) =>
   String(s ?? "").replace(
     /[&<>"']/g,
@@ -98,7 +120,7 @@ function render() {
       ),
     );
   if (screen === "home")
-    app.innerHTML = `<div class="hero"><div class="eyebrow">BURROWS & BADGERS · 2ND EDITION</div><h1>小さな戦士たちの、<br>次の冒険へ。</h1><p>ウォーバンドを整えて、卓上の戦いに集中。</p><div class="stack"><a class="button primary" href="#choose">ゲームを開始</a>${data.game ? `<a class="button" href="#battle">${esc(data.game.name)} · ラウンド ${data.game.round} を再開</a>` : ""}</div></div><h2>冒険の準備</h2><a class="button" href="#bands">ウォーバンドを管理（${data.warbands.length}）</a><section class="card"><h2>データのバックアップ</h2><p class="muted">データと写真はこの端末・ブラウザ内に保存されます。定期的に写真を含む JSON を保管してください。</p><div class="actions">${btn("JSON を書き出す", "export")}${btn("JSON から復元", "import")}</div><input id="restore-file" type="file" accept="application/json,.json" hidden></section><details class="card"><summary>オフラインで使う・ホーム画面に追加</summary><p>一度オンラインで開き、読み込みを終えてから使ってください。iPhone は Safari の共有メニューから「ホーム画面に追加」を選びます。</p><p class="muted">非公式の補助ツールです。ルールの自動判定は負傷管理のみ。ブラウザのデータ削除で保存内容が消えるため、バックアップを推奨します。</p></details>`;
+    app.innerHTML = `<div class="hero"><div class="eyebrow">BURROWS & BADGERS · 2ND EDITION</div><h1>小さな戦士たちの、<br>次の冒険へ。</h1><p>ウォーバンドを整えて、卓上の戦いに集中。</p><div class="stack"><a class="button primary" href="#choose">ゲームを開始</a>${data.game ? `<a class="button" href="#battle">${esc(data.game.name)} · ラウンド ${data.game.round} を再開</a>` : ""}</div></div>${updater.html()}<h2>冒険の準備</h2><a class="button" href="#bands">ウォーバンドを管理（${data.warbands.length}）</a><section class="card"><h2>データのバックアップ</h2><p class="muted">データと写真はこの端末・ブラウザ内に保存されます。定期的に写真を含む JSON を保管してください。</p><div class="actions">${btn("JSON を書き出す", "export")}${btn("JSON から復元", "import")}</div><input id="restore-file" type="file" accept="application/json,.json" hidden></section><details class="card"><summary>オフラインで使う・ホーム画面に追加</summary><p>一度オンラインで開き、読み込みを終えてから使ってください。iPhone は Safari の共有メニューから「ホーム画面に追加」を選びます。</p><p class="muted">非公式の補助ツールです。ルールの自動判定は負傷管理のみ。ブラウザのデータ削除で保存内容が消えるため、バックアップを推奨します。</p></details>`;
   if (screen === "bands")
     app.innerHTML = band()
       ? bandView(band())
@@ -122,8 +144,8 @@ const cardStats = [
   ["A", "Awareness"],
   ["P", "Presence"],
 ];
-function points(c, key, label, form = false) {
-  return `<fieldset class="points"><legend>${label}</legend><div>${Array.from({ length: 5 }, (_, i) => `<label><input type="checkbox" ${form ? `data-form-point="${key}"` : `data-point="${key}" data-id="${c.id}"`} data-value="${i + 1}" aria-label="${form ? "" : esc(c.name) + "の"}${label} ${i + 1}" ${(c[key] || 0) > i ? "checked" : ""}></label>`).join("")}</div></fieldset>`;
+function points(c, key, label, form = false, battle = false) {
+  return `<fieldset class="points"><legend>${label}</legend><div>${Array.from({ length: 5 }, (_, i) => `<label><input type="checkbox" ${form ? `data-form-point="${key}"` : `data-point="${key}" data-id="${c.id}" ${battle ? 'data-battle-point="true"' : "disabled"}`} data-value="${i + 1}" aria-label="${form ? "" : esc(c.name) + "の"}${label} ${i + 1}" ${(c[key] || 0) > i ? "checked" : ""}></label>`).join("")}</div></fieldset>`;
 }
 function bandView(w) {
   const s = w.status;
@@ -161,7 +183,7 @@ function battleView() {
   )
     .map(
       (c) =>
-        `<article class="card battle ${c.acted ? "acted" : ""} ${c.wounds === 17 ? "out" : ""}"><div class="row">${portrait(c)}<div class="identity"><h3>${esc(c.name)}</h3><span class="muted">${esc(c.species)}</span></div><span class="badge">${c.wounds === 17 ? "戦闘不能" : c.acted ? "行動済み" : "未行動"}</span></div><div class="row between"><div><span class="wound-count">${c.wounds}</span> / 17 <span class="muted">負傷</span></div><strong>ペナルティ ${penalty(c.wounds)}</strong></div><div class="gauge" role="img" aria-label="負傷 ${c.wounds} / 17">${Array.from({ length: 17 }, (_, i) => `<span class="pip ${[4, 7, 10, 13].includes(i + 1) ? "threshold" : ""} ${i === 16 ? "last" : ""} ${i < c.wounds ? "filled" : ""}">${i + 1}</span>`).join("")}</div><div class="row between"><div class="row wound-controls">${btn("−1", "minus", `data-id="${c.id}" aria-label="${esc(c.name)}の負傷を1減らす" ${c.wounds === 0 ? "disabled" : ""}`)}${btn("＋1", "plus", `data-id="${c.id}" aria-label="${esc(c.name)}の負傷を1増やす" ${c.wounds === 17 ? "disabled" : ""}`)}</div><label class="check"><input type="checkbox" data-acted="${c.id}" ${c.acted ? "checked" : ""} ${c.wounds === 17 ? "disabled" : ""}>行動済み</label></div><details><summary>状態・効果（${c.effects.length}）</summary>${c.effects.map((e) => `<div class="effect"><strong>${esc(e.name)}</strong><p>${esc(e.description)}</p>${btn("解除", "remove-effect", `data-id="${c.id}" data-effect="${e.id}"`)}</div>`).join("")}${btn("＋ 状態・効果を追加", "add-effect", `data-id="${c.id}"`)}</details>${btn("キャラクター詳細", "detail", `data-id="${c.id}"`)}</article>`,
+        `<article class="card battle ${c.acted ? "acted" : ""} ${c.wounds === 17 ? "out" : ""}"><div class="row">${portrait(c)}<div class="identity"><h3>${esc(c.name)}</h3><span class="muted">${esc(c.species)}</span></div><span class="badge">${c.wounds === 17 ? "戦闘不能" : c.acted ? "行動済み" : "未行動"}</span></div><div class="row between"><div><span class="wound-count">${c.wounds}</span> / 17 <span class="muted">負傷</span></div><strong>ペナルティ ${penalty(c.wounds)}</strong></div><div class="gauge" role="img" aria-label="負傷 ${c.wounds} / 17">${Array.from({ length: 17 }, (_, i) => `<span class="pip ${[4, 7, 10, 13].includes(i + 1) ? "threshold" : ""} ${i === 16 ? "last" : ""} ${i < c.wounds ? "filled" : ""}">${i + 1}</span>`).join("")}</div><div class="row between"><div class="row wound-controls">${btn("−1", "minus", `data-id="${c.id}" aria-label="${esc(c.name)}の負傷を1減らす" ${c.wounds === 0 ? "disabled" : ""}`)}${btn("＋1", "plus", `data-id="${c.id}" aria-label="${esc(c.name)}の負傷を1増やす" ${c.wounds === 17 ? "disabled" : ""}`)}</div><label class="check"><input type="checkbox" data-acted="${c.id}" ${c.acted ? "checked" : ""} ${c.wounds === 17 ? "disabled" : ""}>行動済み</label></div><details><summary>状態・効果（${c.effects.length}）</summary>${c.effects.map((e) => `<div class="effect"><strong>${esc(e.name)}</strong><p>${esc(e.description)}</p>${btn("解除", "remove-effect", `data-id="${c.id}" data-effect="${e.id}"`)}</div>`).join("")}${btn("＋ 状態・効果を追加", "add-effect", `data-id="${c.id}"`)}</details>${points(c, "fate", "運命点", false, true)}${points(c, "experience", "経験値", false, true)}${btn("キャラクター詳細", "detail", `data-id="${c.id}"`)}</article>`,
     )
     .join(
       "",
@@ -433,30 +455,33 @@ async function restore(file) {
     confirmAction(
       "バックアップを復元",
       "現在の全ウォーバンドと進行中のゲームを置き換えます。先にバックアップを保管してください。",
-      async () => {
-        pending++;
-        status.textContent = "復元中…";
-        show("<h2>復元中…</h2><p>この画面を閉じずにお待ちください。</p>");
-        await saveQueue;
-        // Earlier autosaves may update the status while we await their completion.
-        status.textContent = "復元中…";
-        try {
-          await write(incoming);
-          data = incoming;
-          failed = false;
-          bandId = undefined;
-          status.textContent = "端末に保存済み";
-          modal.close();
-          render();
-        } catch {
-          status.textContent = "復元失敗・元のデータを保持";
-          show(
-            "<h2>復元できませんでした</h2><p>保存容量やブラウザの設定を確認してください。現在のデータは維持しています。</p>" +
-              btn("閉じる", "close"),
-          );
-        } finally {
-          pending--;
-        }
+      () => {
+        restoreQueue = (async () => {
+          pending++;
+          status.textContent = "復元中…";
+          show("<h2>復元中…</h2><p>この画面を閉じずにお待ちください。</p>");
+          await saveQueue;
+          // Earlier autosaves may update the status while we await their completion.
+          status.textContent = "復元中…";
+          try {
+            await write(incoming);
+            data = incoming;
+            failed = false;
+            bandId = undefined;
+            status.textContent = "端末に保存済み";
+            modal.close();
+            render();
+          } catch {
+            status.textContent = "復元失敗・元のデータを保持";
+            show(
+              "<h2>復元できませんでした</h2><p>保存容量やブラウザの設定を確認してください。現在のデータは維持しています。</p>" +
+                btn("閉じる", "close"),
+            );
+          } finally {
+            pending--;
+          }
+        })();
+        return restoreQueue;
       },
     );
   } catch (e) {
@@ -600,8 +625,12 @@ document.addEventListener("click", (e) => {
   }
 });
 document.addEventListener("change", (e) => {
-  if (e.target.dataset.point) {
-    const c = band()?.characters.find((c) => c.id === e.target.dataset.id);
+  if (
+    e.target.dataset.point &&
+    e.target.dataset.battlePoint &&
+    screen === "battle"
+  ) {
+    const c = data.game?.characters.find((c) => c.id === e.target.dataset.id);
     if (c)
       change(
         () =>
@@ -643,7 +672,3 @@ try {
     "<h1>データを読み込めません</h1><p>Safari のストレージ設定・空き容量を確認し、再読み込みしてください。保存データは変更していません。</p>";
   status.textContent = "保存機能を利用できません";
 }
-if ("serviceWorker" in navigator)
-  navigator.serviceWorker.register("./sw.js").catch(() => {
-    status.textContent += " · オフライン準備失敗";
-  });

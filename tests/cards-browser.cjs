@@ -86,14 +86,12 @@ const os = require("node:os");
       "A4",
       "P10",
     ]);
-    const rects = await card
-      .locator(".card-stats span")
-      .evaluateAll((es) =>
-        es.map((e) => ({
-          x: e.getBoundingClientRect().x,
-          y: e.getBoundingClientRect().y,
-        })),
-      );
+    const rects = await card.locator(".card-stats span").evaluateAll((es) =>
+      es.map((e) => ({
+        x: e.getBoundingClientRect().x,
+        y: e.getBoundingClientRect().y,
+      })),
+    );
     for (let i = 1; i < 5; i++) {
       assert.equal(rects[i].x, rects[i + 5].x);
       assert.equal(rects[i].y, rects[0].y);
@@ -104,12 +102,18 @@ const os = require("node:os");
       .locator(".resources dd")
       .evaluateAll((es) => es.map((e) => e.getBoundingClientRect().y));
     assert.equal(new Set(resources).size, 1);
+    assert.equal(await card.locator("[data-point]:disabled").count(), 10);
     await card
-      .getByRole("checkbox", { name: name + "の運命点 4", exact: true })
+      .locator('[data-point="fate"]')
+      .first()
+      .evaluate((e) => e.click());
+    assert.equal(await card.locator('[data-point="fate"]:checked').count(), 5);
+    await card.getByRole("button", { name: "編集", exact: true }).click();
+    await page
+      .getByRole("checkbox", { name: "運命点 4", exact: true })
       .uncheck();
-    await card
-      .getByRole("checkbox", { name: name + "の経験値 5", exact: true })
-      .check();
+    await page.getByRole("checkbox", { name: "経験値 5", exact: true }).check();
+    await page.getByRole("button", { name: "保存", exact: true }).click();
     const saved = () =>
       page
         .locator("#save-status")
@@ -169,9 +173,11 @@ const os = require("node:os");
       await card.locator('[data-point="experience"]:checked').count(),
       1,
     );
-    await card
-      .getByRole("checkbox", { name: name + "の運命点 1", exact: true })
+    await card.getByRole("button", { name: "編集", exact: true }).click();
+    await page
+      .getByRole("checkbox", { name: "運命点 1", exact: true })
       .uncheck();
+    await page.getByRole("button", { name: "保存", exact: true }).click();
     await saved();
     await page.getByRole("link", { name: "ホーム", exact: true }).click();
     await page.locator("#restore-file").setInputFiles(file);
@@ -187,7 +193,35 @@ const os = require("node:os");
     );
     for (const width of [390, 320]) {
       await page.setViewportSize({ width, height: 844 });
-      assert.equal(new Set(await page.locator('.resources dd').evaluateAll(es=>es.map(e=>e.getBoundingClientRect().y))).size,1);
+      assert.equal(
+        await page
+          .locator(".resources>div")
+          .evaluateAll((es) =>
+            es.every((e) => parseFloat(getComputedStyle(e).borderTopWidth) > 0),
+          ),
+        true,
+      );
+      assert.equal(
+        await page.locator(".resources dd").evaluateAll((es) =>
+          es.every((e) => {
+            const r = document.createRange();
+            r.selectNodeContents(e);
+            return (
+              r.getClientRects().length === 1 &&
+              r.getBoundingClientRect().width <= e.clientWidth
+            );
+          }),
+        ),
+        true,
+      );
+      assert.equal(
+        new Set(
+          await page
+            .locator(".resources dd")
+            .evaluateAll((es) => es.map((e) => e.getBoundingClientRect().y)),
+        ).size,
+        1,
+      );
       assert.equal(
         await page.evaluate(
           () => document.documentElement.scrollWidth <= innerWidth,
