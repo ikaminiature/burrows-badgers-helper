@@ -100,13 +100,43 @@ const assert = require("node:assert/strict");
   await page.getByRole("button", { name: "確認して実行" }).click();
   await page.getByRole("link", { name: "ホーム", exact: true }).click();
   await page.getByRole("link", { name: /ラウンド 3 を再開/ }).waitFor();
+  // Hold a real IndexedDB write lock to reproduce a slow restore deterministically.
+  await page.getByRole("status").filter({ hasText: "端末に保存済み" }).waitFor();
+  await page.evaluate(() => new Promise((resolve, reject) => {
+    const request = indexedDB.open("bb-helper", 1);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const db = request.result;
+      const tx = db.transaction("data", "readwrite");
+      let held = true;
+      window.releaseRestoreLock = () => { held = false; };
+      tx.oncomplete = () => db.close();
+      tx.onabort = () => { db.close(); reject(tx.error); };
+      const keepAlive = () => {
+        tx.objectStore("data").get("app").onsuccess = () => {
+          resolve();
+          if (held) keepAlive();
+        };
+      };
+      keepAlive();
+    };
+  }));
   await page.getByRole("button", { name: "JSON から復元" }).click();
   await page.locator("#restore-file").setInputFiles(file);
   await page.getByRole("button", { name: "確認して実行" }).click();
+  await page.getByRole("heading", { name: "復元中…", exact: true }).waitFor();
+  assert.equal(await page.getByRole("status").textContent(), "復元中…");
+  assert.equal(await page.locator("#modal").isVisible(), true);
+  await page.evaluate(() => window.releaseRestoreLock());
+  await page.locator("#modal").waitFor({ state: "hidden" });
+  await page.getByRole("link", { name: /ラウンド 2 を再開/ }).waitFor();
   await page
     .getByRole("status")
     .filter({ hasText: "端末に保存済み" })
     .waitFor();
+  // Reload only after the restored snapshot is committed and rendered.
+  await page.reload();
+  await page.getByRole("link", { name: /ラウンド 2 を再開/ }).waitFor();
   await page.evaluate(() => navigator.serviceWorker.ready);
   await page.reload();
   await context.setOffline(true);
@@ -114,6 +144,9 @@ const assert = require("node:assert/strict");
   await page.getByRole("heading", { name: "冒険の準備" }).waitFor();
   await page.getByRole("link", { name: /ラウンド 2 を再開/ }).click();
   await page.getByRole("heading", { name: "アッシュ", exact: true }).waitFor();
+  assert.equal(await page.locator(".wound-count").first().textContent(), "16");
+  assert.equal(await page.locator("article").first().locator("img").count(), 1);
+  await page.locator("article").first().getByText("状態・効果（1）").waitFor();
   assert.equal(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,

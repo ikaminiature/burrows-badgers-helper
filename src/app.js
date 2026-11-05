@@ -282,8 +282,12 @@ async function restore(file) {
       "バックアップを復元",
       "現在の全ウォーバンドと進行中のゲームを置き換えます。先にバックアップを保管してください。",
       async () => {
+        pending++;
+        status.textContent = "復元中…";
         show("<h2>復元中…</h2><p>この画面を閉じずにお待ちください。</p>");
         await saveQueue;
+        // Earlier autosaves may update the status while we await their completion.
+        status.textContent = "復元中…";
         try {
           await write(incoming);
           data = incoming;
@@ -293,10 +297,13 @@ async function restore(file) {
           modal.close();
           render();
         } catch {
+          status.textContent = "復元失敗・元のデータを保持";
           show(
             "<h2>復元できませんでした</h2><p>保存容量やブラウザの設定を確認してください。現在のデータは維持しています。</p>" +
               btn("閉じる", "close"),
           );
+        } finally {
+          pending--;
         }
       },
     );
