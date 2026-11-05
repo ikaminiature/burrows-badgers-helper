@@ -51,7 +51,23 @@ const os = require("node:os");
     const legacy = {
       version: 1,
       warbands: [
-        { id: "old", name: "旧ウォーバンド", characters: [c] },
+        {
+          id: "old",
+          name: "旧ウォーバンド",
+          characters: [c],
+          status: {
+            rating: 0,
+            pension: 0,
+            labour: 0,
+            materials: 0,
+            treasury: 0,
+            alliance: "自由な仲間",
+            archetype: "探検隊",
+            notes: "",
+            stash: [],
+            upgrades: [],
+          },
+        },
         { id: "other", name: "別バンド", characters: [] },
       ],
       game: {
@@ -124,10 +140,26 @@ const os = require("node:os");
         .inputValue(),
       "0",
     );
+    assert.equal(
+      await page
+        .getByRole("combobox", { name: "アライアンス", exact: true })
+        .inputValue(),
+      "自由な仲間",
+    );
+    assert.equal(
+      await page
+        .getByRole("textbox", { name: "アーキタイプ", exact: true })
+        .inputValue(),
+      "探検隊",
+    );
+    assert.equal(
+      await page
+        .getByRole("textbox", { name: "アーキタイプ", exact: true })
+        .getAttribute("readonly"),
+      "",
+    );
     for (const [label, value] of [
       ["バンド名", "森の守り手"],
-      ["アライアンス", "自由な仲間"],
-      ["アーキタイプ", "探検隊"],
       ["メモ", "第一行\n第二行"],
     ])
       await page.getByRole("textbox", { name: label, exact: true }).fill(value);
@@ -331,6 +363,69 @@ const os = require("node:os");
       "123.5",
     );
     await close();
+    const expectedAlliances = [
+      ["王党派", "戦士"],
+      ["ならず者", "レンジャー"],
+      ["フリービースト", "万能型"],
+      ["キンドレッド", "レンジャー"],
+      ["ウィッチハンター", "民間呪術師"],
+      ["ワイルドリング", "万能型"],
+      ["アーケイン・コンクラーベ", "民間呪術師"],
+      ["アンデッド", "民間呪術師"],
+      ["傭兵団", "戦士"],
+      ["ヒルフォーク", "万能型"],
+    ];
+    for (const [name, archetype] of expectedAlliances) {
+      await openEditor("森の守り手");
+      await page
+        .getByRole("combobox", { name: "アライアンス", exact: true })
+        .selectOption(name);
+      assert.equal(
+        await page
+          .getByRole("textbox", { name: "アーキタイプ", exact: true })
+          .inputValue(),
+        archetype,
+      );
+      await close();
+      await saved();
+      await page.reload();
+      await openEditor("森の守り手");
+      assert.equal(
+        await page
+          .getByRole("combobox", { name: "アライアンス", exact: true })
+          .inputValue(),
+        name,
+      );
+      assert.equal(
+        await page
+          .getByRole("textbox", { name: "アーキタイプ", exact: true })
+          .inputValue(),
+        archetype,
+      );
+      assert.equal(
+        await page
+          .getByRole("combobox", { name: "アライアンス", exact: true })
+          .locator("option:not([disabled])")
+          .count(),
+        10,
+      );
+      await close();
+      await page
+        .locator(".band-overview")
+        .getByText(name, { exact: true })
+        .waitFor();
+      await page
+        .locator(".band-overview")
+        .getByText(archetype, { exact: true })
+        .waitFor();
+    }
+    // Known legacy alliances are aligned when editing; unrelated game data stays intact.
+    const inconsistent=structuredClone(backup);inconsistent.warbands[0].status.alliance='王党派';inconsistent.warbands[0].status.archetype='旧型';
+    await restore({name:'known-legacy.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(inconsistent))});
+    await openEditor('森の守り手');assert.equal(await page.getByRole('textbox',{name:'アーキタイプ',exact:true}).inputValue(),'戦士');await close();await saved();
+    await page.getByRole('link',{name:'ホーム',exact:true}).click();
+    const [knownDownload]=await Promise.all([page.waitForEvent('download'),page.getByRole('button',{name:'JSON を書き出す'}).click()]);
+    const knownFile=path.join(path.dirname(file),'known.json');await knownDownload.saveAs(knownFile);const knownBackup=JSON.parse(fs.readFileSync(knownFile));assert.equal(knownBackup.warbands[0].status.alliance,'王党派');assert.equal(knownBackup.warbands[0].status.archetype,'戦士');assert.deepEqual(knownBackup.game,legacy.game);
     // New games retain a status snapshot independently of subsequent roster edits.
     await page.getByRole("link", { name: "ホーム", exact: true }).click();
     await page.getByRole("link", { name: "ゲームを開始", exact: true }).click();

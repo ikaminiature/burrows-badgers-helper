@@ -11,6 +11,8 @@ import {
   emptyData,
   loadData,
   emptyBandStatus,
+  alliances,
+  selectAlliance,
 } from "../src/model.js";
 const character = (id) => ({
   id,
@@ -225,4 +227,49 @@ test("旧キャラクターの点数は0で補完し、ゲーム記録は変更�
       bad.warbands[0].characters[0][key] = n;
       assert.throws(() => loadData(bad));
     }
+});
+
+const expectedAlliances = [
+  ["王党派", "戦士"],
+  ["ならず者", "レンジャー"],
+  ["フリービースト", "万能型"],
+  ["キンドレッド", "レンジャー"],
+  ["ウィッチハンター", "民間呪術師"],
+  ["ワイルドリング", "万能型"],
+  ["アーケイン・コンクラーベ", "民間呪術師"],
+  ["アンデッド", "民間呪術師"],
+  ["傭兵団", "戦士"],
+  ["ヒルフォーク", "万能型"],
+];
+test("10種類のアライアンスと自動設定のJSON往復", () => {
+  assert.deepEqual(Object.entries(alliances), expectedAlliances);
+  for (const [name, archetype] of expectedAlliances) {
+    const d = emptyData();
+    const s = { ...emptyBandStatus(), alliance: "旧入力", archetype: "保持値" };
+    d.warbands.push({
+      id: "w",
+      name: "森",
+      status: s,
+      characters: [character("c")],
+    });
+    selectAlliance(s, name);
+    assert.equal(s.archetype, archetype);
+    const loaded = loadData(JSON.parse(JSON.stringify(d)));
+    assert.equal(loaded.warbands[0].status.alliance, name);
+    assert.equal(loaded.warbands[0].status.archetype, archetype);
+  }
+});
+test("旧アライアンスと未設定値は読み込みだけで変更せず、不明な選択も拒否する", () => {
+  for (const name of ["", "独自のアライアンス", "__proto__"]) {
+    const d = emptyData();
+    d.warbands.push({
+      id: "w",
+      name: "森",
+      status: { ...emptyBandStatus(), alliance: name, archetype: "独自の型" },
+      characters: [character("c")],
+    });
+    assert.deepEqual(loadData(JSON.parse(JSON.stringify(d))), d);
+    assert.throws(() => selectAlliance(d.warbands[0].status, name));
+    assert.equal(d.warbands[0].status.archetype, "独自の型");
+  }
 });
