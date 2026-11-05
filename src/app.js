@@ -8,7 +8,11 @@ import {
   sorted,
   startGame,
   nextRound,
-  validateData,
+  loadData,
+  emptyBandStatus,
+  bandNumbers,
+  bandTexts,
+  bandLists,
 } from "./model.js";
 import { read, write } from "./db.js";
 const app = document.querySelector("#app"),
@@ -104,11 +108,11 @@ function render() {
       : `<h1>戦闘管理</h1><p class="empty">進行中のゲームはありません。</p><a class="button primary" href="#choose">ゲームを開始</a>`;
 }
 function bandView(w) {
-  return `<section class="card"><div class="row between"><h2>${esc(w.name)}</h2>${btn("名前変更", "rename-band")}</div><div class="actions">${btn("＋ キャラクター登録", "new-character", 'class="primary"')}${btn("ウォーバンド削除", "delete-band", 'class="danger"')}</div></section>${w.characters.map((c, i) => `<article class="card"><div class="row">${portrait(c)}<div class="identity"><h3>${esc(c.name)}</h3><span class="muted">${esc(c.species)} · Lv.${c.level}</span></div></div><div class="actions">${btn("編集", "edit-character", `data-id="${c.id}"`)}${btn("複製", "duplicate", `data-id="${c.id}"`)}${btn("↑", "up", `data-id="${c.id}" aria-label="${esc(c.name)}を上へ" ${i === 0 ? "disabled" : ""}`)}${btn("↓", "down", `data-id="${c.id}" aria-label="${esc(c.name)}を下へ" ${i === w.characters.length - 1 ? "disabled" : ""}`)}${btn("削除", "delete-character", `data-id="${c.id}" class="danger"`)}</div></article>`).join("")}`;
+  return `<section class="card"><div class="row between"><h2>${esc(w.name)}</h2>${btn("名前変更", "rename-band")}${btn("ステータス編集", "band-status")}</div><div class="actions">${btn("＋ キャラクター登録", "new-character", 'class="primary"')}${btn("ウォーバンド削除", "delete-band", 'class="danger"')}</div></section>${w.characters.map((c, i) => `<article class="card"><div class="row">${portrait(c)}<div class="identity"><h3>${esc(c.name)}</h3><span class="muted">${esc(c.species)} · Lv.${c.level}</span></div></div><div class="actions">${btn("編集", "edit-character", `data-id="${c.id}"`)}${btn("複製", "duplicate", `data-id="${c.id}"`)}${btn("↑", "up", `data-id="${c.id}" aria-label="${esc(c.name)}を上へ" ${i === 0 ? "disabled" : ""}`)}${btn("↓", "down", `data-id="${c.id}" aria-label="${esc(c.name)}を下へ" ${i === w.characters.length - 1 ? "disabled" : ""}`)}${btn("削除", "delete-character", `data-id="${c.id}" class="danger"`)}</div></article>`).join("")}`;
 }
 function battleView() {
   const g = data.game;
-  return `<div class="eyebrow">BATTLE</div><div class="row between"><div><h1>${esc(g.name)}</h1><p>ラウンド <strong>${g.round}</strong></p></div>${btn("次のラウンド", "next", 'class="primary"')}</div><p class="muted">操作は自動保存。ホームに戻っても続きから再開できます。</p>${sorted(
+  return `<div class="eyebrow">BATTLE</div><div class="row between"><div><h1>${esc(g.name)}</h1><p>ラウンド <strong>${g.round}</strong></p></div>${btn("次のラウンド", "next", 'class="primary"')}</div>${btn("ウォーバンドステータス", "battle-status")}<p class="muted">操作は自動保存。ホームに戻っても続きから再開できます。</p>${sorted(
     g.characters,
   )
     .map(
@@ -130,13 +134,111 @@ function nameForm(w) {
     change(() => {
       if (w) w.name = name;
       else {
-        const n = { id: id(), name, characters: [] };
+        const n = { id: id(), name, characters: [], status: emptyBandStatus() };
         data.warbands.push(n);
         bandId = n.id;
       }
     });
     modal.close();
   };
+}
+function bandStatusForm(w) {
+  const s = w.status;
+  show(
+    `<div class="status-toolbar"><h2>ウォーバンドステータス編集</h2>${btn("閉じる", "close")}</div><p class="muted">有効な入力は端末に自動保存します。数値は手動入力です。</p><form id="band-status-form"><label>バンド名<input name="name" required maxlength="200" value="${esc(w.name)}"></label><div class="status-grid">${Object.entries(
+      bandNumbers,
+    )
+      .map(
+        ([k, l]) =>
+          `<label>${l}<input type="number" step="any" required name="${k}" value="${s[k]}"></label>`,
+      )
+      .join("")}</div>${Object.entries(bandTexts)
+      .map(
+        ([k, l]) =>
+          `<label>${l}${k === "notes" ? `<textarea name="${k}" maxlength="20000">${esc(s[k])}</textarea>` : `<input name="${k}" maxlength="20000" value="${esc(s[k])}">`}</label>`,
+      )
+      .join(
+        "",
+      )}<p id="status-error" class="error" role="status"></p></form>${Object.entries(
+      bandLists,
+    )
+      .map(
+        ([k, l]) =>
+          `<section aria-label="${l}"><h3>${l}</h3><div id="list-${k}"></div>${btn("＋ " + l, "add-status-item", `data-list="${k}"`)}</section>`,
+      )
+      .join("")}`,
+  );
+  const form = modal.querySelector("form");
+  form.onsubmit = (e) => e.preventDefault();
+  form.oninput = (e) => {
+    const field = e.target,
+      key = field.name;
+    const valid =
+      field.checkValidity() && (key !== "name" || field.value.trim());
+    modal.querySelector("#status-error").textContent = valid
+      ? ""
+      : "空欄の名前や数値は保存できません。入力を確認してください。";
+    if (!valid) return;
+    if (key === "name") w.name = field.value.trim();
+    else
+      s[key] = Object.hasOwn(bandNumbers, key)
+        ? Number(field.value)
+        : field.value;
+    save();
+    render();
+  };
+  const draw = (k) => {
+    const list = modal.querySelector("#list-" + k);
+    list.innerHTML =
+      s[k]
+        .map(
+          (item, i) =>
+            `<div class="status-item"><label>${esc(bandLists[k])} ${i + 1}<textarea data-item="${item.id}" maxlength="20000">${esc(item.name)}</textarea></label>${btn("削除", "delete-status-item", `data-item="${item.id}" aria-label="${esc(bandLists[k])} ${i + 1} を削除"`)}</div>`,
+        )
+        .join("") || '<p class="muted">まだ登録されていません。</p>';
+    list.oninput = (e) => {
+      const item = s[k].find((x) => x.id === e.target.dataset.item);
+      if (item) {
+        item.name = e.target.value;
+        save();
+      }
+    };
+    list.onclick = (e) => {
+      const b = e.target.closest('[data-action="delete-status-item"]');
+      if (b) {
+        s[k] = s[k].filter((x) => x.id !== b.dataset.item);
+        save();
+        draw(k);
+      }
+    };
+  };
+  for (const k of Object.keys(bandLists)) draw(k);
+  for (const b of modal.querySelectorAll('[data-action="add-status-item"]'))
+    b.onclick = () => {
+      const k = b.dataset.list;
+      s[k].push({ id: id(), name: "" });
+      save();
+      draw(k);
+      modal
+        .querySelector("#list-" + k + " .status-item:last-child textarea")
+        .focus();
+    };
+}
+function statusReadOnly(name, s, description) {
+  return `<h2>${esc(name)} のステータス</h2><p class="muted">${description}</p><dl class="status-grid">${[...Object.entries(bandNumbers), ...Object.entries(bandTexts)].map(([k, l]) => `<div><dt>${l}</dt><dd class="detail-text">${esc(s[k]) || "—"}</dd></div>`).join("")}</dl>${Object.entries(
+    bandLists,
+  )
+    .map(
+      ([k, l]) =>
+        `<h3>${l}</h3><ol>${s[k].map((item) => `<li class="detail-text">${esc(item.name) || "（未入力）"}</li>`).join("") || "<li>登録なし</li>"}</ol>`,
+    )
+    .join("")}`;
+}
+function battleStatus() {
+  const g = data.game;
+  show(
+    `${g.status ? statusReadOnly(g.name, g.status, "ゲーム開始時の記録です。登録済みウォーバンドとは独立しています。") : "<h2>ウォーバンドステータス</h2><p>このゲームは旧形式のため、開始時のステータス記録はありません。</p>"}<details><summary>登録済みウォーバンドの現在のステータス</summary>${data.warbands.map((w) => `<details><summary>${esc(w.name)}</summary>${statusReadOnly(w.name, w.status, "登録済みの現在の内容です。")}</details>`).join("") || "<p>登録なし</p>"}</details>${btn("閉じる", "close")}`,
+  );
 }
 async function resize(file) {
   if (file.size > 25 * 1024 * 1024)
@@ -277,7 +379,7 @@ async function restore(file) {
   try {
     if (file.size > 100 * 1024 * 1024)
       throw Error("バックアップは 100 MB 以下にしてください");
-    const incoming = validateData(JSON.parse(await file.text()));
+    const incoming = loadData(JSON.parse(await file.text()));
     confirmAction(
       "バックアップを復元",
       "現在の全ウォーバンドと進行中のゲームを置き換えます。先にバックアップを保管してください。",
@@ -330,6 +432,12 @@ document.addEventListener("click", (e) => {
     case "open-band":
       bandId = b.dataset.id;
       render();
+      break;
+    case "band-status":
+      bandStatusForm(w);
+      break;
+    case "battle-status":
+      battleStatus();
       break;
     case "rename-band":
       nameForm(w);
@@ -450,8 +558,7 @@ window.addEventListener("beforeunload", (e) => {
   }
 });
 try {
-  data = (await read()) || emptyData();
-  validateData(data);
+  data = loadData((await read()) || emptyData());
   status.textContent = "端末に保存済み";
   navigate();
 } catch {

@@ -387,3 +387,32 @@ summary {
     color: #ffc6c6;
   }
 }
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.status-grid dd {
+  margin: 2px 0 12px;
+}
+.status-grid dt {
+  font-size: 13px;
+  color: var(--muted);
+}
+.status-item {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+}
+.status-item textarea {
+  min-height: 65px;
+}
+dialog section {
+  margin-top: 24px;
+}
+dialog li {
+  margin-bottom: 8px;
+}
+
+#band-status-form input,#band-status-form textarea,.status-item textarea{font-size:16px}.status-toolbar{position:sticky;top:-22px;background:var(--panel);padding:8px 0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:8px}.status-toolbar h2{font-size:18px;margin:0}.status-toolbar button{flex-shrink:0}
