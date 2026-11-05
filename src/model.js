@@ -164,6 +164,7 @@ export function validateData(d) {
       !str(c.name, 200) ||
       !c.name.trim() ||
       !str(c.species, 200) ||
+      (c.speciesPresetId !== undefined && !validId(c.speciesPresetId)) ||
       !Number.isInteger(c.level) ||
       c.level < 0 ||
       c.level > 100 ||

@@ -662,3 +662,12 @@ dialog li {
 #character-form textarea {
   font-size: 16px;
 }
+
+#species-confirm {
+  border: 2px solid var(--accent);
+  border-radius: 10px;
+  padding: 12px;
+}
+#character-form select {
+  font-size: 16px;
+}

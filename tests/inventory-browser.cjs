@@ -72,9 +72,10 @@ const os = require("node:os");
     await edit();
     assert.equal(
       await page
-        .getByRole("textbox", { name: "種族", exact: true })
-        .inputValue(),
-      c.species,
+        .getByRole("combobox", { name: "種族", exact: true })
+        .locator("option:checked")
+        .textContent(),
+      c.species + "（現在の値を保持）",
     );
     assert.equal(
       await page

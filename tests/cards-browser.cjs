@@ -38,8 +38,11 @@ const os = require("node:os");
     const name = "とても長い名前の森を守る勇敢な小さな戦士アッシュ";
     await page.getByRole("textbox", { name: "名前", exact: true }).fill(name);
     await page
-      .getByRole("textbox", { name: "種族", exact: true })
-      .fill("ネズミ");
+      .getByRole("combobox", { name: "サイズ分類", exact: true })
+      .selectOption("small");
+    await page
+      .getByRole("combobox", { name: "種族", exact: true })
+      .selectOption("small-01");
     await page
       .getByRole("spinbutton", { name: "Level", exact: true })
       .fill("6");
@@ -74,7 +77,7 @@ const os = require("node:os");
       .waitFor();
     await card
       .locator(".roster-info")
-      .getByText("ネズミ", { exact: true })
+      .getByText("ネズミ/ヤマネ", { exact: true })
       .waitFor();
     assert.equal(await card.locator('[data-point="fate"]:checked').count(), 5);
     assert.equal(

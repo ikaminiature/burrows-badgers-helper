@@ -20,6 +20,7 @@ import {
 } from "./model.js";
 import { read, write } from "./db.js";
 import { createUpdater } from "./update.js";
+import { speciesGroups, speciesPresets, presetValues } from "./species.js";
 const app = document.querySelector("#app"),
   modal = document.querySelector("#modal"),
   status = document.querySelector("#save-status");
@@ -370,8 +371,17 @@ async function resize(file) {
 function characterForm(c) {
   let photo = c?.photo || "";
   const inventory = characterInventory(c);
+  let processing = false;
+  const initialPreset =
+    speciesPresets.find(
+      (p) => p.id === c?.speciesPresetId && p.name === c?.species,
+    ) || speciesPresets.find((p) => p.name === c?.species);
+  let chosenId = initialPreset?.id || "",
+    storedPresetId = c?.speciesPresetId,
+    draftSpecies = c?.species || "",
+    acceptedGroup = initialPreset?.group || "";
   show(
-    `<h2>${c ? "キャラクター編集" : "キャラクター登録"}</h2><form id="character-form"><label>名前<input name="name" value="${esc(c?.name || "")}" required maxlength="200"></label><label>種族<input name="species" value="${esc(c?.species || "")}" maxlength="200"></label><label>Level<input type="number" name="level" min="0" max="100" step="1" value="${c?.level ?? 0}" required></label><div id="photo-preview">${portrait({ photo, name: c?.name || "" })}</div><label>写真ライブラリ・ファイル<input id="photo-library" type="file" accept="image/*"></label><label>カメラで撮影<input id="photo-camera" type="file" accept="image/*" capture="environment"></label>${btn("写真を削除", "clear-photo")}<p class="muted">長辺 800px 以下に縮小して端末に保存します。</p>${points(c || {}, "fate", "運命点", true)}${points(c || {}, "experience", "経験値", true)}<h3>能力値</h3><div class="stats">${stats.map((s) => `<label>${s}<select name="${s}">${dice.map((d) => `<option ${c?.stats[s] === d ? "selected" : ""}>${d}</option>`).join("")}</select></label>`).join("")}</div><h3>装備</h3>${Object.entries(
+    `<h2>${c ? "キャラクター編集" : "キャラクター登録"}</h2><form id="character-form"><label>名前<input name="name" value="${esc(c?.name || "")}" required maxlength="200"></label><label>サイズ分類<select id="species-size"><option value="">サイズ分類を選択</option>${speciesGroups.map((g) => `<option value="${g.id}" ${g.id === acceptedGroup ? "selected" : ""}>${g.name}：${g.base}mmベース</option>`).join("")}</select></label><label>種族<select name="species" id="species-preset" required></select></label><section id="species-confirm" hidden role="alert"><h3>種族の初期値に置き換えますか？</h3><p>レベル・9能力値・スキル一覧を選択した種族の初期値に置き換えます。装備・呪文・写真・運命点・経験値は維持します。</p><div class="actions"><button type="button" id="species-apply">初期値に置き換える</button><button type="button" id="species-cancel">変更を取り消す</button></div></section><label>Level<input type="number" name="level" min="0" max="100" step="1" value="${c?.level ?? 0}" required></label><div id="photo-preview">${portrait({ photo, name: c?.name || "" })}</div><label>写真ライブラリ・ファイル<input id="photo-library" type="file" accept="image/*"></label><label>カメラで撮影<input id="photo-camera" type="file" accept="image/*" capture="environment"></label>${btn("写真を削除", "clear-photo")}<p class="muted">長辺 800px 以下に縮小して端末に保存します。</p>${points(c || {}, "fate", "運命点", true)}${points(c || {}, "experience", "経験値", true)}<h3>能力値</h3><div class="stats">${stats.map((s) => `<label>${s}<select name="${s}">${dice.map((d) => `<option ${c?.stats[s] === d ? "selected" : ""}>${d}</option>`).join("")}</select></label>`).join("")}</div><h3>装備</h3>${Object.entries(
       equipmentCategories,
     )
       .map(
@@ -416,12 +426,67 @@ function characterForm(c) {
         )
         .focus();
     };
+  const speciesSelect = modal.querySelector("#species-preset"),
+    groupSelect = modal.querySelector("#species-size"),
+    confirmation = modal.querySelector("#species-confirm");
+  let pendingPreset = "";
+  const drawSpecies = () => {
+    const options = speciesPresets.filter((p) => p.group === groupSelect.value),
+      inGroup = options.some((p) => p.id === chosenId);
+    speciesSelect.innerHTML = `${!inGroup ? `<option value="${c || chosenId ? "__legacy__" : ""}" selected disabled>${draftSpecies ? esc(draftSpecies) + "（現在の値を保持）" : "種族を選択"}</option>` : ""}${options.map((p) => `<option value="${p.id}" ${p.id === chosenId ? "selected" : ""}>${esc(p.name)}</option>`).join("")}`;
+  };
+  const applySpecies = (id) => {
+    const values = presetValues(id),
+      p = speciesPresets.find((p) => p.id === id);
+    chosenId = id;
+    storedPresetId = id;
+    draftSpecies = values.species;
+    acceptedGroup = p.group;
+    groupSelect.value = p.group;
+    modal.querySelector('[name="level"]').value = values.level;
+    for (const key of stats)
+      modal.querySelector(`[name="${key}"]`).value = values.stats[key];
+    inventory.skillEntries = values.skillEntries;
+    drawEntries("skillEntries");
+    drawSpecies();
+  };
+  groupSelect.onchange = () => {
+    if (confirmation.hidden) drawSpecies();
+  };
+  speciesSelect.onchange = () => {
+    const id = speciesSelect.value;
+    if (id === chosenId || id === "__legacy__") return;
+    if (c || chosenId) {
+      pendingPreset = id;
+      confirmation.hidden = false;
+      modal.querySelector("#character-save").disabled = true;
+      groupSelect.disabled = true;
+      speciesSelect.disabled = true;
+      modal.querySelector("#species-apply").focus();
+    } else applySpecies(id);
+  };
+  const finishSelection = () => {
+    confirmation.hidden = true;
+    modal.querySelector("#character-save").disabled = processing;
+    groupSelect.disabled = false;
+    speciesSelect.disabled = false;
+    pendingPreset = "";
+  };
+  modal.querySelector("#species-apply").onclick = () => {
+    applySpecies(pendingPreset);
+    finishSelection();
+  };
+  modal.querySelector("#species-cancel").onclick = () => {
+    groupSelect.value = acceptedGroup;
+    drawSpecies();
+    finishSelection();
+  };
+  drawSpecies();
   const preview = () =>
     (modal.querySelector("#photo-preview").innerHTML = portrait({
       photo,
       name: c?.name || "",
     }));
-  let processing = false;
   for (const input of modal.querySelectorAll("input[type=file]"))
     input.onchange = async () => {
       if (!input.files[0]) return;
@@ -435,7 +500,7 @@ function characterForm(c) {
         modal.querySelector("#form-error").textContent = e.message;
       } finally {
         processing = false;
-        modal.querySelector("#character-save").disabled = false;
+        modal.querySelector("#character-save").disabled = !confirmation.hidden;
       }
     };
   modal.querySelector("[data-action=clear-photo]").onclick = () => {
@@ -444,7 +509,7 @@ function characterForm(c) {
   };
   modal.querySelector("form").onsubmit = (e) => {
     e.preventDefault();
-    if (processing) return;
+    if (processing || !confirmation.hidden) return;
     const f = new FormData(e.target),
       name = f.get("name").trim();
     if (!name) return;
@@ -452,7 +517,8 @@ function characterForm(c) {
       ...structuredClone(c || {}),
       id: c?.id || id(),
       name,
-      species: f.get("species").trim(),
+      species: draftSpecies,
+      ...(storedPresetId ? { speciesPresetId: storedPresetId } : {}),
       level: Number(f.get("level")),
       photo,
       fate: modal.querySelectorAll('[data-form-point="fate"]:checked').length,
