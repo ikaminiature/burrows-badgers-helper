@@ -582,3 +582,74 @@ dialog li {
   width: 32px;
   min-height: 40px;
 }
+
+.roster-top {
+  align-items: flex-start;
+}
+.roster-photo {
+  flex: 0 0 62px;
+  text-align: center;
+}
+.roster-top .roster-photo .portrait {
+  width: 62px;
+  height: 76px;
+}
+.roster-photo .level {
+  font-size: 13px;
+  margin-top: 4px;
+}
+.roster-info {
+  flex: 1;
+  min-width: 0;
+}
+.roster-info .character-name {
+  min-height: 0;
+  padding: 0;
+  -webkit-line-clamp: unset;
+  display: block;
+  overflow: visible;
+}
+.roster-info .point-trackers {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+}
+.roster-card .points {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.roster-card .points legend {
+  float: left;
+  font-size: 12px;
+  line-height: 32px;
+  padding: 0;
+  margin: 0;
+  min-width: 36px;
+}
+.roster-card .points input:disabled {
+  appearance: none;
+  -webkit-appearance: none;
+  opacity: 1;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  background: var(--panel);
+}
+.roster-card .points input:disabled:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.roster-card .points input:disabled:checked::after {
+  content: "✓";
+  display: block;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 16px;
+  color: #fff;
+}
+#band-status-form select {
+  font-size: 16px;
+}

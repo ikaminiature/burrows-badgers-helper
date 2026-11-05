@@ -11,6 +11,24 @@ export const stats = [
 ];
 export const dice = ["D4", "D6", "D8", "D10", "D12", "D20"];
 export const emptyData = () => ({ version: 2, warbands: [], game: null });
+export const alliances = {
+  王党派: "戦士",
+  ならず者: "レンジャー",
+  フリービースト: "万能型",
+  キンドレッド: "レンジャー",
+  ウィッチハンター: "民間呪術師",
+  ワイルドリング: "万能型",
+  "アーケイン・コンクラーベ": "民間呪術師",
+  アンデッド: "民間呪術師",
+  傭兵団: "戦士",
+  ヒルフォーク: "万能型",
+};
+export function selectAlliance(status, name) {
+  if (!Object.hasOwn(alliances, name))
+    throw Error("選択肢にないアライアンスです");
+  status.alliance = name;
+  status.archetype = alliances[name];
+}
 export const bandNumbers = {
   rating: "レーティング",
   pension: "年金",

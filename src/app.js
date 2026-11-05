@@ -13,6 +13,8 @@ import {
   bandNumbers,
   bandTexts,
   bandLists,
+  alliances,
+  selectAlliance,
 } from "./model.js";
 import { read, write } from "./db.js";
 import { createUpdater } from "./update.js";
@@ -174,7 +176,7 @@ function bandView(w) {
     )
     .join(
       "",
-    )}<h2>メモ</h2><p class="detail-text">${esc(s.notes) || "—"}</p></section><h2>登録キャラクター</h2>${w.characters.map((c, i) => `<article class="card roster-card"><div class="roster-top">${portrait(c)}<div class="identity"><h3>${btn(esc(c.name), "roster-detail", `data-id="${c.id}" class="character-name" title="${esc(c.name)}"`)}</h3><span class="muted">${esc(c.species)} · <span class="level">Lv. ${String(c.level).padStart(2, "0")}</span></span></div><div class="point-trackers">${points(c, "fate", "運命点")}${points(c, "experience", "経験値")}</div></div><div class="card-stats">${cardStats.map((pair) => (pair ? `<span aria-label="${pair[1]} ${esc(c.stats[pair[1]])}">${pair[0]}${esc(c.stats[pair[1]].replace(/^D/, ""))}</span>` : '<span aria-hidden="true"></span>')).join("")}</div><div class="actions">${btn("編集", "edit-character", `data-id="${c.id}"`)}${btn("複製", "duplicate", `data-id="${c.id}"`)}${btn("↑", "up", `data-id="${c.id}" aria-label="${esc(c.name)}を上へ" ${i === 0 ? "disabled" : ""}`)}${btn("↓", "down", `data-id="${c.id}" aria-label="${esc(c.name)}を下へ" ${i === w.characters.length - 1 ? "disabled" : ""}`)}${btn("削除", "delete-character", `data-id="${c.id}" class="danger"`)}</div></article>`).join("") || '<p class="empty">キャラクターは未登録です。</p>'}<section class="card"><h2>管理・編集メニュー</h2><div class="actions">${btn("ステータス編集", "band-status")}${btn("名前変更", "rename-band")}${btn("＋ キャラクター登録", "new-character", 'class="primary"')}${btn("ウォーバンド削除", "delete-band", 'class="danger"')}</div></section>`;
+    )}<h2>メモ</h2><p class="detail-text">${esc(s.notes) || "—"}</p></section><h2>登録キャラクター</h2>${w.characters.map((c, i) => `<article class="card roster-card"><div class="roster-top"><div class="roster-photo">${portrait(c)}<span class="level">Lv. ${String(c.level).padStart(2, "0")}</span></div><div class="roster-info"><div class="identity"><h3>${btn(esc(c.name), "roster-detail", `data-id="${c.id}" class="character-name" title="${esc(c.name)}"`)}</h3><span class="muted">${esc(c.species)}</span></div><div class="point-trackers">${points(c, "fate", "運命点")}${points(c, "experience", "経験値")}</div></div></div><div class="card-stats">${cardStats.map((pair) => (pair ? `<span aria-label="${pair[1]} ${esc(c.stats[pair[1]])}">${pair[0]}${esc(c.stats[pair[1]].replace(/^D/, ""))}</span>` : '<span aria-hidden="true"></span>')).join("")}</div><div class="actions">${btn("編集", "edit-character", `data-id="${c.id}"`)}${btn("複製", "duplicate", `data-id="${c.id}"`)}${btn("↑", "up", `data-id="${c.id}" aria-label="${esc(c.name)}を上へ" ${i === 0 ? "disabled" : ""}`)}${btn("↓", "down", `data-id="${c.id}" aria-label="${esc(c.name)}を下へ" ${i === w.characters.length - 1 ? "disabled" : ""}`)}${btn("削除", "delete-character", `data-id="${c.id}" class="danger"`)}</div></article>`).join("") || '<p class="empty">キャラクターは未登録です。</p>'}<section class="card"><h2>管理・編集メニュー</h2><div class="actions">${btn("ステータス編集", "band-status")}${btn("名前変更", "rename-band")}${btn("＋ キャラクター登録", "new-character", 'class="primary"')}${btn("ウォーバンド削除", "delete-band", 'class="danger"')}</div></section>`;
 }
 function battleView() {
   const g = data.game;
@@ -210,6 +212,14 @@ function nameForm(w) {
 }
 function bandStatusForm(w) {
   const s = w.status;
+  if (
+    Object.hasOwn(alliances, s.alliance) &&
+    s.archetype !== alliances[s.alliance]
+  ) {
+    selectAlliance(s, s.alliance);
+    save();
+    render();
+  }
   show(
     `<div class="status-toolbar"><h2>ウォーバンドステータス編集</h2>${btn("閉じる", "close")}</div><p class="muted">有効な入力は端末に自動保存します。数値は手動入力です。</p><form id="band-status-form"><label>バンド名<input name="name" required maxlength="200" value="${esc(w.name)}"></label><div class="status-grid">${Object.entries(
       bandNumbers,
@@ -221,7 +231,20 @@ function bandStatusForm(w) {
       .join("")}</div>${Object.entries(bandTexts)
       .map(
         ([k, l]) =>
-          `<label>${l}${k === "notes" ? `<textarea name="${k}" maxlength="20000">${esc(s[k])}</textarea>` : `<input name="${k}" maxlength="20000" value="${esc(s[k])}">`}</label>`,
+          `<label>${l}${
+            k === "alliance"
+              ? `<select name="alliance">${Object.hasOwn(alliances, s.alliance) ? "" : `<option value="${esc(s.alliance)}" selected disabled>${s.alliance ? "現在の値：" + esc(s.alliance) + "（保持）" : "未設定（保持）"}</option>`}${Object.keys(
+                  alliances,
+                )
+                  .map(
+                    (name) =>
+                      `<option value="${esc(name)}" ${s.alliance === name ? "selected" : ""}>${esc(name)}</option>`,
+                  )
+                  .join("")}</select>`
+              : k === "notes"
+                ? `<textarea name="${k}" maxlength="20000">${esc(s[k])}</textarea>`
+                : `<input name="${k}" maxlength="20000" value="${esc(s[k])}" readonly>`
+          }</label>`,
       )
       .join(
         "",
@@ -239,6 +262,7 @@ function bandStatusForm(w) {
   form.oninput = (e) => {
     const field = e.target,
       key = field.name;
+    if (key === "archetype" || key === "alliance") return;
     const valid =
       field.checkValidity() && (key !== "name" || field.value.trim());
     modal.querySelector("#status-error").textContent = valid
@@ -252,6 +276,14 @@ function bandStatusForm(w) {
         : field.value;
     save();
     render();
+  };
+  form.onchange = (e) => {
+    if (e.target.name === "alliance") {
+      selectAlliance(s, e.target.value);
+      form.elements.archetype.value = s.archetype;
+      save();
+      render();
+    }
   };
   const draw = (k) => {
     const list = modal.querySelector("#list-" + k);

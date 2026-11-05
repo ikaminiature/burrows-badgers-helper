@@ -68,7 +68,14 @@ const os = require("node:os");
     await page.getByRole("button", { name: "保存", exact: true }).click();
     const card = page.locator(".roster-card");
     assert.equal(await card.locator("img").count(), 1);
-    await card.getByText("ネズミ · Lv. 06", { exact: true }).waitFor();
+    await card
+      .locator(".roster-photo")
+      .getByText("Lv. 06", { exact: true })
+      .waitFor();
+    await card
+      .locator(".roster-info")
+      .getByText("ネズミ", { exact: true })
+      .waitFor();
     assert.equal(await card.locator('[data-point="fate"]:checked').count(), 5);
     assert.equal(
       await card.locator('[data-point="experience"]:checked').count(),
@@ -193,6 +200,42 @@ const os = require("node:os");
     );
     for (const width of [390, 320]) {
       await page.setViewportSize({ width, height: 844 });
+      const layout = await card.evaluate((el) => {
+        const box = (s) => el.querySelector(s).getBoundingClientRect().toJSON();
+        const points = [...el.querySelectorAll(".points")];
+        return {
+          photo: box(".portrait"),
+          level: box(".level"),
+          name: box(".identity"),
+          width: box(".roster-info").width,
+          fate: points[0].getBoundingClientRect().toJSON(),
+          experience: points[1].getBoundingClientRect().toJSON(),
+        };
+      });
+      assert.ok(layout.level.y >= layout.photo.bottom);
+      assert.ok(layout.name.x >= layout.photo.right);
+      assert.ok(layout.fate.y >= layout.name.bottom);
+      assert.ok(layout.experience.y >= layout.fate.bottom);
+      assert.ok(layout.width >= (width === 320 ? 170 : 230));
+      for (const theme of ["light", "dark"]) {
+        await page.emulateMedia({ colorScheme: theme });
+        const look = await card
+          .locator('[data-point="fate"]')
+          .evaluateAll((es) =>
+            es.map((e) => ({
+              opacity: getComputedStyle(e).opacity,
+              bg: getComputedStyle(e).backgroundColor,
+              border: parseFloat(getComputedStyle(e).borderTopWidth),
+              checked: e.checked,
+            })),
+          );
+        assert.ok(look.every((e) => e.opacity === "1" && e.border >= 2));
+        assert.notEqual(
+          look.find((e) => e.checked).bg,
+          look.find((e) => !e.checked).bg,
+        );
+      }
+
       assert.equal(
         await page
           .locator(".resources>div")
