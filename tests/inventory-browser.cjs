@@ -204,7 +204,8 @@ const os = require("node:os");
     );
     await page.getByRole("button", { name: "キャンセル", exact: true }).click();
     await page.getByRole("link", { name: "戦闘", exact: true }).click();
-    assert.equal(await page.locator(".wound-count").textContent(), "8");
+    await page.locator(".gauge").first().waitFor();
+  assert.equal(await page.locator(".gauge").locator(".filled").count(), 8);
     await page
       .getByRole("button", { name: "キャラクター詳細", exact: true })
       .click();

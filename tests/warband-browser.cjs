@@ -283,7 +283,8 @@ const os = require("node:os");
     );
     await close();
     await page.getByRole("link", { name: "戦闘", exact: true }).click();
-    assert.equal(await page.locator(".wound-count").textContent(), "4");
+    await page.locator(".gauge").first().waitFor();
+  assert.equal(await page.locator(".gauge").locator(".filled").count(), 4);
     assert.equal(
       await page
         .getByRole("checkbox", { name: "行動済み", exact: true })
@@ -466,7 +467,8 @@ const os = require("node:os");
     );
     await close();
     await page.getByRole("link", { name: "戦闘", exact: true }).click();
-    assert.equal(await page.locator(".wound-count").textContent(), "4");
+    await page.locator(".gauge").first().waitFor();
+  assert.equal(await page.locator(".gauge").locator(".filled").count(), 4);
     assert.equal(await page.locator("article img").count(), 1);
     assert.deepEqual(errors, []);
     console.log(
