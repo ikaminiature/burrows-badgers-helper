@@ -1,3 +1,5 @@
+import { spells, spellArchetypes, elementalSpecialisms, searchSpells, matchSpell } from "./spells.js";
+import { spellDetails } from "./spell-view.js";
 import { deriveAbilitySources, abilitySourcesHtml } from "./ability-sources.js";
 import { specialMagicItems, magicEffects, magicEffect } from "./equipment-rules.js";
 import { equipmentDetails, magicDetails, magicReferenceLibrary } from "./equipment-view.js";
@@ -436,6 +438,8 @@ async function resize(file) {
 function characterForm(c) {
   let photo = c?.photo || "";
   const inventory = characterInventory(c);
+  let spellSelections = structuredClone(c?.spellSelections || inventory.spellEntries.map(() => null));
+  let spellsTouched = false;
   let skillSelections = structuredClone(c?.skillSelections || inventory.skillEntries.map(() => null));
   let skillsTouched = false;
   const equipmentSelections = structuredClone(c?.equipmentSelections || {});
@@ -477,7 +481,7 @@ function characterForm(c) {
       .map(([key, label]) => `<option value="${key}">${label}</option>`)
       .join(
         "",
-      )}</select></label><label>装備データ<select id="equipment-source"><option value="general">一般商店（96種類）</option><option value="special">スペシャル魔法装備（12種類）</option></select></label>${magicReferenceLibrary()}<p id="equipment-result-status" role="status"></p><div id="equipment-results"></div>${btn("装備検索を閉じる", "equipment-picker-close")}</section>${c?.equipment ? `<details><summary>旧装備（未分類・原文）</summary><p class="muted">原文を保持しています。必要な装備を上の6枠へ手動で割り振ってください。</p><textarea readonly aria-label="旧装備の原文">${esc(c.equipment)}</textarea></details>` : ""}<section aria-label="スキル"><h3>スキル</h3><details id="skill-picker"><summary>スキルを検索して追加</summary><label>スキル検索<input id="skill-query" type="search" placeholder="日本語・英語"></label><label>スキルカテゴリ<select id="skill-category"><option value="">すべて</option>${skillCategories.map(v => `<option>${v}</option>`).join("")}</select></label><div id="skill-results"></div></details><div id="character-skillEntries"></div>${btn("＋ スキル", "add-character-entry", 'data-list="skillEntries"')}</section><section aria-label="呪文"><h3>呪文</h3><div id="character-spellEntries"></div>${btn("＋ 呪文", "add-character-entry", 'data-list="spellEntries"')}</section><label>特殊効果・メモ<textarea name="notes" maxlength="20000">${esc(c?.notes || "")}</textarea></label><p id="form-error" class="error" role="alert"></p><div class="actions"><button id="character-save" class="primary">保存</button>${btn("キャンセル", "close")}</div></form>`,
+      )}</select></label><label>装備データ<select id="equipment-source"><option value="general">一般商店（96種類）</option><option value="special">スペシャル魔法装備（12種類）</option></select></label>${magicReferenceLibrary()}<p id="equipment-result-status" role="status"></p><div id="equipment-results"></div>${btn("装備検索を閉じる", "equipment-picker-close")}</section>${c?.equipment ? `<details><summary>旧装備（未分類・原文）</summary><p class="muted">原文を保持しています。必要な装備を上の6枠へ手動で割り振ってください。</p><textarea readonly aria-label="旧装備の原文">${esc(c.equipment)}</textarea></details>` : ""}<section aria-label="スキル"><h3>スキル</h3><details id="skill-picker"><summary>スキルを検索して追加</summary><label>スキル検索<input id="skill-query" type="search" placeholder="日本語・英語"></label><label>スキルカテゴリ<select id="skill-category"><option value="">すべて</option>${skillCategories.map(v => `<option>${v}</option>`).join("")}</select></label><div id="skill-results"></div></details><div id="character-skillEntries"></div>${btn("＋ スキル", "add-character-entry", 'data-list="skillEntries"')}</section><section aria-label="呪文"><h3>呪文</h3><details id="spell-picker"><summary>呪文を検索して追加</summary><label>呪文検索<input id="spell-query" type="search" placeholder="日本語・英語"></label><label>魔術アーキタイプ<select id="spell-archetype"><option value="">すべて</option>${spellArchetypes.map(a => `<option value="${a.id}">${a.nameJa} / ${a.nameEn}</option>`).join("")}</select></label><label>元素の専門分野<select id="spell-element"><option value="">すべて</option>${elementalSpecialisms.map(v=>`<option>${v}</option>`).join("")}</select></label><div id="spell-results"></div></details><div id="character-spellEntries"></div>${btn("＋ 呪文", "add-character-entry", 'data-list="spellEntries"')}</section><label>特殊効果・メモ<textarea name="notes" maxlength="20000">${esc(c?.notes || "")}</textarea></label><p id="form-error" class="error" role="alert"></p><div class="actions"><button id="character-save" class="primary">保存</button>${btn("キャンセル", "close")}</div></form>`,
   );
   const picker = modal.querySelector("#equipment-picker"),
     results = modal.querySelector("#equipment-results"),
@@ -636,6 +640,7 @@ function characterForm(c) {
       } else if (e.target.dataset.index !== undefined) {
         const i = Number(e.target.dataset.index);
         inventory[key][i] = e.target.value;
+        if (key === "spellEntries") { spellSelections[i] = null; spellsTouched = true; }
         if (key === "skillEntries") {
           skillSelections[i] = null; skillsTouched = true;
           const row = e.target.closest(".character-entry"), m = matchSkill(e.target.value);
@@ -656,6 +661,7 @@ function characterForm(c) {
       const b = e.target.closest('[data-action="delete-character-entry"]');
       if (b) {
         inventory[key].splice(Number(b.dataset.index), 1);
+        if (key === "spellEntries") { spellSelections.splice(Number(b.dataset.index), 1); spellsTouched = true; }
         if (key === "skillEntries") { skillSelections.splice(Number(b.dataset.index), 1); skillsTouched = true; }
         drawEntries(key);
       }
@@ -679,12 +685,32 @@ function characterForm(c) {
     drawEntries("skillEntries");
     modal.querySelector("#character-skillEntries .character-entry:last-child textarea").focus();
   };
+  const drawSpellResults = () => {
+    const archetype = modal.querySelector("#spell-archetype").value;
+    const element = modal.querySelector("#spell-element");
+    element.parentElement.hidden = archetype !== "elementalism";
+    const results = searchSpells(modal.querySelector("#spell-query").value, archetype, archetype === "elementalism" ? element.value : "");
+    modal.querySelector("#spell-results").innerHTML = `<p role="status">${results.length}件</p>` + results.map(s=>`<div class="spell-option" data-spell-id="${s.id}">${spellDetails(s.nameJa,{id:s.id})}<button type="button" data-add-spell="${s.id}" aria-label="${esc(s.nameJa)}を追加">追加</button></div>`).join("");
+  };
+  modal.querySelector("#spell-query").oninput = drawSpellResults;
+  modal.querySelector("#spell-archetype").onchange = drawSpellResults;
+  modal.querySelector("#spell-element").onchange = drawSpellResults;
+  modal.querySelector("#spell-results").onclick = e => {
+    const b = e.target.closest("[data-add-spell]");
+    if (!b) return;
+    const s = spells.find(s=>s.id===b.dataset.addSpell);
+    inventory.spellEntries.push(s.nameJa); spellSelections.push({id:s.id}); spellsTouched = true;
+    drawEntries("spellEntries");
+    modal.querySelector("#character-spellEntries .character-entry:last-child textarea").focus();
+  };
+  drawSpellResults();
   drawSkillResults();
   for (const key of ["skillEntries", "spellEntries"]) drawEntries(key);
   for (const b of modal.querySelectorAll('[data-action="add-character-entry"]'))
     b.onclick = () => {
       const key = b.dataset.list;
       inventory[key].push("");
+      if (key === "spellEntries") { spellSelections.push(null); spellsTouched = true; }
       if (key === "skillEntries") { skillSelections.push(null); skillsTouched = true; }
       drawEntries(key);
       modal
@@ -815,6 +841,10 @@ function characterForm(c) {
         return matched ? {id:matched.skill.id,value:matched.value} : null;
       })} : {}),
       skillEntries: structuredClone(inventory.skillEntries),
+      ...(spellsTouched || c?.spellSelections !== undefined ? {spellSelections: inventory.spellEntries.map((text,i) => {
+        const matched = matchSpell(text, spellSelections[i]);
+        return matched ? {id:matched.id} : null;
+      })} : {}),
       spellEntries: structuredClone(inventory.spellEntries),
     };
     const conflicts = conflictingRoles(band(), n);
@@ -865,7 +895,7 @@ function characterExtras(c) {
           inventory[key]
             .map(
               (text, i) => key === "skillEntries" ? skillDisplay(text, c.skillSelections?.[i]) :
-                `<li class="detail-text">${esc(text) || "（未入力）"}</li>`,
+                `<li class="spell-detail">${spellDetails(text, c.spellSelections?.[i])}</li>`,
             )
             .join("") || "<li>登録なし</li>"
         }</ol>`,
