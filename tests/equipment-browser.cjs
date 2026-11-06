@@ -93,7 +93,7 @@ const { enableRosterEditing } = require("./support/roster.cjs");
         .click();
       await page
         .locator("#equipment-result-status")
-        .filter({ hasText: "96 / 96 件" })
+        .filter({ hasText: `${({"武器1":17,"武器2":17,"鎧1":6,"鎧2":6,"アイテム":73,"スペシャル":96})[label]} / 96 件` })
         .waitFor();
     }
     async function query(text) {
@@ -109,7 +109,7 @@ const { enableRosterEditing } = require("./support/roster.cjs");
       "自由な剣",
     );
     await picker("武器1");
-    assert.equal(await page.locator(".equipment-option").count(), 96);
+    assert.equal(await page.locator(".equipment-option").count(), 17);
     await result("general-store-006")
       .getByText("弓（18″）", { exact: true })
       .waitFor();
@@ -159,17 +159,13 @@ const { enableRosterEditing } = require("./support/roster.cjs");
       .getByRole("button", { name: "選ぶ", exact: true })
       .click();
     await picker("鎧1");
-    await page
-      .getByRole("combobox", { name: "カテゴリ", exact: true })
-      .selectOption("armour");
+    assert.equal(await page.getByRole("combobox", { name: "カテゴリ", exact: true }).isVisible(), false);
     assert.equal(await page.locator(".equipment-option").count(), 6);
     await result("general-store-020")
       .getByRole("button", { name: "選ぶ", exact: true })
       .click();
     await picker("アイテム");
-    await page
-      .getByRole("combobox", { name: "カテゴリ", exact: true })
-      .selectOption("item");
+    assert.equal(await page.getByRole("combobox", { name: "カテゴリ", exact: true }).isVisible(), false);
     await query("Lead slingshot");
     await result("general-store-034").getByText("リードスリングショット", { exact: true }).waitFor();
     assert.equal(await result("general-store-034").getByText("表記要確認", { exact: true }).count(), 0);
@@ -255,23 +251,16 @@ const { enableRosterEditing } = require("./support/roster.cjs");
     await page.reload();
     await edit();
     await picker("武器1");
-    assert.equal(
-      await page
-        .locator(".equipment-option")
-        .first()
-        .getAttribute("data-equipment-id"),
-      "general-store-082",
-    );
+    assert.equal(await page.locator(".equipment-option").first().getAttribute("data-equipment-id"), "general-store-006");
+    assert.equal(await result("general-store-082").count(), 0);
     await query("Mandrake");
-    await result("general-store-080")
-      .getByRole("button", { name: "選ぶ", exact: true })
-      .click();
-    assert.equal(
-      await page
-        .getByRole("textbox", { name: "武器1", exact: true })
-        .inputValue(),
-      "マンドレイク",
-    );
+    assert.equal(await page.locator(".equipment-option").count(), 0);
+    await page.getByRole("button", { name: "装備検索を閉じる", exact: true }).click();
+    await picker("アイテム");
+    await query("Mandrake");
+    await result("general-store-080").getByRole("button", { name: "選ぶ", exact: true }).click();
+    assert.equal(await page.getByRole("textbox", { name: "アイテム", exact: true }).inputValue(), "マンドレイク");
+    assert.equal(await page.getByRole("textbox", { name: "武器1", exact: true }).inputValue(), "ピストル");
     await page
       .getByRole("textbox", { name: "武器1", exact: true })
       .fill("新しい自由入力の杖");

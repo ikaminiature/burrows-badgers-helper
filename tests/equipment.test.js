@@ -88,11 +88,7 @@ test("日英・大文字小文字・全角半角・かな・複数語検索と�
     "general-store-027",
   );
   assert.equal(searchEquipment(catalog, { category: "armour" }).length, 6);
-  assert.equal(
-    searchEquipment(catalog, { query: "Mandrake", slot: "weapon1" })[0]
-      .category,
-    "ingredient",
-  );
+  assert.deepEqual(searchEquipment(catalog, { query: "Mandrake", slot: "weapon1" }), []);
   assert.equal(
     searchEquipment(catalog, { category: "weapon", query: "Mandrake" }).length,
     0,
@@ -118,14 +114,14 @@ test("枠別のカテゴリ優先、最近の選択と全カテゴリ検索", ()
       slot: "weapon1",
       recent: ["general-store-080", "general-store-006"],
     })[0].id,
-    "general-store-080",
+    "general-store-006",
   );
   assert.equal(
     searchEquipment(catalog, {
       slot: "weapon1",
       recent: ["general-store-080", "general-store-006"],
     })[1].id,
-    "general-store-006",
+    "general-store-001",
   );
 });
 test("選択装備のID・射程・備考・自由入力のJSON往復とゲーム独立", () => {

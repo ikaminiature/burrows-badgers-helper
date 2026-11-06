@@ -1,3 +1,4 @@
+import { deriveAbilitySources, abilitySourcesHtml } from "./ability-sources.js";
 import { specialMagicItems, magicEffects, magicEffect } from "./equipment-rules.js";
 import { equipmentDetails, magicDetails, magicReferenceLibrary } from "./equipment-view.js";
 import { skills, skillCategories, searchSkills, matchSkill, skillName } from "./skills.js";
@@ -440,7 +441,7 @@ function characterForm(c) {
       )
       .join(
         "",
-      )}</select></label><label>サイズ分類<select id="species-size"><option value="">サイズ分類を選択</option>${speciesGroups.map((g) => `<option value="${g.id}" ${g.id === acceptedGroup ? "selected" : ""}>${g.name}：${g.base}mmベース</option>`).join("")}</select></label><label>種族<select name="species" id="species-preset" required></select></label><section id="species-confirm" hidden role="alert"><h3>種族の初期値に置き換えますか？</h3><p>レベル・9能力値・スキル一覧を選択した種族の初期値に置き換えます。装備・呪文・写真・運命点・経験値は維持します。</p><div class="actions"><button type="button" id="species-apply">初期値に置き換える</button><button type="button" id="species-cancel">変更を取り消す</button></div></section><label>Level<input type="number" name="level" min="0" max="100" step="1" value="${c?.level ?? 0}" required></label><div id="photo-preview">${portrait({ photo, name: c?.name || "" })}</div><label>写真ライブラリ・ファイル<input id="photo-library" type="file" accept="image/*"></label><label>カメラで撮影<input id="photo-camera" type="file" accept="image/*" capture="environment"></label>${btn("写真を削除", "clear-photo")}<p class="muted">長辺 800px 以下に縮小して端末に保存します。</p>${points(c || {}, "fate", "運命点", true)}${points(c || {}, "experience", "経験値", true)}<h3>能力値</h3><div class="stats">${stats.map((s) => `<label>${s}<select name="${s}">${dice.map((d) => `<option ${c?.stats[s] === d ? "selected" : ""}>${d}</option>`).join("")}</select></label>`).join("")}</div><h3>装備</h3>${Object.entries(
+      )}</select></label><label>サイズ分類<select id="species-size"><option value="">サイズ分類を選択</option>${speciesGroups.map((g) => `<option value="${g.id}" ${g.id === acceptedGroup ? "selected" : ""}>${g.name}：${g.base}mmベース</option>`).join("")}</select></label><label>種族<select name="species" id="species-preset" required></select></label><section id="species-confirm" hidden role="alert"><h3>種族の初期値に置き換えますか？</h3><p>レベル・9能力値・スキル一覧を選択した種族の初期値に置き換えます。装備・呪文・写真・運命点・経験値は維持します。</p><div class="actions"><button type="button" id="species-apply">初期値に置き換える</button><button type="button" id="species-cancel">変更を取り消す</button></div></section><label>Level<input type="number" name="level" min="0" max="100" step="1" value="${c?.level ?? 0}" required></label><div id="photo-preview">${portrait({ photo, name: c?.name || "" })}</div><label>写真ライブラリ・ファイル<input id="photo-library" type="file" accept="image/*"></label><label>カメラで撮影<input id="photo-camera" type="file" accept="image/*" capture="environment"></label>${btn("写真を削除", "clear-photo")}<p class="muted">長辺 800px 以下に縮小して端末に保存します。</p>${points(c || {}, "fate", "運命点", true)}${points(c || {}, "experience", "経験値", true)}<h3>能力値</h3><div class="stats">${stats.map((s) => `<label>${s}<select name="${s}">${dice.map((d) => `<option ${c?.stats[s] === d ? "selected" : ""}>${d}</option>`).join("")}</select></label>`).join("")}</div><div id="ability-sources" class="ability-sources" aria-label="スキル・装備由来の能力値"></div><h3>装備</h3>${Object.entries(
       equipmentCategories,
     )
       .map(
@@ -449,7 +450,7 @@ function characterForm(c) {
       )
       .join(
         "",
-      )}<section id="equipment-picker" hidden><h3 id="equipment-picker-title"></h3><label>装備検索<input type="search" id="equipment-query" placeholder="日本語・英語で検索" autocomplete="off"></label><label>カテゴリ<select id="equipment-category"><option value="">すべて</option>${Object.entries(
+      )}<section id="equipment-picker" hidden><h3 id="equipment-picker-title"></h3><label>装備検索<input type="search" id="equipment-query" placeholder="日本語・英語で検索" autocomplete="off"></label><label id="equipment-category-control">カテゴリ<select id="equipment-category"><option value="">すべて</option>${Object.entries(
       equipmentCategoryLabels,
     )
       .map(([key, label]) => `<option value="${key}">${label}</option>`)
@@ -464,12 +465,23 @@ function characterForm(c) {
   let catalog = [],
     activeSlot = "",
     pickerRequest = 0;
-  const selectionText = (key) =>
-    (modal.querySelector("#selection-" + key).textContent = equipmentSelections[
-      key
-    ]
-      ? equipmentDisplayName(equipmentSelections[key])
-      : "");
+  let abilityCatalog = [];
+  const updateAbilitySources = () => {
+    modal.querySelector("#ability-sources").innerHTML = abilitySourcesHtml(deriveAbilitySources({
+      ...c, ...inventory, skillSelections, equipmentSelections, equipmentMagic,
+      equipmentSlots: Object.fromEntries(Object.keys(equipmentCategories).map(key => [key, modal.querySelector(`[name="slot-${key}"]`).value]))
+    }, abilityCatalog));
+  };
+  updateAbilitySources();
+  const formNode = modal.querySelector("#character-form");
+  loadEquipmentCatalog().then(items => {
+    if (!modal.open || modal.querySelector("#character-form") !== formNode) return;
+    abilityCatalog = items; updateAbilitySources();
+  }).catch(() => {}); // Known IDs still work offline; unknown text is never guessed.
+  const selectionText = (key) => {
+    modal.querySelector("#selection-" + key).textContent = equipmentSelections[key] ? equipmentDisplayName(equipmentSelections[key]) : "";
+    updateAbilitySources();
+  };
   const renderResults = () => {
     const sourceItems = modal.querySelector("#equipment-source").value === "special" ? specialMagicItems : catalog;
     const matches = searchEquipment(sourceItems, {
@@ -500,6 +512,7 @@ function characterForm(c) {
       picker.hidden = false;
       query.value = "";
       category.value = "";
+      modal.querySelector("#equipment-category-control").hidden = activeSlot !== "special";
       modal.querySelector("#equipment-source").value = "general";
       modal.querySelector("#equipment-picker-title").textContent =
         equipmentCategories[activeSlot] + "の装備を検索";
@@ -572,6 +585,7 @@ function characterForm(c) {
     closePicker();
   };
   const drawMagic = (key) => {
+    updateAbilitySources();
     const root = modal.querySelector("#magic-editor-" + key), value = equipmentMagic[key] || { effects: [], notes: "" };
     root.innerHTML = `<p class="muted">基本装備を維持して効果を手動登録します。能力値や装備枠は自動変更しません。</p>${value.effects.map((v,i) => `<div class="magic-entry"><label>魔法効果 ${i+1}<select data-magic-id="${i}">${!magicEffect(v.id) ? `<option value="${esc(v.id)}">${esc(v.id)}（現在の値を保持）</option>` : ""}${magicEffects.map(effect => `<option value="${effect.id}" ${effect.id===v.id?"selected":""}>${esc(effect.nameJa)} / ${effect.nameEn}</option>`).join("")}</select></label>${magicEffect(v.id)?.needsBonus || v.bonus !== null ? `<label>ボーナス値<input type="number" required min="0" max="9007199254740991" step="1" data-magic-bonus="${i}" value="${esc(v.bonus ?? 1)}"></label>` : ""}${btn("削除", "remove-magic-effect", `data-index="${i}" aria-label="${equipmentCategories[key]}の魔法効果 ${i+1} を削除"`)}</div>`).join("")}<button type="button" data-add-magic="${key}">＋ 魔法効果</button><label>魔法装備の補足<textarea maxlength="20000" data-magic-notes>${esc(value.notes)}</textarea></label>${magicDetails(value)}`;
     const touch = () => { magicTouched = true; return equipmentMagic[key] ||= { effects: [], notes: "" }; };
@@ -585,6 +599,7 @@ function characterForm(c) {
     root.oninput = e => {
       if(e.target.dataset.magicBonus !== undefined && e.target.validity.valid && e.target.value !== "") touch().effects[Number(e.target.dataset.magicBonus)].bonus = Number(e.target.value);
       else if(e.target.hasAttribute("data-magic-notes")) touch().notes = e.target.value;
+      updateAbilitySources();
     };
     root.onclick = e => {
       const add = e.target.closest("[data-add-magic]"), remove = e.target.closest('[data-action="remove-magic-effect"]');
@@ -594,6 +609,7 @@ function characterForm(c) {
   };
   for (const key of Object.keys(equipmentCategories)) drawMagic(key);
   const drawEntries = (key) => {
+    updateAbilitySources();
     const label = key === "skillEntries" ? "スキル" : "呪文",
       node = modal.querySelector("#character-" + key);
     node.innerHTML =
@@ -632,6 +648,8 @@ function characterForm(c) {
         }
       }
     };
+    node.removeEventListener("input", updateAbilitySources);
+    node.addEventListener("input", updateAbilitySources);
     node.onclick = (e) => {
       const b = e.target.closest('[data-action="delete-character-entry"]');
       if (b) {
