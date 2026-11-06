@@ -5,6 +5,25 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('nod
  try{
  const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ // Stress startup without changing production assets. A slow IndexedDB read
+ // must not let an assertion run before the battle snapshot has rendered.
+ const readDelay=Number(process.env.TEST_DELAY_DB_READ_MS||0);
+ if(readDelay){
+   assert.ok(Number.isSafeInteger(readDelay)&&readDelay>0&&readDelay<=2000);
+   await page.addInitScript(delay=>{
+     const get=IDBObjectStore.prototype.get;
+     IDBObjectStore.prototype.get=function(...args){
+       const request=get.apply(this,args);
+       if(this.name==='data'&&args[0]==='app')request.addEventListener('success',event=>{
+         if(!event.isTrusted)return;
+         event.stopImmediatePropagation();
+         setTimeout(()=>request.dispatchEvent(new Event('success')),delay);
+       });
+       return request;
+     };
+   },readDelay);
+ }
+
  await page.goto(process.env.TEST_URL||'http://127.0.0.1:5173');await page.getByRole('heading',{name:'冒険の準備'}).waitFor();
  const {stats,startGame,emptyBandStatus}=await import('../src/model.js');
  const c={id:'c',name:'アッシュ',species:'マウス',role:'leader',level:6,fate:2,experience:3,photo:'data:image/png;base64,'+fs.readFileSync('icon-192.png').toString('base64'),stats:Object.fromEntries(stats.map(s=>[s,'D10'])),equipment:'旧装備',equipmentSlots:{weapon1:'両手武器',weapon2:'',armour1:'ライトアーマー',armour2:'',item:'',special:''},skills:'Strong (2)',spells:'Heal',notes:'元のメモ'};
@@ -14,6 +33,12 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('nod
  await page.evaluate(d=>new Promise(resolve=>{const r=indexedDB.open('bb-helper',1);r.onsuccess=()=>{const db=r.result,t=db.transaction('data','readwrite');t.objectStore('data').put(d,'app');t.oncomplete=()=>{db.close();resolve();};};}),data);
  await page.reload();await page.getByRole('link',{name:'戦闘',exact:true}).click();
  const card=page.locator('.battle[data-character-id="c"]');
+ // Reload completes before app.js has necessarily finished reading IndexedDB.
+ // Keep the photo expectation: wait for the snapshot, then verify the real image.
+ await card.getByRole('heading',{name:c.name,exact:true}).waitFor();
+ await card.locator('img').waitFor();
+ assert.equal(await card.locator('img').getAttribute('src'),c.photo);
+ await card.locator('img').evaluate(img=>img.decode());
  assert.equal(await card.locator('img').count(),1);await card.getByText('Lv. 06',{exact:true}).waitFor();assert.equal(await card.locator('.card-stats [aria-label]').count(),9);
  await card.locator('.ability-sources').getByText('ストロング',{exact:true}).waitFor();
  assert.equal(await card.locator('.gauge .filled').count(),0);assert.equal(await card.locator('.gauge .pip').count(),17);
@@ -24,6 +49,17 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('nod
  assert.ok(await extras.locator('details[open]').count()>=3);
  await card.locator('.condition-picker summary').click();const labels=['スニーク','バーサーク','朦朧','麻痺','炎上','盲目'];
  for(const name of labels)await card.locator('.condition-picker').getByRole('checkbox',{name,exact:true}).check();
+ await page.locator('#save-status').filter({hasText:'端末に保存済み'}).waitFor();
+ const selectedSnapshot=await page.evaluate(()=>new Promise((resolve,reject)=>{
+   const r=indexedDB.open('bb-helper',1);
+   r.onerror=()=>reject(r.error);
+   r.onsuccess=()=>{const db=r.result,q=db.transaction('data').objectStore('data').get('app');
+     q.onsuccess=()=>{resolve(q.result);db.close();};q.onerror=()=>{reject(q.error);db.close();};};
+ }));
+ assert.deepEqual(selectedSnapshot.game.characters[0].conditions,['sneaking','berserk','stunned','paralysed','burning','blinded']);
+ assert.deepEqual(selectedSnapshot.warbands,data.warbands);
+ assert.equal(selectedSnapshot.game.characters[1].conditions,undefined);
+ assert.deepEqual(selectedSnapshot.game.characters[0].effects,data.game.characters[0].effects);
  assert.equal(await card.locator('.condition-list .condition-chip').count(),6);assert.equal(await card.locator('.condition-picker').evaluate(n=>n.open),true);
  const stunned=card.locator('[data-condition-id="stunned"]'),burning=card.locator('[data-condition-id="burning"]');
  const closed=await stunned.locator('..').evaluate(n=>getComputedStyle(n).backgroundColor);

@@ -22,7 +22,8 @@ jobs:
         run: |
           python3 -m http.server 5173 &
           curl --fail --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:5173/ > /dev/null
-          TEST_URL=http://127.0.0.1:5173/dist/ npm run test:browser
+          # Exercise the battle test while IndexedDB startup completes slowly.
+          TEST_DELAY_DB_READ_MS=500 TEST_URL=http://127.0.0.1:5173/dist/ npm run test:browser
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
