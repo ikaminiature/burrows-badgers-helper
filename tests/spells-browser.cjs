@@ -15,9 +15,24 @@ const {enableRosterEditing}=require('./support/roster.cjs');
  await page.evaluate(d=>new Promise(resolve=>{const r=indexedDB.open('bb-helper',1);r.onsuccess=()=>{const db=r.result,tx=db.transaction('data','readwrite');tx.objectStore('data').put(d,'app');tx.oncomplete=()=>{db.close();resolve();};};}),data);
  await page.reload();
  async function roster(){await page.getByRole('link',{name:'ウォーバンド',exact:true}).click();await page.getByRole('button',{name:'開く',exact:true}).click();}
- async function edit(){await enableRosterEditing(page);await page.getByRole('button',{name:'編集',exact:true}).click();}
+ async function noInputFocus(button){
+   await button.scrollIntoViewIfNeeded();
+   await page.evaluate(()=>{window.characterFocusEvents=[];document.addEventListener('pointerdown',()=>{window.characterOpenScroll={x:scrollX,y:scrollY};},{once:true});document.addEventListener('focusin',e=>{if(e.target.matches('#character-form input,#character-form textarea,#character-form select'))window.characterFocusEvents.push(e.target.tagName);});});
+   await button.click();
+   await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
+   assert.deepEqual(await page.evaluate(()=>window.characterFocusEvents),[]);
+   assert.equal(await page.evaluate(()=>document.activeElement.tagName),'H2');
+   assert.equal(await page.locator('#modal').evaluate(n=>n.scrollTop),0);
+   assert.deepEqual(await page.evaluate(()=>({x:scrollX,y:scrollY})),await page.evaluate(()=>window.characterOpenScroll));
+   await page.getByRole('textbox',{name:'名前',exact:true}).tap();
+   assert.equal(await page.locator('#character-form input[name=name]').evaluate(n=>n===document.activeElement),true);
+ }
+ async function edit(){await enableRosterEditing(page);await noInputFocus(page.getByRole('button',{name:'編集',exact:true}));}
  async function saved(){await page.locator('#save-status').filter({hasText:'端末に保存済み'}).waitFor();}
- await roster();await edit();
+ await roster();
+ await noInputFocus(page.getByRole('button',{name:'＋ キャラクター登録',exact:true}));
+ await page.getByRole('button',{name:'キャンセル',exact:true}).click();
+ await edit();
  // Unrelated saves preserve old field absence and original strings.
  await page.getByRole('button',{name:'保存',exact:true}).click();await saved();
  const untouched = await page.evaluate(()=>new Promise(resolve=>{const r=indexedDB.open('bb-helper',1);r.onsuccess=()=>{const db=r.result,t=db.transaction('data'),q=t.objectStore('data').get('app');q.onsuccess=()=>resolve(q.result.warbands[0].characters[0]);t.oncomplete=()=>db.close();};}));
@@ -27,10 +42,10 @@ const {enableRosterEditing}=require('./support/roster.cjs');
  await page.locator('#spell-picker summary').first().click();assert.equal(await page.locator('.spell-option').count(),76);assert.equal(await page.locator('#spell-element').isVisible(),false);
  await page.locator('#spell-archetype').selectOption('elementalism');assert.equal(await page.locator('#spell-element').isVisible(),true);assert.equal(await page.locator('.spell-option').count(),8);
  await page.locator('#spell-element').selectOption('水');assert.equal(await page.locator('.spell-option').count(),2);
- await page.locator('#spell-query').fill('ＤＯＷＮＰＯＵＲ');assert.equal(await page.locator('.spell-option').count(),1);
+ assert.equal(await page.locator('#spell-query').count(),0);assert.equal(await page.locator('#spell-picker input').count(),0);
  await page.getByRole('button',{name:'豪雨を追加',exact:true}).click();
- await page.locator('#spell-archetype').selectOption('channelling');await page.locator('#spell-query').fill('粉砕');
- await page.locator('.spell-option summary').click();await page.locator('.spell-option').getByText('浅い働き',{exact:true}).waitFor();await page.locator('.spell-option').getByText('深い働き',{exact:true}).waitFor();
+ await page.locator('#spell-archetype').selectOption('channelling');assert.equal(await page.locator('.spell-option').count(),6);
+ const crushOption=page.locator('.spell-option').filter({has:page.getByRole('button',{name:'粉砕を追加',exact:true})});await crushOption.locator('summary').click();await crushOption.getByText('浅い働き',{exact:true}).waitFor();await crushOption.getByText('深い働き',{exact:true}).waitFor();
  await page.getByRole('button',{name:'粉砕を追加',exact:true}).click();
  await page.getByRole('button',{name:'＋ 呪文',exact:true}).click();await page.getByRole('textbox',{name:'呪文 5',exact:true}).fill('<独自呪文>');
  await page.getByRole('button',{name:'呪文 2 を削除',exact:true}).click();
@@ -54,7 +69,7 @@ const {enableRosterEditing}=require('./support/roster.cjs');
  assert.equal(sc.spells,c.spells);assert.equal(sc.photo,c.photo);assert.equal(sc.equipment,c.equipment);assert.equal(sc.skills,c.skills);assert.deepEqual(sc.stats,c.stats);assert.deepEqual(exported.game,data.game);
  assert.deepEqual(sc.spellEntries,['Heal','豪雨','粉砕の独自メモ','<独自呪文>']);assert.deepEqual(sc.spellSelections,[{id:'spell-light-heal'},{id:'spell-elementalism-downpour'},null,null]);
  await page.locator('#restore-file').setInputFiles(file);await page.getByRole('button',{name:'確認して実行'}).click();await page.locator('#modal').waitFor({state:'hidden'});await page.reload();await roster();await edit();assert.equal(await page.getByRole('textbox',{name:'呪文 2',exact:true}).inputValue(),'豪雨');await page.getByRole('button',{name:'キャンセル',exact:true}).click();
- await page.evaluate(()=>navigator.serviceWorker.ready);await page.reload();await context.setOffline(true);await page.reload();await roster();await edit();await page.locator('#spell-picker summary').first().click();await page.locator('#spell-query').fill('Raise');await page.getByRole('button',{name:'呼び戻しを追加',exact:true}).waitFor();
- assert.deepEqual(errors,[]);console.log('PASS: 76 spells, bilingual/archetype/element search, CRUD, free text, independent tinted details, 320px light/dark, JSON/photos/battle isolation and offline');
+ await page.evaluate(()=>navigator.serviceWorker.ready);await page.reload();await context.setOffline(true);await page.reload();await roster();await edit();await page.locator('#spell-picker summary').first().click();await page.locator('#spell-archetype').selectOption('necromancy');await page.getByRole('button',{name:'呼び戻しを追加',exact:true}).waitFor();
+ assert.deepEqual(errors,[]);console.log('PASS: 76 spells, archetype/element selection without text search, CRUD, free text, independent tinted details, 320px light/dark, JSON/photos/battle isolation and offline');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
