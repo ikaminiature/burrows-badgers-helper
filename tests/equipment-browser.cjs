@@ -173,9 +173,8 @@ const { enableRosterEditing } = require("./support/roster.cjs");
       .getByRole("combobox", { name: "カテゴリ", exact: true })
       .selectOption("item");
     await query("Lead slingshot");
-    await result("general-store-034")
-      .getByText("表記要確認", { exact: true })
-      .waitFor();
+    await result("general-store-034").getByText("リードスリングショット", { exact: true }).waitFor();
+    assert.equal(await result("general-store-034").getByText("表記要確認", { exact: true }).count(), 0);
     await result("general-store-034")
       .getByRole("button", { name: "選ぶ", exact: true })
       .click();
@@ -183,14 +182,15 @@ const { enableRosterEditing } = require("./support/roster.cjs");
     await page
       .getByRole("combobox", { name: "カテゴリ", exact: true })
       .selectOption("ingredient");
+    await query("Antler dust");
+    await result("general-store-060").getByText("角の粉", { exact: true }).waitFor();
+    await query("角の粉");
+    assert.equal(await result("general-store-082").count(), 0);
     await query("Powdered acorns");
     const flagged = result("general-store-082");
-    await flagged.getByText("角の粉", { exact: true }).waitFor();
-    await flagged.getByRole("button", { name: "備考", exact: true }).click();
-    await flagged
-      .locator(".equipment-notes")
-      .filter({ hasText: "原表との照合待ち" })
-      .waitFor();
+    await flagged.getByText("粉末ドングリ", { exact: true }).waitFor();
+    assert.equal(await flagged.getByText("表記要確認", { exact: true }).count(), 0);
+    assert.equal(await flagged.getByRole("button", { name: "備考", exact: true }).count(), 0);
     await flagged.getByRole("button", { name: "選ぶ", exact: true }).click();
     await page
       .getByRole("textbox", { name: "鎧2", exact: true })
@@ -255,7 +255,7 @@ const { enableRosterEditing } = require("./support/roster.cjs");
       saved = exported.warbands[0].characters[0];
     assert.equal(saved.equipmentSelections.weapon1.id, "general-store-010");
     assert.equal(saved.equipmentSelections.weapon1.range, "12″");
-    assert.equal(saved.equipmentSelections.special.nameJa, "角の粉");
+    assert.equal(saved.equipmentSelections.special.nameJa, "粉末ドングリ");
     assert.equal(saved.equipmentSelections.special.nameEn, "Powdered acorns");
     assert.deepEqual(saved.skillEntries, c.skillEntries);
     assert.deepEqual(saved.spellEntries, c.spellEntries);
@@ -385,7 +385,7 @@ const { enableRosterEditing } = require("./support/roster.cjs");
     );
     await fallback.close();
     console.log(
-      "PASS: actual 96-item search, JA/EN NFKC, category/recent ordering, stable IDs, range and hidden notes, review flags unchanged, free/custom/unequip, JSON/offline/game preservation, catalog failure fallback",
+      "PASS: actual 96-item search, JA/EN NFKC, category/recent ordering, stable IDs, range and hidden notes, confirmed errata names and no obsolete review flags, free/custom/unequip, JSON/offline/game preservation, catalog failure fallback",
     );
   } finally {
     await browser.close();

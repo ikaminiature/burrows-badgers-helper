@@ -245,6 +245,13 @@ export function validateData(d) {
           Object.keys(c.equipmentSlots).some(
             (k) => !Object.hasOwn(equipmentCategories, k),
           ))) ||
+      (c.skillSelections !== undefined &&
+        (!Array.isArray(c.skillSelections) ||
+          !Array.isArray(c.skillEntries) ||
+          c.skillSelections.length !== c.skillEntries.length ||
+          !c.skillSelections.every(v => v === null ||
+            (v && str(v.id, 200) && (v.value === null ||
+              (Number.isSafeInteger(v.value) && v.value >= 0)))))) ||
       !["skillEntries", "spellEntries"].every(
         (k) =>
           c[k] === undefined ||
