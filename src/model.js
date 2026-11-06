@@ -105,7 +105,7 @@ export const emptyBandStatus = () => ({
   stash: [],
   upgrades: [],
 });
-// Migrate a copy: never rewrite characters, photos or an existing battle record.
+// Migrate a copy, preserving characters/photos and existing battle values.
 export function loadData(input) {
   const d = structuredClone(input);
   if (!d || ![1, 2].includes(d.version) || !Array.isArray(d.warbands))
@@ -120,6 +120,10 @@ export function loadData(input) {
       if (c.fate === undefined) c.fate = 0;
       if (c.experience === undefined) c.experience = 0;
     }
+  if (d.game && typeof d.game === "object" && !Array.isArray(d.game)) {
+    if (d.game.vp === undefined) d.game.vp = 0;
+    if (d.game.sideQuests === undefined) d.game.sideQuests = ["", ""];
+  }
   return validateData(d);
 }
 export const id = () => crypto.randomUUID();
@@ -147,6 +151,8 @@ export function startGame(w) {
     name: w.name,
     status: structuredClone(w.status || emptyBandStatus()),
     round: 1,
+    vp: 0,
+    sideQuests: ["", ""],
     characters: structuredClone(w.characters).map((c) => ({
       ...c,
       wounds: 0,
@@ -154,6 +160,10 @@ export function startGame(w) {
       effects: [],
     })),
   };
+}
+export function adjustVP(g, delta) {
+  if (!Number.isSafeInteger(delta)) throw Error("VPの変更値が不正です");
+  g.vp = Math.max(0, Math.min(Number.MAX_SAFE_INTEGER, (g.vp ?? 0) + delta));
 }
 export function nextRound(g) {
   g.round++;
@@ -306,6 +316,9 @@ export function validateData(d) {
       !str(g.name, 200) ||
       !Number.isInteger(g.round) ||
       g.round < 1 ||
+      (g.vp !== undefined && (!Number.isSafeInteger(g.vp) || g.vp < 0)) ||
+      (g.sideQuests !== undefined && (!Array.isArray(g.sideQuests) ||
+        g.sideQuests.length !== 2 || !g.sideQuests.every(v => str(v)))) ||
       !Array.isArray(g.characters)
     )
       throw Error("ゲームデータが不正です");

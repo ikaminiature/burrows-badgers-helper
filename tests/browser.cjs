@@ -85,11 +85,10 @@ const assert = require("node:assert/strict");
       .isChecked(),
     false,
   );
-  await ash.getByText("状態・効果（0）").click();
-  await ash.getByRole("button", { name: "＋ 状態・効果を追加" }).click();
-  await page.getByRole("textbox", { name: "名前", exact: true }).fill("毒");
-  await page.getByRole("textbox", { name: "説明（任意）" }).fill("手動で処理");
-  await page.getByRole("button", { name: "追加", exact: true }).click();
+  await ash.locator(".condition-picker > summary").click();
+  await page.getByRole("textbox", { name: "自由登録の状態名", exact: true }).fill("毒");
+  await page.getByRole("textbox", { name: "説明・メモ" }).fill("手動で処理");
+  await page.getByRole("button", { name: "登録", exact: true }).click();
   await page
     .locator("#save-status")
     .filter({ hasText: "端末に保存済み" })
@@ -181,7 +180,8 @@ const assert = require("node:assert/strict");
   await page.locator(".gauge").first().waitFor();
   assert.equal(await page.locator(".gauge").first().locator(".filled").count(), 16);
   assert.equal(await page.locator("article").first().locator("img").count(), 1);
-  await page.locator("article").first().getByText("状態・効果（1）").waitFor();
+  await page.locator("article").first().locator(".condition-picker > summary").click();
+  await page.locator("article").first().getByText("毒", {exact:true}).waitFor();
   assert.equal(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
