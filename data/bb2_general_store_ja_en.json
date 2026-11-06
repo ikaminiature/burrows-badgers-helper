@@ -288,8 +288,7 @@
       "nameJa": "リードスリングショット",
       "nameEn": "Lead slingshot",
       "range": null,
-      "notesJa": [],
-      "reviewRequired": "原文はLead slingshot、和訳リードスリングショット。"
+      "notesJa": []
     },
     {
       "id": "general-store-035",
@@ -673,8 +672,7 @@
       "nameJa": "角の粉",
       "nameEn": "Powdered acorns",
       "range": null,
-      "notesJa": [],
-      "reviewRequired": "日本語画像p178では「角の粉」に見えるが英語はPowdered acorns。日本語訳の誤植・読み違いを要照合。"
+      "notesJa": []
     },
     {
       "id": "general-store-083",
