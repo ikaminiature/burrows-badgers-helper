@@ -50,12 +50,18 @@ test("添付96件・安定ID・全フィールドを維持し不要な値を登�
     assert.equal(Object.hasOwn(item, "rarity"), false);
   }
   assert.deepEqual(
+    catalog.filter((i) => i.reviewRequired),
+    [],
+    "確認済み項目には要確認フラグを残さない",
+  );
+  assert.deepEqual(
     catalog
-      .filter((i) => i.reviewRequired)
+      .filter((i) => ["general-store-034", "general-store-060", "general-store-082"].includes(i.id))
       .map((i) => [i.id, i.nameJa, i.nameEn]),
     [
       ["general-store-034", "リードスリングショット", "Lead slingshot"],
-      ["general-store-082", "角の粉", "Powdered acorns"],
+      ["general-store-060", "角の粉", "Antler dust"],
+      ["general-store-082", "粉末ドングリ", "Powdered acorns"],
     ],
   );
   assert.equal(equipmentDisplayName(catalog[5]), "弓（18″）");
