@@ -1,4 +1,4 @@
-const VERSION = "9";
+const VERSION = "10";
 const PREFIX = "bb-helper:" + self.registration.scope + ":";
 const CACHE = PREFIX + VERSION;
 const FILES = [
@@ -8,6 +8,8 @@ const FILES = [
   "./src/app.js",
   "./src/model.js",
   "./src/species.js",
+  "./src/equipment.js",
+  "./data/bb2_general_store_ja_en.json",
   "./src/db.js",
   "./src/update.js",
   "./manifest.webmanifest",
@@ -18,18 +20,16 @@ const FILES = [
 ];
 self.addEventListener("install", (e) =>
   e.waitUntil(
-    caches
-      .open(CACHE)
-      .then((c) =>
-        c.addAll(
-          FILES.map(
-            (path) =>
-              new Request(new URL(path, self.registration.scope), {
-                cache: "reload",
-              }),
-          ),
+    caches.open(CACHE).then((c) =>
+      c.addAll(
+        FILES.map(
+          (path) =>
+            new Request(new URL(path, self.registration.scope), {
+              cache: "reload",
+            }),
         ),
       ),
+    ),
   ),
 );
 self.addEventListener("activate", (e) =>

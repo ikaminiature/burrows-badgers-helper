@@ -1,0 +1,792 @@
+{
+  "source": "Burrows & Badgers Second Edition, General Store, pp.176-179; user-provided Japanese and English page images",
+  "note": "Name pairs transcribed from provided images. Notes are table keywords only, not full rules. Verify flagged discrepancies against original pages before release.",
+  "items": [
+    {
+      "id": "general-store-001",
+      "category": "weapon",
+      "nameJa": "片手武器",
+      "nameEn": "One-handed weapon",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-002",
+      "category": "weapon",
+      "nameJa": "両手武器",
+      "nameEn": "Two-handed weapon",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-003",
+      "category": "weapon",
+      "nameJa": "ポールアーム",
+      "nameEn": "Pole-arm",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-004",
+      "category": "weapon",
+      "nameJa": "スピア",
+      "nameEn": "Spear",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-005",
+      "category": "weapon",
+      "nameJa": "ロンデルダガー",
+      "nameEn": "Rondel dagger",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-006",
+      "category": "weapon",
+      "nameJa": "弓",
+      "nameEn": "Bow",
+      "range": "18″",
+      "notesJa": []
+    },
+    {
+      "id": "general-store-007",
+      "category": "weapon",
+      "nameJa": "ライトクロスボウ",
+      "nameEn": "Light Crossbow",
+      "range": "24″",
+      "notesJa": [
+        "スロウ"
+      ]
+    },
+    {
+      "id": "general-store-008",
+      "category": "weapon",
+      "nameJa": "スリング",
+      "nameEn": "Sling",
+      "range": "12″",
+      "notesJa": []
+    },
+    {
+      "id": "general-store-009",
+      "category": "weapon",
+      "nameJa": "投げナイフ",
+      "nameEn": "Throwing knives",
+      "range": "6″",
+      "notesJa": []
+    },
+    {
+      "id": "general-store-010",
+      "category": "weapon",
+      "nameJa": "ピストル",
+      "nameEn": "Pistol",
+      "range": "12″",
+      "notesJa": [
+        "スロウ",
+        "気まぐれ",
+        "黒色火薬"
+      ]
+    },
+    {
+      "id": "general-store-011",
+      "category": "weapon",
+      "nameJa": "ブランダーバス",
+      "nameEn": "Blunderbuss",
+      "range": "8″",
+      "notesJa": [
+        "スロウ",
+        "気まぐれ",
+        "黒色火薬"
+      ]
+    },
+    {
+      "id": "general-store-012",
+      "category": "weapon",
+      "nameJa": "戦弓",
+      "nameEn": "War Bow",
+      "range": "36″",
+      "notesJa": []
+    },
+    {
+      "id": "general-store-013",
+      "category": "weapon",
+      "nameJa": "ヘビークロスボウ",
+      "nameEn": "Heavy Crossbow",
+      "range": "36″",
+      "notesJa": [
+        "スロウ"
+      ]
+    },
+    {
+      "id": "general-store-014",
+      "category": "weapon",
+      "nameJa": "カイロサイフォン",
+      "nameEn": "Cheirosiphon",
+      "range": "可変",
+      "notesJa": []
+    },
+    {
+      "id": "general-store-015",
+      "category": "weapon",
+      "nameJa": "カリヴァー",
+      "nameEn": "Caliver",
+      "range": "36″",
+      "notesJa": [
+        "スロウ",
+        "気まぐれ",
+        "黒色火薬"
+      ]
+    },
+    {
+      "id": "general-store-016",
+      "category": "weapon",
+      "nameJa": "武器（名工製）",
+      "nameEn": "Weapon (Master-smithed)",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-017",
+      "category": "weapon",
+      "nameJa": "魔女に与える鉄槌",
+      "nameEn": "Malleus Maleficarum",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-018",
+      "category": "armour",
+      "nameJa": "ライトアーマー",
+      "nameEn": "Light armour",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-019",
+      "category": "armour",
+      "nameJa": "ヘビーアーマー",
+      "nameEn": "Heavy armour",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-020",
+      "category": "armour",
+      "nameJa": "バックラー",
+      "nameEn": "Buckler",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-021",
+      "category": "armour",
+      "nameJa": "ライトシールド",
+      "nameEn": "Light Shield",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-022",
+      "category": "armour",
+      "nameJa": "ヘビーシールド",
+      "nameEn": "Heavy Shield",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-023",
+      "category": "armour",
+      "nameJa": "ベリーヘビーアーマー",
+      "nameEn": "Very heavy armour",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-024",
+      "category": "item",
+      "nameJa": "ロープ＆フック",
+      "nameEn": "Rope & hook",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-025",
+      "category": "item",
+      "nameJa": "幸運の御守り",
+      "nameEn": "Lucky charm",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-026",
+      "category": "item",
+      "nameJa": "タリスマン",
+      "nameEn": "Talisman",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-027",
+      "category": "item",
+      "nameJa": "魔法使いの集中",
+      "nameEn": "Mage’s focus",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-028",
+      "category": "item",
+      "nameJa": "魔法使いのポーチ",
+      "nameEn": "Mage’s Pouch",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-029",
+      "category": "item",
+      "nameJa": "カモフラージュクローク",
+      "nameEn": "Camouflage Cloak",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-030",
+      "category": "item",
+      "nameJa": "匂い隠し",
+      "nameEn": "Scent Masker",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-031",
+      "category": "item",
+      "nameJa": "ヒーリングポーション",
+      "nameEn": "Healing potion",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-032",
+      "category": "item",
+      "nameJa": "ブロードヘッド・アロー",
+      "nameEn": "Broadhead arrows",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-033",
+      "category": "item",
+      "nameJa": "ボドキン・アロー",
+      "nameEn": "Bodkin arrows",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-034",
+      "category": "item",
+      "nameJa": "リードスリングショット",
+      "nameEn": "Lead slingshot",
+      "range": null,
+      "notesJa": [],
+      "reviewRequired": "原文はLead slingshot、和訳リードスリングショット。"
+    },
+    {
+      "id": "general-store-035",
+      "category": "item",
+      "nameJa": "上質な黒色火薬",
+      "nameEn": "Superior Black Powder",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-036",
+      "category": "item",
+      "nameJa": "松明",
+      "nameEn": "Torch",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-037",
+      "category": "item",
+      "nameJa": "ランタン",
+      "nameEn": "Lantern",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-038",
+      "category": "item",
+      "nameJa": "撒き菱",
+      "nameEn": "Caltrops",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-039",
+      "category": "item",
+      "nameJa": "鼓舞の品",
+      "nameEn": "Inspiring Object",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-040",
+      "category": "item",
+      "nameJa": "タングルネット",
+      "nameEn": "Tangle Net",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-041",
+      "category": "item",
+      "nameJa": "シグネチャーアイテム",
+      "nameEn": "Signature Item",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-042",
+      "category": "item",
+      "nameJa": "資材",
+      "nameEn": "Materials",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-043",
+      "category": "item",
+      "nameJa": "エンチャント装備",
+      "nameEn": "Enchanted Equipment",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-044",
+      "category": "item",
+      "nameJa": "絹の肌着",
+      "nameEn": "Silk Undershirt",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-045",
+      "category": "item",
+      "nameJa": "対抗の巻物",
+      "nameEn": "Dispel Scroll",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-046",
+      "category": "item",
+      "nameJa": "守護のタリスマン",
+      "nameEn": "Shielding Talisman",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-047",
+      "category": "item",
+      "nameJa": "反射のタリスマン",
+      "nameEn": "Mirroring Talisman",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-048",
+      "category": "item",
+      "nameJa": "目くらましの粉",
+      "nameEn": "Blind Dust",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-049",
+      "category": "item",
+      "nameJa": "望遠鏡",
+      "nameEn": "Telescope",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-050",
+      "category": "item",
+      "nameJa": "バーサーカー・シーズ",
+      "nameEn": "Berserker Seeds",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-051",
+      "category": "item",
+      "nameJa": "オールド・ワン・ブリュー",
+      "nameEn": "Old One Brews",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-052",
+      "category": "item",
+      "nameJa": "麻痺毒",
+      "nameEn": "Paralysing Poison",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-053",
+      "category": "item",
+      "nameJa": "激痛毒",
+      "nameEn": "Pain Poison",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-054",
+      "category": "item",
+      "nameJa": "致死毒",
+      "nameEn": "Mortal Poison",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-055",
+      "category": "item",
+      "nameJa": "聖遺物",
+      "nameEn": "Relic",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-056",
+      "category": "item",
+      "nameJa": "解毒剤",
+      "nameEn": "Anti-Venom",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-057",
+      "category": "item",
+      "nameJa": "秘術の書",
+      "nameEn": "Arcane Tome",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-058",
+      "category": "ingredient",
+      "nameJa": "琥珀のビーズ",
+      "nameEn": "Amber bead",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-059",
+      "category": "ingredient",
+      "nameJa": "アマニタ",
+      "nameEn": "Amanitas",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-060",
+      "category": "ingredient",
+      "nameJa": "角の粉",
+      "nameEn": "Antler dust",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-061",
+      "category": "ingredient",
+      "nameJa": "祝福された水",
+      "nameEn": "Blessed Water",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-062",
+      "category": "ingredient",
+      "nameJa": "ブラッドワート",
+      "nameEn": "Bloodwort",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-063",
+      "category": "ingredient",
+      "nameJa": "骨粉",
+      "nameEn": "Bone meal",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-064",
+      "category": "ingredient",
+      "nameJa": "アナグマの血",
+      "nameEn": "Badger’s blood",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-065",
+      "category": "ingredient",
+      "nameJa": "アナグマの爪",
+      "nameEn": "Badger’s claws",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-066",
+      "category": "ingredient",
+      "nameJa": "ベラドンナ",
+      "nameEn": "Belladonna",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-067",
+      "category": "ingredient",
+      "nameJa": "クマの骨片",
+      "nameEn": "Bear bone fragments",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-068",
+      "category": "ingredient",
+      "nameJa": "硫黄",
+      "nameEn": "Brimstone",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-069",
+      "category": "ingredient",
+      "nameJa": "洞窟グモの毒",
+      "nameEn": "Cave spider venom",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-070",
+      "category": "ingredient",
+      "nameJa": "銅条",
+      "nameEn": "Copper strip",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-071",
+      "category": "ingredient",
+      "nameJa": "トンボの羽",
+      "nameEn": "Dragonfly wings",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-072",
+      "category": "ingredient",
+      "nameJa": "エルフの矢尻",
+      "nameEn": "Elf-bolt",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-073",
+      "category": "ingredient",
+      "nameJa": "ガリンゲイル",
+      "nameEn": "Galingale",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-074",
+      "category": "ingredient",
+      "nameJa": "黒曜石の粉末",
+      "nameEn": "Ground obsidian",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-075",
+      "category": "ingredient",
+      "nameJa": "ヘンベイン",
+      "nameEn": "Henbane",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-076",
+      "category": "ingredient",
+      "nameJa": "ヒール・アレ",
+      "nameEn": "Heal-ale",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-077",
+      "category": "ingredient",
+      "nameJa": "ヘマタイト",
+      "nameEn": "Haematite",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-078",
+      "category": "ingredient",
+      "nameJa": "ラグワート",
+      "nameEn": "Lugwort",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-079",
+      "category": "ingredient",
+      "nameJa": "蓮の花",
+      "nameEn": "Lotus flowers",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-080",
+      "category": "ingredient",
+      "nameJa": "マンドレイク",
+      "nameEn": "Mandrake",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-081",
+      "category": "ingredient",
+      "nameJa": "珪化木",
+      "nameEn": "Petrified wood",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-082",
+      "category": "ingredient",
+      "nameJa": "角の粉",
+      "nameEn": "Powdered acorns",
+      "range": null,
+      "notesJa": [],
+      "reviewRequired": "日本語画像p178では「角の粉」に見えるが英語はPowdered acorns。日本語訳の誤植・読み違いを要照合。"
+    },
+    {
+      "id": "general-store-083",
+      "category": "ingredient",
+      "nameJa": "スカラベの殻",
+      "nameEn": "Scarab shells",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-084",
+      "category": "ingredient",
+      "nameJa": "絹糸",
+      "nameEn": "Silk fibres",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-085",
+      "category": "ingredient",
+      "nameJa": "硝石",
+      "nameEn": "Saltpetre",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-086",
+      "category": "ingredient",
+      "nameJa": "雷鳥の羽",
+      "nameEn": "Thunderbird feather",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-087",
+      "category": "ingredient",
+      "nameJa": "タイムの葉",
+      "nameEn": "Thyme leaves",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-088",
+      "category": "ingredient",
+      "nameJa": "蝋燭",
+      "nameEn": "Wax candle",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-089",
+      "category": "bonded_critter",
+      "nameJa": "ハンティング・ホーネット",
+      "nameEn": "Hunting Hornet",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-090",
+      "category": "bonded_critter",
+      "nameJa": "ムカデ",
+      "nameEn": "Centipede",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-091",
+      "category": "bonded_critter",
+      "nameJa": "洞窟グモ",
+      "nameEn": "Cave Spider",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-092",
+      "category": "bonded_critter",
+      "nameJa": "甲虫",
+      "nameEn": "Beetle",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-093",
+      "category": "bonded_critter",
+      "nameJa": "絆のクワガタの幼虫",
+      "nameEn": "Bonded Beetle Grub",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-094",
+      "category": "stag_beetle_grub",
+      "nameJa": "追跡幼虫",
+      "nameEn": "Tracker Grub",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-095",
+      "category": "stag_beetle_grub",
+      "nameJa": "攻撃幼虫",
+      "nameEn": "Attack Grub",
+      "range": null,
+      "notesJa": []
+    },
+    {
+      "id": "general-store-096",
+      "category": "stag_beetle_grub",
+      "nameJa": "減衰幼虫",
+      "nameEn": "Damping Grub",
+      "range": null,
+      "notesJa": []
+    }
+  ]
+}

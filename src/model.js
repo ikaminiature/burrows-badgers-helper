@@ -11,6 +11,34 @@ export const stats = [
 ];
 export const dice = ["D4", "D6", "D8", "D10", "D12", "D20"];
 export const emptyData = () => ({ version: 2, warbands: [], game: null });
+export const characterRoles = {
+  none: "なし",
+  leader: "リーダー",
+  second: "サブ",
+};
+export const characterRole = (c) => c?.role ?? "none";
+export function conflictingRoles(w, c) {
+  return characterRole(c) === "none"
+    ? []
+    : w.characters.filter(
+        (other) =>
+          other.id !== c.id && characterRole(other) === characterRole(c),
+      );
+}
+export function putCharacter(w, c, transfer = false) {
+  if (
+    (c.role !== undefined && !Object.hasOwn(characterRoles, c.role)) ||
+    !Object.hasOwn(characterRoles, characterRole(c))
+  )
+    throw Error("役職が不正です");
+  const conflicts = conflictingRoles(w, c);
+  if (conflicts.length && !transfer)
+    throw Error("役職の重複を確認してください");
+  for (const other of conflicts) other.role = "none";
+  const index = w.characters.findIndex((other) => other.id === c.id);
+  if (index < 0) w.characters.push(c);
+  else w.characters[index] = c;
+}
 export const equipmentCategories = {
   weapon1: "武器1",
   weapon2: "武器2",
@@ -133,6 +161,14 @@ export function nextRound(g) {
 export function validateData(d) {
   if (!d || d.version !== 2 || !Array.isArray(d.warbands))
     throw Error("対応していないバックアップ形式です");
+  if (
+    d.recentEquipmentIds !== undefined &&
+    (!Array.isArray(d.recentEquipmentIds) ||
+      !d.recentEquipmentIds.every(
+        (v) => typeof v === "string" && /^[A-Za-z0-9_-]{1,100}$/.test(v),
+      ))
+  )
+    throw Error("最近の装備データが不正です");
   const ids = new Set();
   const validId = (v) =>
     typeof v === "string" && /^[A-Za-z0-9_-]{1,100}$/.test(v);
@@ -164,6 +200,7 @@ export function validateData(d) {
       !str(c.name, 200) ||
       !c.name.trim() ||
       !str(c.species, 200) ||
+      (c.role !== undefined && !Object.hasOwn(characterRoles, c.role)) ||
       (c.speciesPresetId !== undefined && !validId(c.speciesPresetId)) ||
       !Number.isInteger(c.level) ||
       c.level < 0 ||
@@ -176,6 +213,30 @@ export function validateData(d) {
       !c.stats ||
       !stats.every((s) => dice.includes(c.stats[s])) ||
       !["equipment", "skills", "spells", "notes"].every((k) => str(c[k])) ||
+      (c.equipmentSelections !== undefined &&
+        (!c.equipmentSelections ||
+          typeof c.equipmentSelections !== "object" ||
+          Array.isArray(c.equipmentSelections) ||
+          !Object.entries(c.equipmentSelections).every(
+            ([key, item]) =>
+              Object.hasOwn(equipmentCategories, key) &&
+              item &&
+              validId(item.id) &&
+              str(item.nameJa) &&
+              str(item.nameEn) &&
+              [
+                "weapon",
+                "armour",
+                "item",
+                "ingredient",
+                "bonded_critter",
+                "stag_beetle_grub",
+              ].includes(item.category) &&
+              (item.range === null || str(item.range)) &&
+              Array.isArray(item.notesJa) &&
+              item.notesJa.every((v) => str(v)) &&
+              (item.reviewRequired === undefined || str(item.reviewRequired)),
+          ))) ||
       (c.equipmentSlots !== undefined &&
         (!c.equipmentSlots ||
           !Object.keys(equipmentCategories).every((k) =>
@@ -207,6 +268,9 @@ export function validateData(d) {
       throw Error("ウォーバンドデータが不正です");
     checkStatus(w.status);
     ids.add(w.id);
+    for (const role of ["leader", "second"])
+      if (w.characters.filter((c) => c?.role === role).length > 1)
+        throw Error("役職が重複しています。バックアップを確認してください");
     const cs = new Set();
     for (const c of w.characters) {
       character(c);

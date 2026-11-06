@@ -13,6 +13,10 @@ import {
   bandNumbers,
   bandTexts,
   bandLists,
+  characterRoles,
+  characterRole,
+  conflictingRoles,
+  putCharacter,
   equipmentCategories,
   characterInventory,
   alliances,
@@ -21,6 +25,12 @@ import {
 import { read, write } from "./db.js";
 import { createUpdater } from "./update.js";
 import { speciesGroups, speciesPresets, presetValues } from "./species.js";
+import {
+  loadEquipmentCatalog,
+  searchEquipment,
+  equipmentCategoryLabels,
+  equipmentDisplayName,
+} from "./equipment.js";
 const app = document.querySelector("#app"),
   modal = document.querySelector("#modal"),
   status = document.querySelector("#save-status");
@@ -138,7 +148,17 @@ function render() {
   if (screen === "bands")
     app.innerHTML = band()
       ? bandView(band())
-      : `<div class="eyebrow">WARBANDS</div><h1>ウォーバンド管理</h1>${btn("＋ ウォーバンドを登録", "new-band", 'class="primary"')}${data.warbands.map((w) => `<section class="card"><h2>${esc(w.name)}</h2><p>${w.characters.length} キャラクター</p>${btn("開く", "open-band", `data-id="${w.id}"`)}</section>`).join("") || '<p class="empty">最初のウォーバンドを登録しましょう。</p>'}`;
+      : `<div class="eyebrow">WARBANDS</div><h1>ウォーバンド管理</h1>${btn("＋ ウォーバンドを登録", "new-band", 'class="primary"')}${
+          data.warbands
+            .map((w) => {
+              const leader = w.characters.find(
+                (c) => characterRole(c) === "leader",
+              );
+              return `<section class="card warband-card"><div class="row">${portrait(leader || { name: "", photo: "" })}<div class="identity"><h2 id="band-title-${w.id}">${esc(w.name)}</h2><p>${esc(w.status.alliance) || "アライアンス未設定"}</p><p>${leader ? "リーダー：" + esc(leader.name) : "リーダー未設定"}</p><p>${w.characters.length} キャラクター</p></div></div>${btn("開く", "open-band", `data-id="${w.id}" class="warband-open" aria-describedby="band-title-${w.id}" title="${esc(w.name)}を開く"`)}</section>`;
+            })
+            .join("") ||
+          '<p class="empty">最初のウォーバンドを登録しましょう。</p>'
+        }`;
   if (screen === "choose")
     app.innerHTML = `<div class="eyebrow">NEW GAME</div><h1>出陣するウォーバンド</h1>${data.game ? '<p class="muted">進行中のゲームがあります。新しく開始する場合は確認後に置き換えます。</p>' : ""}${data.warbands.map((w) => `<section class="card"><h2>${esc(w.name)}</h2><p>${w.characters.length} キャラクター</p>${btn("このウォーバンドで開始", "start", `class="primary" data-id="${w.id}" ${w.characters.length ? "" : "disabled"}`)}</section>`).join("") || '<p class="empty">ウォーバンドとキャラクターを登録してください。</p>'}<a class="button" href="#bands">ウォーバンド管理へ</a>`;
   if (screen === "battle")
@@ -195,7 +215,7 @@ function bandView(w) {
     )
     .join(
       "",
-    )}<h2>メモ</h2><p class="detail-text">${esc(s.notes) || "—"}</p></section><div class="row between"><h2>登録キャラクター</h2>${btn(rosterEditMode ? "編集モードを終了" : "編集モード", "toggle-roster-edit", `aria-pressed="${rosterEditMode}"`)}</div>${w.characters.map((c, i) => `<article class="card roster-card"><div class="roster-top"><div class="roster-photo">${portrait(c)}<span class="level">Lv. ${String(c.level).padStart(2, "0")}</span></div><div class="roster-info"><div class="identity"><h3>${btn(esc(c.name), "roster-detail", `data-id="${c.id}" class="character-name" title="${esc(c.name)}"`)}</h3><span class="muted">${esc(c.species)}</span></div><div class="point-trackers">${points(c, "fate", "運命点")}${points(c, "experience", "経験値")}</div></div></div><div class="card-stats">${cardStats.map((pair) => (pair ? `<span aria-label="${pair[1]} ${esc(c.stats[pair[1]])}">${pair[0]}${esc(c.stats[pair[1]].replace(/^D/, ""))}</span>` : '<span aria-hidden="true"></span>')).join("")}</div>${btn(expandedCards.has(c.id) ? "装備・スキル・呪文を閉じる" : "装備・スキル・呪文を表示", "toggle-character-info", `data-id="${c.id}" aria-expanded="${expandedCards.has(c.id)}" aria-controls="character-info-${c.id}"`)}<section id="character-info-${c.id}" class="character-extra" aria-label="${esc(c.name)}の装備・スキル・呪文" ${expandedCards.has(c.id) ? "" : "hidden"}>${characterExtras(c)}</section>${rosterEditMode ? `<div class="actions">${btn("編集", "edit-character", `data-id="${c.id}"`)}${btn("複製", "duplicate", `data-id="${c.id}"`)}${btn("↑", "up", `data-id="${c.id}" aria-label="${esc(c.name)}を上へ" ${i === 0 ? "disabled" : ""}`)}${btn("↓", "down", `data-id="${c.id}" aria-label="${esc(c.name)}を下へ" ${i === w.characters.length - 1 ? "disabled" : ""}`)}${btn("削除", "delete-character", `data-id="${c.id}" class="danger"`)}</div>` : ""}</article>`).join("") || '<p class="empty">キャラクターは未登録です。</p>'}<section class="card"><h2>管理・編集メニュー</h2><div class="actions">${btn("ステータス編集", "band-status")}${btn("名前変更", "rename-band")}${btn("＋ キャラクター登録", "new-character", 'class="primary"')}${btn("ウォーバンド削除", "delete-band", 'class="danger"')}</div></section>`;
+    )}<h2>メモ</h2><p class="detail-text">${esc(s.notes) || "—"}</p></section><div class="row between"><h2>登録キャラクター</h2>${btn(rosterEditMode ? "編集モードを終了" : "編集モード", "toggle-roster-edit", `aria-pressed="${rosterEditMode}"`)}</div>${w.characters.map((c, i) => `<article class="card roster-card"><div class="roster-top"><div class="roster-photo">${portrait(c)}${characterRole(c) !== "none" ? `<span class="character-role">${characterRoles[characterRole(c)]}</span>` : ""}<span class="level">Lv. ${String(c.level).padStart(2, "0")}</span></div><div class="roster-info"><div class="identity"><h3>${btn(esc(c.name), "roster-detail", `data-id="${c.id}" class="character-name" title="${esc(c.name)}"`)}</h3><span class="muted">${esc(c.species)}</span></div><div class="point-trackers">${points(c, "fate", "運命点")}${points(c, "experience", "経験値")}</div></div></div><div class="card-stats">${cardStats.map((pair) => (pair ? `<span aria-label="${pair[1]} ${esc(c.stats[pair[1]])}">${pair[0]}${esc(c.stats[pair[1]].replace(/^D/, ""))}</span>` : '<span aria-hidden="true"></span>')).join("")}</div>${btn(expandedCards.has(c.id) ? "装備・スキル・呪文を閉じる" : "装備・スキル・呪文を表示", "toggle-character-info", `data-id="${c.id}" aria-expanded="${expandedCards.has(c.id)}" aria-controls="character-info-${c.id}"`)}<section id="character-info-${c.id}" class="character-extra" aria-label="${esc(c.name)}の装備・スキル・呪文" ${expandedCards.has(c.id) ? "" : "hidden"}>${characterExtras(c)}</section>${rosterEditMode ? `<div class="actions">${btn("編集", "edit-character", `data-id="${c.id}"`)}${btn("複製", "duplicate", `data-id="${c.id}"`)}${btn("↑", "up", `data-id="${c.id}" aria-label="${esc(c.name)}を上へ" ${i === 0 ? "disabled" : ""}`)}${btn("↓", "down", `data-id="${c.id}" aria-label="${esc(c.name)}を下へ" ${i === w.characters.length - 1 ? "disabled" : ""}`)}${btn("削除", "delete-character", `data-id="${c.id}" class="danger"`)}</div>` : ""}</article>`).join("") || '<p class="empty">キャラクターは未登録です。</p>'}<section class="card"><h2>管理・編集メニュー</h2><div class="actions">${btn("ステータス編集", "band-status")}${btn("名前変更", "rename-band")}${btn("＋ キャラクター登録", "new-character", 'class="primary"')}${btn("ウォーバンド削除", "delete-band", 'class="danger"')}</div></section>`;
 }
 function battleView() {
   const g = data.game;
@@ -387,6 +407,9 @@ async function resize(file) {
 function characterForm(c) {
   let photo = c?.photo || "";
   const inventory = characterInventory(c);
+  const equipmentSelections = structuredClone(c?.equipmentSelections || {});
+  let recentEquipmentIds = [...(data.recentEquipmentIds || [])],
+    recentTouched = false;
   let processing = false;
   const initialPreset =
     speciesPresets.find(
@@ -397,17 +420,140 @@ function characterForm(c) {
     draftSpecies = c?.species || "",
     acceptedGroup = initialPreset?.group || "";
   show(
-    `<h2>${c ? "キャラクター編集" : "キャラクター登録"}</h2><form id="character-form"><label>名前<input name="name" value="${esc(c?.name || "")}" required maxlength="200"></label><label>サイズ分類<select id="species-size"><option value="">サイズ分類を選択</option>${speciesGroups.map((g) => `<option value="${g.id}" ${g.id === acceptedGroup ? "selected" : ""}>${g.name}：${g.base}mmベース</option>`).join("")}</select></label><label>種族<select name="species" id="species-preset" required></select></label><section id="species-confirm" hidden role="alert"><h3>種族の初期値に置き換えますか？</h3><p>レベル・9能力値・スキル一覧を選択した種族の初期値に置き換えます。装備・呪文・写真・運命点・経験値は維持します。</p><div class="actions"><button type="button" id="species-apply">初期値に置き換える</button><button type="button" id="species-cancel">変更を取り消す</button></div></section><label>Level<input type="number" name="level" min="0" max="100" step="1" value="${c?.level ?? 0}" required></label><div id="photo-preview">${portrait({ photo, name: c?.name || "" })}</div><label>写真ライブラリ・ファイル<input id="photo-library" type="file" accept="image/*"></label><label>カメラで撮影<input id="photo-camera" type="file" accept="image/*" capture="environment"></label>${btn("写真を削除", "clear-photo")}<p class="muted">長辺 800px 以下に縮小して端末に保存します。</p>${points(c || {}, "fate", "運命点", true)}${points(c || {}, "experience", "経験値", true)}<h3>能力値</h3><div class="stats">${stats.map((s) => `<label>${s}<select name="${s}">${dice.map((d) => `<option ${c?.stats[s] === d ? "selected" : ""}>${d}</option>`).join("")}</select></label>`).join("")}</div><h3>装備</h3>${Object.entries(
+    `<h2>${c ? "キャラクター編集" : "キャラクター登録"}</h2><form id="character-form"><label>名前<input name="name" value="${esc(c?.name || "")}" required maxlength="200"></label><label>役職<select name="role">${Object.entries(
+      characterRoles,
+    )
+      .map(
+        ([value, label]) =>
+          `<option value="${value}" ${characterRole(c) === value ? "selected" : ""}>${label}</option>`,
+      )
+      .join(
+        "",
+      )}</select></label><label>サイズ分類<select id="species-size"><option value="">サイズ分類を選択</option>${speciesGroups.map((g) => `<option value="${g.id}" ${g.id === acceptedGroup ? "selected" : ""}>${g.name}：${g.base}mmベース</option>`).join("")}</select></label><label>種族<select name="species" id="species-preset" required></select></label><section id="species-confirm" hidden role="alert"><h3>種族の初期値に置き換えますか？</h3><p>レベル・9能力値・スキル一覧を選択した種族の初期値に置き換えます。装備・呪文・写真・運命点・経験値は維持します。</p><div class="actions"><button type="button" id="species-apply">初期値に置き換える</button><button type="button" id="species-cancel">変更を取り消す</button></div></section><label>Level<input type="number" name="level" min="0" max="100" step="1" value="${c?.level ?? 0}" required></label><div id="photo-preview">${portrait({ photo, name: c?.name || "" })}</div><label>写真ライブラリ・ファイル<input id="photo-library" type="file" accept="image/*"></label><label>カメラで撮影<input id="photo-camera" type="file" accept="image/*" capture="environment"></label>${btn("写真を削除", "clear-photo")}<p class="muted">長辺 800px 以下に縮小して端末に保存します。</p>${points(c || {}, "fate", "運命点", true)}${points(c || {}, "experience", "経験値", true)}<h3>能力値</h3><div class="stats">${stats.map((s) => `<label>${s}<select name="${s}">${dice.map((d) => `<option ${c?.stats[s] === d ? "selected" : ""}>${d}</option>`).join("")}</select></label>`).join("")}</div><h3>装備</h3>${Object.entries(
       equipmentCategories,
     )
       .map(
         ([key, label]) =>
-          `<label>${label}<input name="slot-${key}" maxlength="20000" value="${esc(inventory.equipmentSlots[key])}"></label>`,
+          `<div class="equipment-slot"><label>${label}<input name="slot-${key}" maxlength="20000" value="${esc(inventory.equipmentSlots[key])}"></label><div class="actions">${btn("検索して選ぶ", "equipment-picker", `data-slot="${key}" aria-label="${label}の装備を検索"`)}${btn("未装備", "equipment-clear", `data-slot="${key}" aria-label="${label}を未装備にする"`)}</div><p class="muted" id="selection-${key}">${equipmentSelections[key] ? esc(equipmentDisplayName(equipmentSelections[key])) : ""}</p></div>`,
       )
       .join(
         "",
-      )}${c?.equipment ? `<details><summary>旧装備（未分類・原文）</summary><p class="muted">原文を保持しています。必要な装備を上の6枠へ手動で割り振ってください。</p><textarea readonly aria-label="旧装備の原文">${esc(c.equipment)}</textarea></details>` : ""}<section aria-label="スキル"><h3>スキル</h3><div id="character-skillEntries"></div>${btn("＋ スキル", "add-character-entry", 'data-list="skillEntries"')}</section><section aria-label="呪文"><h3>呪文</h3><div id="character-spellEntries"></div>${btn("＋ 呪文", "add-character-entry", 'data-list="spellEntries"')}</section><label>特殊効果・メモ<textarea name="notes" maxlength="20000">${esc(c?.notes || "")}</textarea></label><p id="form-error" class="error" role="alert"></p><div class="actions"><button id="character-save" class="primary">保存</button>${btn("キャンセル", "close")}</div></form>`,
+      )}<section id="equipment-picker" hidden><h3 id="equipment-picker-title"></h3><label>装備検索<input type="search" id="equipment-query" placeholder="日本語・英語で検索" autocomplete="off"></label><label>カテゴリ<select id="equipment-category"><option value="">すべて</option>${Object.entries(
+      equipmentCategoryLabels,
+    )
+      .map(([key, label]) => `<option value="${key}">${label}</option>`)
+      .join(
+        "",
+      )}</select></label><p id="equipment-result-status" role="status"></p><div id="equipment-results"></div>${btn("装備検索を閉じる", "equipment-picker-close")}</section>${c?.equipment ? `<details><summary>旧装備（未分類・原文）</summary><p class="muted">原文を保持しています。必要な装備を上の6枠へ手動で割り振ってください。</p><textarea readonly aria-label="旧装備の原文">${esc(c.equipment)}</textarea></details>` : ""}<section aria-label="スキル"><h3>スキル</h3><div id="character-skillEntries"></div>${btn("＋ スキル", "add-character-entry", 'data-list="skillEntries"')}</section><section aria-label="呪文"><h3>呪文</h3><div id="character-spellEntries"></div>${btn("＋ 呪文", "add-character-entry", 'data-list="spellEntries"')}</section><label>特殊効果・メモ<textarea name="notes" maxlength="20000">${esc(c?.notes || "")}</textarea></label><p id="form-error" class="error" role="alert"></p><div class="actions"><button id="character-save" class="primary">保存</button>${btn("キャンセル", "close")}</div></form>`,
   );
+  const picker = modal.querySelector("#equipment-picker"),
+    results = modal.querySelector("#equipment-results"),
+    query = modal.querySelector("#equipment-query"),
+    category = modal.querySelector("#equipment-category");
+  let catalog = [],
+    activeSlot = "",
+    pickerRequest = 0;
+  const selectionText = (key) =>
+    (modal.querySelector("#selection-" + key).textContent = equipmentSelections[
+      key
+    ]
+      ? equipmentDisplayName(equipmentSelections[key])
+      : "");
+  const renderResults = () => {
+    const matches = searchEquipment(catalog, {
+      query: query.value,
+      category: category.value,
+      slot: activeSlot,
+      recent: recentEquipmentIds,
+    });
+    modal.querySelector("#equipment-result-status").textContent =
+      `${matches.length} / ${catalog.length} 件`;
+    results.innerHTML =
+      matches
+        .map(
+          (item) =>
+            `<div class="equipment-option" data-equipment-id="${item.id}"><strong>${esc(equipmentDisplayName(item))}</strong><small>${esc(item.nameEn)} · ${equipmentCategoryLabels[item.category]}${recentEquipmentIds.includes(item.id) ? " · 最近の選択" : ""}</small>${item.reviewRequired ? '<span class="review-flag">表記要確認</span>' : ""}${equipmentNotes(item)}${btn("選ぶ", "equipment-choose", `data-equipment-id="${item.id}"`)}</div>`,
+        )
+        .join("") || "<p>該当する装備はありません。</p>";
+  };
+  query.oninput = renderResults;
+  category.onchange = renderResults;
+  for (const button of modal.querySelectorAll(
+    '[data-action="equipment-picker"]',
+  ))
+    button.onclick = async () => {
+      const request = ++pickerRequest;
+      activeSlot = button.dataset.slot;
+      picker.hidden = false;
+      query.value = "";
+      category.value = "";
+      modal.querySelector("#equipment-picker-title").textContent =
+        equipmentCategories[activeSlot] + "の装備を検索";
+      modal.querySelector("#equipment-result-status").textContent =
+        "装備を読み込み中…";
+      results.innerHTML = "";
+      try {
+        catalog = await loadEquipmentCatalog();
+        if (
+          request !== pickerRequest ||
+          !modal.open ||
+          modal.querySelector("#equipment-picker") !== picker
+        )
+          return;
+        renderResults();
+        query.focus();
+      } catch {
+        if (
+          request === pickerRequest &&
+          modal.open &&
+          modal.querySelector("#equipment-picker") === picker
+        )
+          modal.querySelector("#equipment-result-status").textContent =
+            "装備を読み込めませんでした。通信を確認して再試行するか、自由入力してください。";
+      }
+    };
+  for (const input of modal.querySelectorAll('input[name^="slot-"]'))
+    input.oninput = () => {
+      const key = input.name.slice(5);
+      if (equipmentSelections[key]?.nameJa !== input.value)
+        delete equipmentSelections[key];
+      selectionText(key);
+    };
+  for (const button of modal.querySelectorAll(
+    '[data-action="equipment-clear"]',
+  ))
+    button.onclick = () => {
+      const key = button.dataset.slot;
+      modal.querySelector(`[name="slot-${key}"]`).value = "";
+      delete equipmentSelections[key];
+      selectionText(key);
+    };
+  const closePicker = () => {
+    pickerRequest++;
+    picker.hidden = true;
+    modal
+      .querySelector(
+        `[data-action="equipment-picker"][data-slot="${activeSlot}"]`,
+      )
+      ?.focus();
+  };
+  modal.querySelector('[data-action="equipment-picker-close"]').onclick =
+    closePicker;
+  results.onclick = (e) => {
+    const button = e.target.closest('[data-action="equipment-choose"]');
+    if (!button) return;
+    const item = catalog.find((item) => item.id === button.dataset.equipmentId);
+    if (!item) return;
+    equipmentSelections[activeSlot] = structuredClone(item);
+    modal.querySelector(`[name="slot-${activeSlot}"]`).value = item.nameJa;
+    selectionText(activeSlot);
+    recentEquipmentIds = [
+      item.id,
+      ...recentEquipmentIds.filter((id) => id !== item.id),
+    ].slice(0, 20);
+    recentTouched = true;
+    closePicker();
+  };
   const drawEntries = (key) => {
     const label = key === "skillEntries" ? "スキル" : "呪文",
       node = modal.querySelector("#character-" + key);
@@ -533,6 +679,9 @@ function characterForm(c) {
       ...structuredClone(c || {}),
       id: c?.id || id(),
       name,
+      ...(f.get("role") !== "none" || c?.role !== undefined
+        ? { role: f.get("role") }
+        : {}),
       species: draftSpecies,
       ...(storedPresetId ? { speciesPresetId: storedPresetId } : {}),
       level: Number(f.get("level")),
@@ -549,15 +698,39 @@ function characterForm(c) {
       equipmentSlots: Object.fromEntries(
         Object.keys(equipmentCategories).map((k) => [k, f.get("slot-" + k)]),
       ),
+      ...(Object.keys(equipmentSelections).length ||
+      c?.equipmentSelections !== undefined
+        ? { equipmentSelections: structuredClone(equipmentSelections) }
+        : {}),
       skillEntries: structuredClone(inventory.skillEntries),
       spellEntries: structuredClone(inventory.spellEntries),
     };
+    const conflicts = conflictingRoles(band(), n);
+    if (
+      conflicts.length &&
+      !window.confirm(
+        `${characterRoles[n.role]}は「${conflicts.map((c) => c.name).join("、")}」に設定されています。「${n.name}」へ移しますか？現在の担当者は役職「なし」になります。`,
+      )
+    )
+      return;
     change(() => {
-      if (c) band().characters[band().characters.indexOf(c)] = n;
-      else band().characters.push(n);
+      putCharacter(band(), n, true);
+      if (recentTouched) data.recentEquipmentIds = recentEquipmentIds;
     });
     modal.close();
   };
+}
+let equipmentNoteId = 0;
+function equipmentNotes(item) {
+  if (!item.notesJa.length && !item.reviewRequired) return "";
+  const id = "equipment-note-" + ++equipmentNoteId;
+  return `${btn("備考", "toggle-equipment-notes", `aria-expanded="false" aria-controls="${id}"`)}<div class="equipment-notes" id="${id}" hidden>${item.notesJa.length ? `<ul>${item.notesJa.map((note) => `<li>${esc(note)}</li>`).join("")}</ul>` : ""}${item.reviewRequired ? `<p class="review-flag">原表との照合待ち：${esc(item.reviewRequired)}</p>` : ""}</div>`;
+}
+function equipmentSlotDisplay(c, key) {
+  const item = c.equipmentSelections?.[key],
+    name = characterInventory(c).equipmentSlots[key];
+  if (!item || item.nameJa !== name) return esc(name) || "—";
+  return `<span>${esc(equipmentDisplayName(item))}</span>${item.reviewRequired ? '<span class="review-flag">表記要確認</span>' : ""}${equipmentNotes(item)}`;
 }
 function characterExtras(c) {
   const inventory = characterInventory(c);
@@ -566,7 +739,7 @@ function characterExtras(c) {
   )
     .map(
       ([key, label]) =>
-        `<div><dt>${label}</dt><dd class="detail-text">${esc(inventory.equipmentSlots[key]) || "—"}</dd></div>`,
+        `<div><dt>${label}</dt><dd class="detail-text">${equipmentSlotDisplay(c, key)}</dd></div>`,
     )
     .join(
       "",
@@ -679,6 +852,14 @@ document.addEventListener("click", (e) => {
   )
     return;
   switch (a) {
+    case "toggle-equipment-notes": {
+      const notes = document.getElementById(b.getAttribute("aria-controls"));
+      if (notes) {
+        notes.hidden = !notes.hidden;
+        b.setAttribute("aria-expanded", String(!notes.hidden));
+      }
+      break;
+    }
     case "close":
       modal.close();
       break;
@@ -748,6 +929,7 @@ document.addEventListener("click", (e) => {
       change(() => {
         const n = structuredClone(wc);
         n.id = id();
+        n.role = "none";
         n.name = (n.name + " の複製").slice(0, 200);
         w.characters.splice(w.characters.indexOf(wc) + 1, 0, n);
       });

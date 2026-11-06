@@ -9,6 +9,8 @@ test("公開ビルドは同じ入力なら同じ版、静的ファイル変更�
   try {
     for (const name of [
       "src",
+      "data",
+      "data",
       "index.html",
       "style.css",
       "manifest.webmanifest",
@@ -33,6 +35,9 @@ test("公開ビルドは同じ入力なら同じ版、静的ファイル変更�
     assert.equal(await build(), original);
     await appendFile(join(dir, "style.css"), "\n/* new visual version */");
     assert.notEqual(await build(), original);
+    const styleVersion = await build();
+    await appendFile(join(dir, "data/bb2_general_store_ja_en.json"), "\n");
+    assert.notEqual(await build(), styleVersion);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
