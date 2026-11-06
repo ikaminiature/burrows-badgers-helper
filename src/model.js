@@ -153,6 +153,7 @@ export function startGame(w) {
     round: 1,
     vp: 0,
     sideQuests: ["", ""],
+    sideQuestSelections: [null, null],
     characters: structuredClone(w.characters).map((c) => ({
       ...c,
       wounds: 0,
@@ -319,6 +320,11 @@ export function validateData(d) {
       (g.vp !== undefined && (!Number.isSafeInteger(g.vp) || g.vp < 0)) ||
       (g.sideQuests !== undefined && (!Array.isArray(g.sideQuests) ||
         g.sideQuests.length !== 2 || !g.sideQuests.every(v => str(v)))) ||
+      (g.sideQuestSelections !== undefined &&
+        (!Array.isArray(g.sideQuestSelections) || g.sideQuestSelections.length !== 2 ||
+          !g.sideQuestSelections.every(v => v === null ||
+            (v && str(v.id,200) && v.id.length > 0 &&
+              (v.wildCardChoice === null || (str(v.wildCardChoice,200) && v.wildCardChoice.length > 0)))))) ||
       !Array.isArray(g.characters)
     )
       throw Error("ゲームデータが不正です");

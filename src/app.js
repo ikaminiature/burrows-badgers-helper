@@ -1,4 +1,5 @@
-import { conditions, setCondition } from "./conditions.js";
+import { questSlotHtml, selectQuest, selectWildQuest } from "./side-quest-view.js";
+import { conditions, setCondition, hasConditions } from "./conditions.js";
 import { spells, spellArchetypes, elementalSpecialisms, searchSpells, matchSpell } from "./spells.js";
 import { spellDetails } from "./spell-view.js";
 import { deriveAbilitySources, abilitySourcesHtml } from "./ability-sources.js";
@@ -262,13 +263,14 @@ function freeEffects(c) {
   return c.effects.map(e=>`<div class="effect" data-effect-id="${e.id}"><strong>${esc(e.name)}</strong><p class="detail-text">${esc(e.description)}</p><div class="actions">${btn("編集", "edit-effect", `data-id="${c.id}" data-effect="${e.id}" aria-label="${esc(e.name)}を編集"`)}${btn("削除", "remove-effect", `data-id="${c.id}" data-effect="${e.id}" aria-label="${esc(e.name)}を削除"`)}</div></div>`).join("") || '<p class="muted">登録なし</p>';
 }
 function conditionPanel(c) {
-  return `<details class="condition-picker"><summary>状態を選択・解除</summary><div class="condition-choices">${conditions.map(v=>`<div class="condition-option ${(c.conditions||[]).includes(v.id)?'is-selected':''}"><label class="condition-check"><input type="checkbox" data-condition="${v.id}" data-character="${c.id}" aria-label="${v.nameJa}" ${(c.conditions||[]).includes(v.id)?'checked':''}></label><details class="condition-detail" data-condition-id="${v.id}"><summary>${v.nameJa}</summary><p lang="en">${v.nameEn}</p><p class="detail-text">${esc(v.description)}</p><small>日本語訳 第2版 ${v.page}ページ</small></details></div>`).join('')}</div><h4>自由登録の状態・メモ</h4><div class="free-effect-list">${freeEffects(c)}</div><form class="effect-editor" data-effect-form="${c.id}"><label>自由登録の状態名<input name="name" required maxlength="200"></label><label>説明・メモ<textarea name="description" maxlength="20000"></textarea></label><div class="actions"><button type="submit">登録</button>${btn("入力をクリア", "cancel-effect", `data-id="${c.id}"`)}</div></form></details>`;
+  return `<details class="condition-picker"><summary>状態を選択・解除<span class="condition-alert" role="img" aria-label="状態効果あり" title="状態効果あり" ${hasConditions(c)?"":"hidden"}><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3 2 21h20L12 3Z" fill="currentColor"/><path d="M12 9v5m0 3v1" stroke="var(--bg)" stroke-width="2"/></svg></span></summary><div class="condition-choices">${conditions.map(v=>`<div class="condition-option ${(c.conditions||[]).includes(v.id)?'is-selected':''}"><label class="condition-check"><input type="checkbox" data-condition="${v.id}" data-character="${c.id}" aria-label="${v.nameJa}" ${(c.conditions||[]).includes(v.id)?'checked':''}></label><details class="condition-detail" data-condition-id="${v.id}"><summary>${v.nameJa}</summary><p lang="en">${v.nameEn}</p><p class="detail-text">${esc(v.description)}</p><small>日本語訳 第2版 ${v.page}ページ</small></details></div>`).join('')}</div><h4>自由登録の状態・メモ</h4><div class="free-effect-list">${freeEffects(c)}</div><form class="effect-editor" data-effect-form="${c.id}"><label>自由登録の状態名<input name="name" required maxlength="200"></label><label>説明・メモ<textarea name="description" maxlength="20000"></textarea></label><div class="actions"><button type="submit">登録</button>${btn("入力をクリア", "cancel-effect", `data-id="${c.id}"`)}</div></form></details>`;
 }
 function battleCard(c) {
   return [...app.querySelectorAll(".battle")].find(n=>n.dataset.characterId===c.id);
 }
 function updateConditions(c) {
   save();
+  battleCard(c).querySelector(".condition-alert").hidden = !hasConditions(c);
   for (const n of battleCard(c).querySelectorAll("[data-condition][type=checkbox]")) {
     n.checked = (c.conditions||[]).includes(n.dataset.condition);
     n.closest(".condition-option").classList.toggle("is-selected",n.checked);
@@ -276,6 +278,7 @@ function updateConditions(c) {
 }
 function updateFreeEffects(c) {
   save();
+  battleCard(c).querySelector(".condition-alert").hidden = !hasConditions(c);
   battleCard(c).querySelector(".free-effect-list").innerHTML = freeEffects(c);
 }
 function resetEffectEditor(c) {
@@ -286,7 +289,7 @@ function resetEffectEditor(c) {
 function battleView() {
   loadRosterAbilityCatalog();
   const g = data.game;
-  return `<div class="eyebrow">BATTLE</div><div class="row between"><div><h1>${esc(g.name)}</h1><p>ラウンド <strong>${g.round}</strong></p></div>${btn("次のラウンド", "next", 'class="primary"')}</div><section class="battle-objectives" aria-label="戦闘のVPとサイドクエスト"><div class="vp-counter"><span>現在のVP</span><div class="row">${btn("−", "vp-minus", `aria-label="VPを1減らす" ${!g.vp?'disabled':''}`)}<output id="battle-vp" aria-label="現在のVP" aria-live="polite">${g.vp ?? 0}</output>${btn("＋", "vp-plus", `aria-label="VPを1増やす" ${(g.vp??0)===Number.MAX_SAFE_INTEGER?'disabled':''}`)}</div></div><div class="side-quests">${[0,1].map(i=>`<label>サイドクエスト${i+1}<textarea data-side-quest="${i}" maxlength="20000" rows="2">${esc(g.sideQuests?.[i]??'')}</textarea></label>`).join('')}</div></section>${btn("ウォーバンドステータス", "battle-status")}<p class="muted">操作は自動保存。ホームに戻っても続きから再開できます。</p>${sorted(
+  return `<div class="eyebrow">BATTLE</div><div class="row between"><div><h1>${esc(g.name)}</h1><p>ラウンド <strong>${g.round}</strong></p></div>${btn("次のラウンド", "next", 'class="primary"')}</div><section class="battle-objectives" aria-label="戦闘のVPとサイドクエスト"><div class="vp-counter"><span>現在のVP</span><div class="row">${btn("−", "vp-minus", `aria-label="VPを1減らす" ${!g.vp?'disabled':''}`)}<output id="battle-vp" aria-label="現在のVP" aria-live="polite">${g.vp ?? 0}</output>${btn("＋", "vp-plus", `aria-label="VPを1増やす" ${(g.vp??0)===Number.MAX_SAFE_INTEGER?'disabled':''}`)}</div></div><div class="side-quests">${[0,1].map(i=>questSlotHtml(g,i)).join("")}</div></section>${btn("ウォーバンドステータス", "battle-status")}<p class="muted">操作は自動保存。ホームに戻っても続きから再開できます。</p>${sorted(
     g.characters,
   )
     .map(
@@ -1206,15 +1209,18 @@ document.addEventListener("submit", e=>{
   else c.effects.push({id:id(),name,description});
   resetEffectEditor(c); updateFreeEffects(c);
 });
-document.addEventListener("input", e=>{
-  if (!e.target.matches("textarea[data-side-quest]") || !data.game) return;
-  const index=Number(e.target.dataset.sideQuest);
-  if (![0,1].includes(index) || !e.target.validity.valid) return;
-  data.game.sideQuests ||= ["", ""];
-  data.game.sideQuests[index]=e.target.value;
-  save();
-});
 document.addEventListener("change", (e) => {
+  const control=e.target;
+  if(data.game && control.matches('select[data-quest-slot], select[data-wild-quest-slot]')) {
+    const index=Number(control.dataset.questSlot ?? control.dataset.wildQuestSlot);
+    const wild=control.dataset.wildQuestSlot !== undefined;
+    if(wild)selectWildQuest(data.game,index,control.value);
+    else selectQuest(data.game,index,control.value);
+    save();
+    const panel=control.closest(".quest-slot");
+    panel.outerHTML=questSlotHtml(data.game,index);
+    app.querySelector(`[${wild?'data-wild-quest-slot':'data-quest-slot'}="${index}"]`)?.focus({preventScroll:true});
+  }
   if (
     e.target.dataset.point &&
     e.target.dataset.battlePoint &&

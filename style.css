@@ -881,3 +881,19 @@ html.roster-editing { scroll-padding-top: 120px; }
 .side-quests { min-width: 0; }
 .side-quests label { margin-top: 0; }
 @media(max-width: 520px) { .battle-objectives { grid-template-columns: minmax(0,1fr); } }
+
+.condition-alert { display: inline-flex; vertical-align: middle; margin-inline-start: 7px; color: #a45100; }
+.condition-alert[hidden] { display: none; }
+.condition-alert svg { width: 20px; height: 20px; }
+.quest-slot { min-width: 0; margin-bottom: 10px; }
+.quest-slot select { width: 100%; min-width: 0; max-width: 100%; text-overflow: ellipsis; }
+.quest-details { padding: 8px; border: 1px solid var(--line); border-radius: 8px; overflow-wrap: anywhere; }
+.quest-details[open] { background: var(--equipment-open); }
+.quest-details summary { cursor: pointer; font-weight: 700; }
+.quest-english { display: block; font-size: 12px; font-weight: 400; }
+.quest-details .detail-text { font-size: 14px; }
+.quest-table-scroll { max-width: 100%; overflow-x: auto; }
+.quest-table-scroll table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.quest-table-scroll th, .quest-table-scroll td { border: 1px solid var(--line); padding: 6px; text-align: left; }
+.legacy-quest { margin-top: 6px; font-size: 13px; overflow-wrap: anywhere; }
+@media(prefers-color-scheme: dark) { .condition-alert { color: #ffc66d; } }
