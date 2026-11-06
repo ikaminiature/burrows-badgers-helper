@@ -69,3 +69,19 @@ test('魔法効果はIDと数値のみ、旧データ・JSON・ゲームを独�
  const newGame=startGame(w);newGame.characters[0].equipmentMagic.weapon1.effects[0].bonus=1;assert.equal(c.equipmentMagic.weapon1.effects[0].bonus,3);
  for(const v of [false,[],null,{weapon7:{effects:[],notes:''}},{weapon1:{effects:[{id:'x',bonus:-1}],notes:''}},{weapon1:{effects:[{id:'x',bonus:1.5}],notes:''}}]) {const bad=structuredClone(d);bad.warbands[0].characters[0].equipmentMagic=v;assert.throws(()=>loadData(bad));}
 });
+test('性能見出しのみ具体値、装備枠を非表示、説明本文・参照データは不変',()=>{
+ const before=structuredClone(equipmentRules), commonBefore=structuredClone(commonEquipmentRules);
+ const expected={2:['strong',3],3:['strong',1],5:['strong',1],7:['strong',2],10:['strong',1],12:['strong',2],13:['strong',4],15:['strong',3],17:['strong',2],18:['tough',1],19:['tough',2],22:['tough',1],23:['tough',4],32:['strong',1],34:['strong',1],35:['strong',1],36:['strong',1],93:['strong',2],95:['strong',1]};
+ for(const [n,[rule,value]] of Object.entries(expected)) {
+  const item=catalog[Number(n)-1], html=equipmentDetails(item);
+  const summaries=[...html.matchAll(/<summary>(.*?)<\/summary>/gs)].map(m=>m[1]);
+  assert.ok(summaries.some(text=>text.includes(`${rule==='strong'?'ストロング':'タフ'}（${value}）`)),item.nameJa);
+  assert.ok(summaries.every(text=>!text.includes('装備枠')&&!/[(（]X[)）]/.test(text)),item.nameJa);
+  assert.ok(html.includes(commonEquipmentRules[rule].text), '共通説明は原文のまま');
+  assert.ok(html.includes(equipmentRules[item.id].description), '個別説明は原文のまま');
+ }
+ assert.match(equipmentDetails(catalog[11]),/使用条件：Strong \(2\)/);
+ assert.match(equipmentDetails(catalog[16]),/ストロング（2）（魔法使い・不気味に対して）/);
+ assert.match(magicDetails({effects:[{id:'magic-effect-protection',bonus:3}],notes:''}),/タフ（3）/);
+ assert.deepEqual(equipmentRules,before);assert.deepEqual(commonEquipmentRules,commonBefore);
+});

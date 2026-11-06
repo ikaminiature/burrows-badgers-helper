@@ -131,12 +131,10 @@ const { enableRosterEditing } = require("./support/roster.cjs");
     assert.equal(await page.locator(".equipment-option").count(), 1);
     await query("PiStOl");
     const pistol = result("general-store-010");
-    assert.equal(await pistol.locator(".equipment-notes").isVisible(), false);
-    await pistol.getByRole("button", { name: "備考", exact: true }).click();
-    assert.deepEqual(
-      await pistol.locator(".equipment-notes li").allTextContents(),
-      ["スロウ", "気まぐれ", "黒色火薬"],
-    );
+    assert.equal(await pistol.getByRole("button", { name: "備考", exact: true }).count(), 0);
+    await pistol.locator(".equipment-details > summary").click();
+    await pistol.getByText(/ピストルによる射撃はストロング/).waitFor();
+    assert.equal(await pistol.locator(".equipment-shared-rule > summary").filter({hasText: "装備枠"}).count(), 0);
     await pistol.getByRole("button", { name: "選ぶ", exact: true }).click();
     assert.equal(
       await page
@@ -224,17 +222,9 @@ const { enableRosterEditing } = require("./support/roster.cjs");
     const pistolDetails = panel
       .locator("dd")
       .filter({ hasText: "ピストル（12″）" });
-    assert.equal(
-      await pistolDetails.locator(".equipment-notes").isVisible(),
-      false,
-    );
-    await pistolDetails
-      .getByRole("button", { name: "備考", exact: true })
-      .click();
-    assert.deepEqual(
-      await pistolDetails.locator(".equipment-notes li").allTextContents(),
-      ["スロウ", "気まぐれ", "黒色火薬"],
-    );
+    assert.equal(await pistolDetails.getByRole("button", { name: "備考", exact: true }).count(), 0);
+    await pistolDetails.locator(".equipment-details > summary").click();
+    await pistolDetails.getByText(/ピストルによる射撃はストロング/).waitFor();
     await card.getByRole("button", { name: c.name, exact: true }).click();
     await page
       .locator("#modal")
