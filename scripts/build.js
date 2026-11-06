@@ -22,6 +22,7 @@ for (const f of [
 ])
   await copyFile(f, `dist/${f}`);
 await cp("src", "dist/src", { recursive: true });
+await cp("data", "dist/data", { recursive: true });
 
 // Stable content versions make any published asset change detectable by update().
 async function files(dir) {

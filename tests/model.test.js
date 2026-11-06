@@ -13,6 +13,10 @@ import {
   emptyBandStatus,
   characterInventory,
   equipmentCategories,
+  characterRoles,
+  characterRole,
+  conflictingRoles,
+  putCharacter,
   alliances,
   selectAlliance,
 } from "../src/model.js";
@@ -327,4 +331,71 @@ test("個別装備・スキル・呪文は原文を保持して移行し、ゲ�
     mutate(bad.warbands[0].characters[0]);
     assert.throws(() => loadData(bad));
   }
+});
+
+test("役職は重複確認後だけ移し、リーダー・サブの各1人とゲーム独立を維持する", () => {
+  const a = {
+      ...character("a"),
+      role: "leader",
+      photo: "data:image/jpeg;base64,YQ==",
+    },
+    b = { ...character("b"), role: "second" },
+    c = character("c");
+  const w = {
+      id: "w",
+      name: "森",
+      status: emptyBandStatus(),
+      characters: [a, b, c],
+    },
+    game = startGame(w),
+    original = structuredClone(w);
+  assert.deepEqual(characterRoles, {
+    none: "なし",
+    leader: "リーダー",
+    second: "サブ",
+  });
+  assert.equal(characterRole(c), "none");
+  const n = { ...c, role: "leader" };
+  assert.deepEqual(
+    conflictingRoles(w, n).map((c) => c.id),
+    ["a"],
+  );
+  assert.throws(() => putCharacter(w, n));
+  assert.deepEqual(w, original);
+  putCharacter(w, n, true);
+  assert.deepEqual(w.characters[0], {
+    ...original.characters[0],
+    role: "none",
+  });
+  assert.equal(w.characters[1].role, "second");
+  assert.equal(w.characters[2].role, "leader");
+  assert.deepEqual(game.characters[0].role, "leader");
+  putCharacter(w, { ...n, role: "second" }, true);
+  assert.equal(w.characters[1].role, "none");
+  assert.equal(w.characters[2].role, "second");
+  putCharacter(w, { ...n, role: "none" });
+  assert.equal(w.characters[2].role, "none");
+  assert.equal(w.characters[0].photo, a.photo);
+});
+test("旧役職なしの保存データ、役職のJSON往復と重複・不正役職の拒否", () => {
+  const d = emptyData();
+  d.warbands.push({
+    id: "w",
+    name: "森",
+    status: emptyBandStatus(),
+    characters: [character("a"), character("b")],
+  });
+  assert.deepEqual(loadData(JSON.parse(JSON.stringify(d))), d);
+  d.warbands[0].characters[0].role = "leader";
+  d.warbands[0].characters[1].role = "second";
+  d.game = startGame(d.warbands[0]);
+  assert.deepEqual(loadData(JSON.parse(JSON.stringify(d))), d);
+  for (const role of ["leader", "second"]) {
+    const bad = structuredClone(d);
+    bad.warbands[0].characters.forEach((c) => (c.role = role));
+    assert.throws(() => loadData(bad));
+  }
+  const bad = structuredClone(d);
+  bad.warbands[0].characters[0].role = "unknown";
+  assert.throws(() => loadData(bad));
 });
