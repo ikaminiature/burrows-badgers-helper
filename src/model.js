@@ -252,6 +252,11 @@ export function validateData(d) {
             Array.isArray(value.effects) && value.effects.every(effect =>
               effect && str(effect.id, 200) && effect.id.length > 0 &&
               (effect.bonus === null || (Number.isSafeInteger(effect.bonus) && effect.bonus >= 0)))))) ||
+      (c.spellSelections !== undefined &&
+        (!Array.isArray(c.spellSelections) || !Array.isArray(c.spellEntries) ||
+          c.spellSelections.length !== c.spellEntries.length ||
+          !c.spellSelections.every(v => v === null ||
+            (v && str(v.id, 200) && v.id.length > 0)))) ||
       (c.skillSelections !== undefined &&
         (!Array.isArray(c.skillSelections) ||
           !Array.isArray(c.skillEntries) ||

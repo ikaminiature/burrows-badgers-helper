@@ -850,3 +850,15 @@ html.roster-editing { scroll-padding-top: 120px; }
 
 .roster-card > .ability-sources { margin: 6px 0 0; }
 .roster-card > .ability-sources + [data-action="toggle-character-info"] { margin-top: 8px; }
+
+/* Shared reference cards: tint the entire open item in both colour schemes. */
+.spell-details { border: 1px solid var(--line); border-radius: .5rem; padding: .5rem; overflow-wrap: anywhere; }
+.spell-details[open], .spell-option:has(> .spell-details[open]), .skill-detail details[open] { background: var(--equipment-open); color: var(--ink); }
+.spell-details summary { cursor: pointer; }
+.spell-english { display: block; font-size: .8rem; line-height: 1.4; opacity: .85; }
+.spell-fields { margin-bottom: 0; }
+.spell-fields dt { font-weight: 700; margin-top: .6rem; }
+.spell-fields dd { margin-left: 0; }
+.spell-option { border-bottom: 1px solid var(--line); padding: .5rem 0; }
+#spell-results { max-height: 55vh; overflow: auto; }
+#spell-picker label[hidden] { display: none; }
