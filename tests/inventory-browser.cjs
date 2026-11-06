@@ -210,7 +210,7 @@ const os = require("node:os");
       .click();
     await page
       .locator("#modal li")
-      .getByText("Strong (1)", { exact: true })
+      .getByText("ストロング（1）", { exact: true })
       .waitFor();
     assert.deepEqual(errors, []);
     console.log(

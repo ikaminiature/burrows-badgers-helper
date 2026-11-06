@@ -793,3 +793,12 @@ dialog li {
 #character-form input[type="search"] {
   font-size: 16px;
 }
+
+/* Independent, native disclosures also work offline and with Safari. */
+.skill-english { display: block; font-size: .82rem; overflow-wrap: anywhere; }
+.skill-detail { margin-block: .6rem; }
+.skill-detail summary { cursor: pointer; padding: .65rem .3rem; }
+.skill-detail dd { margin-inline-start: 0; margin-bottom: .8rem; }
+#skill-results { max-height: 24rem; overflow-y: auto; overscroll-behavior: contain; }
+.skill-option { border: 1px solid var(--border, #888); border-radius: .5rem; padding: .75rem; margin-block: .5rem; }
+.skill-option button { margin-top: .5rem; }

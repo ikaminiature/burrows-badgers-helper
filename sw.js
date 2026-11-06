@@ -1,4 +1,4 @@
-const VERSION = "10";
+const VERSION = "11";
 const PREFIX = "bb-helper:" + self.registration.scope + ":";
 const CACHE = PREFIX + VERSION;
 const FILES = [
@@ -8,6 +8,7 @@ const FILES = [
   "./src/app.js",
   "./src/model.js",
   "./src/species.js",
+  "./src/skills.js",
   "./src/equipment.js",
   "./data/bb2_general_store_ja_en.json",
   "./src/db.js",

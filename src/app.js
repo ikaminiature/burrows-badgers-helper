@@ -1,3 +1,4 @@
+import { skills, skillCategories, searchSkills, matchSkill, skillName } from "./skills.js";
 import {
   stats,
   dice,
@@ -407,6 +408,8 @@ async function resize(file) {
 function characterForm(c) {
   let photo = c?.photo || "";
   const inventory = characterInventory(c);
+  let skillSelections = structuredClone(c?.skillSelections || inventory.skillEntries.map(() => null));
+  let skillsTouched = false;
   const equipmentSelections = structuredClone(c?.equipmentSelections || {});
   let recentEquipmentIds = [...(data.recentEquipmentIds || [])],
     recentTouched = false;
@@ -444,7 +447,7 @@ function characterForm(c) {
       .map(([key, label]) => `<option value="${key}">${label}</option>`)
       .join(
         "",
-      )}</select></label><p id="equipment-result-status" role="status"></p><div id="equipment-results"></div>${btn("装備検索を閉じる", "equipment-picker-close")}</section>${c?.equipment ? `<details><summary>旧装備（未分類・原文）</summary><p class="muted">原文を保持しています。必要な装備を上の6枠へ手動で割り振ってください。</p><textarea readonly aria-label="旧装備の原文">${esc(c.equipment)}</textarea></details>` : ""}<section aria-label="スキル"><h3>スキル</h3><div id="character-skillEntries"></div>${btn("＋ スキル", "add-character-entry", 'data-list="skillEntries"')}</section><section aria-label="呪文"><h3>呪文</h3><div id="character-spellEntries"></div>${btn("＋ 呪文", "add-character-entry", 'data-list="spellEntries"')}</section><label>特殊効果・メモ<textarea name="notes" maxlength="20000">${esc(c?.notes || "")}</textarea></label><p id="form-error" class="error" role="alert"></p><div class="actions"><button id="character-save" class="primary">保存</button>${btn("キャンセル", "close")}</div></form>`,
+      )}</select></label><p id="equipment-result-status" role="status"></p><div id="equipment-results"></div>${btn("装備検索を閉じる", "equipment-picker-close")}</section>${c?.equipment ? `<details><summary>旧装備（未分類・原文）</summary><p class="muted">原文を保持しています。必要な装備を上の6枠へ手動で割り振ってください。</p><textarea readonly aria-label="旧装備の原文">${esc(c.equipment)}</textarea></details>` : ""}<section aria-label="スキル"><h3>スキル</h3><details id="skill-picker"><summary>スキルを検索して追加</summary><label>スキル検索<input id="skill-query" type="search" placeholder="日本語・英語"></label><label>スキルカテゴリ<select id="skill-category"><option value="">すべて</option>${skillCategories.map(v => `<option>${v}</option>`).join("")}</select></label><div id="skill-results"></div></details><div id="character-skillEntries"></div>${btn("＋ スキル", "add-character-entry", 'data-list="skillEntries"')}</section><section aria-label="呪文"><h3>呪文</h3><div id="character-spellEntries"></div>${btn("＋ 呪文", "add-character-entry", 'data-list="spellEntries"')}</section><label>特殊効果・メモ<textarea name="notes" maxlength="20000">${esc(c?.notes || "")}</textarea></label><p id="form-error" class="error" role="alert"></p><div class="actions"><button id="character-save" class="primary">保存</button>${btn("キャンセル", "close")}</div></form>`,
   );
   const picker = modal.querySelector("#equipment-picker"),
     results = modal.querySelector("#equipment-results"),
@@ -561,26 +564,72 @@ function characterForm(c) {
       inventory[key]
         .map(
           (text, i) =>
-            `<div class="character-entry"><label>${label} ${i + 1}<textarea data-index="${i}" maxlength="20000">${esc(text)}</textarea></label>${btn("削除", "delete-character-entry", `data-index="${i}" aria-label="${label} ${i + 1} を削除"`)}</div>`,
+            `<div class="character-entry"><label>${label} ${i + 1}<textarea data-index="${i}" maxlength="20000">${esc(text)}</textarea></label>${key === "skillEntries" && matchSkill(text, skillSelections[i])?.skill.parameterized ? `<label>数値 X<input type="number" required min="0" step="1" max="9007199254740991" data-skill-value="${i}" value="${matchSkill(text, skillSelections[i]).value}"></label>` : ""}${btn("削除", "delete-character-entry", `data-index="${i}" aria-label="${label} ${i + 1} を削除"`)}</div>`,
         )
         .join("") || '<p class="muted">登録なし</p>';
     node.oninput = (e) => {
-      if (e.target.dataset.index !== undefined)
-        inventory[key][Number(e.target.dataset.index)] = e.target.value;
+      if (e.target.dataset.skillValue !== undefined) {
+        const i = Number(e.target.dataset.skillValue), match = matchSkill(inventory[key][i], skillSelections[i]);
+        if (match && e.target.validity.valid && e.target.value !== "") {
+          const value = Number(e.target.value);
+          inventory[key][i] = skillName(match.skill, value);
+          skillSelections[i] = { id: match.skill.id, value };
+          node.querySelector(`textarea[data-index="${i}"]`).value = inventory[key][i];
+          skillsTouched = true;
+        }
+      } else if (e.target.dataset.index !== undefined) {
+        const i = Number(e.target.dataset.index);
+        inventory[key][i] = e.target.value;
+        if (key === "skillEntries") {
+          skillSelections[i] = null; skillsTouched = true;
+          const row = e.target.closest(".character-entry"), m = matchSkill(e.target.value);
+          let number = row.querySelector("[data-skill-value]");
+          if (m?.skill.parameterized) {
+            if (!number) {
+              const label = document.createElement("label");
+              label.innerHTML = `数値 X<input type="number" required min="0" max="9007199254740991" step="1" data-skill-value="${i}">`;
+              row.insertBefore(label, row.lastElementChild);
+              number = label.querySelector("input");
+            }
+            number.value = m.value;
+          } else if (number) number.parentElement.remove();
+        }
+      }
     };
     node.onclick = (e) => {
       const b = e.target.closest('[data-action="delete-character-entry"]');
       if (b) {
         inventory[key].splice(Number(b.dataset.index), 1);
+        if (key === "skillEntries") { skillSelections.splice(Number(b.dataset.index), 1); skillsTouched = true; }
         drawEntries(key);
       }
     };
   };
+  const drawSkillResults = () => {
+    const results = searchSkills(modal.querySelector("#skill-query").value, modal.querySelector("#skill-category").value);
+    modal.querySelector("#skill-results").innerHTML = `<p role="status">${results.length}件</p>` + results.map(skill => `<div class="skill-option" data-skill-id="${skill.id}"><strong>${esc(skill.nameJa)}</strong><span class="skill-english">${esc(skill.nameEn)}</span><span>${skill.category}</span>${skill.parameterized ? `<label>数値 X<input type="number" required min="0" max="9007199254740991" step="1" value="1" form="skill-candidate-only" aria-label="${esc(skill.nameJa)}の数値"></label>` : ""}<button type="button" data-add-skill="${skill.id}">追加</button></div>`).join("");
+  };
+  modal.querySelector("#skill-query").oninput = drawSkillResults;
+  modal.querySelector("#skill-category").onchange = drawSkillResults;
+  modal.querySelector("#skill-results").onclick = e => {
+    const b = e.target.closest("[data-add-skill]");
+    if (!b) return;
+    const skill = skills.find(s => s.id === b.dataset.addSkill), input = b.parentElement.querySelector("input");
+    if (input && (!input.reportValidity() || input.value === "")) return;
+    const value = skill.parameterized ? Number(input.value) : null;
+    inventory.skillEntries.push(skillName(skill, value));
+    skillSelections.push({id:skill.id,value});
+    skillsTouched = true;
+    drawEntries("skillEntries");
+    modal.querySelector("#character-skillEntries .character-entry:last-child textarea").focus();
+  };
+  drawSkillResults();
   for (const key of ["skillEntries", "spellEntries"]) drawEntries(key);
   for (const b of modal.querySelectorAll('[data-action="add-character-entry"]'))
     b.onclick = () => {
       const key = b.dataset.list;
       inventory[key].push("");
+      if (key === "skillEntries") { skillSelections.push(null); skillsTouched = true; }
       drawEntries(key);
       modal
         .querySelector(
@@ -609,6 +658,8 @@ function characterForm(c) {
     for (const key of stats)
       modal.querySelector(`[name="${key}"]`).value = values.stats[key];
     inventory.skillEntries = values.skillEntries;
+    skillSelections = values.skillEntries.map(() => null);
+    skillsTouched = true;
     drawEntries("skillEntries");
     drawSpecies();
   };
@@ -702,6 +753,10 @@ function characterForm(c) {
       c?.equipmentSelections !== undefined
         ? { equipmentSelections: structuredClone(equipmentSelections) }
         : {}),
+      ...(skillsTouched || c?.skillSelections !== undefined ? {skillSelections: inventory.skillEntries.map((text, i) => {
+        const matched = matchSkill(text, skillSelections[i]);
+        return matched ? {id:matched.skill.id,value:matched.value} : null;
+      })} : {}),
       skillEntries: structuredClone(inventory.skillEntries),
       spellEntries: structuredClone(inventory.spellEntries),
     };
@@ -732,6 +787,12 @@ function equipmentSlotDisplay(c, key) {
   if (!item || item.nameJa !== name) return esc(name) || "—";
   return `<span>${esc(equipmentDisplayName(item))}</span>${item.reviewRequired ? '<span class="review-flag">表記要確認</span>' : ""}${equipmentNotes(item)}`;
 }
+function skillDisplay(text, selection) {
+  const matched = matchSkill(text, selection);
+  if (!matched) return `<li class="detail-text">${esc(text) || "（未入力）"}</li>`;
+  const {skill, value} = matched;
+  return `<li class="skill-detail"><details><summary><strong>${esc(skillName(skill,value))}</strong><span class="skill-english">${esc(skill.parameterized ? skill.nameEn.replace("X", String(value)) : skill.nameEn)}</span></summary><dl><dt>カテゴリ</dt><dd>${skill.category}</dd><dt>使用条件</dt><dd class="detail-text">${esc(skill.conditions)}</dd><dt>効果説明</dt><dd class="detail-text">${esc(skill.description)}</dd></dl></details></li>`;
+}
 function characterExtras(c) {
   const inventory = characterInventory(c);
   return `<h3>装備</h3><dl class="status-grid">${Object.entries(
@@ -752,7 +813,7 @@ function characterExtras(c) {
         `<h3>${label}</h3><ol>${
           inventory[key]
             .map(
-              (text) =>
+              (text, i) => key === "skillEntries" ? skillDisplay(text, c.skillSelections?.[i]) :
                 `<li class="detail-text">${esc(text) || "（未入力）"}</li>`,
             )
             .join("") || "<li>登録なし</li>"
