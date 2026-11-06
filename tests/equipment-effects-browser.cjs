@@ -34,13 +34,46 @@ const {enableRosterEditing}=require('./support/roster.cjs');
  await panel.getByText('自由な剣',{exact:true}).waitFor();
  for(const id of ['060','082']) {const node=panel.locator('[data-reference-id="general-store-'+id+'"]');await node.locator(':scope > summary').click();const materials=node.locator('.equipment-shared-rule').filter({hasText:'魔法使いのポーチと素材'});await materials.locator('summary').click();await materials.getByText(/最大6個/).waitFor();}
  assert.deepEqual(await read(),data); // Viewing references must never migrate or save data.
+ // UI-only states: separate equipment colors and persistent editing indicator.
+ async function colors(node){return node.evaluate(el=>{const c=getComputedStyle(el);return {bg:c.backgroundColor,fg:c.color};});}
+ function contrast({bg,fg}) {
+  const luminance = color => {const rgb=color.match(/[\d.]+/g).slice(0,3).map(n=>Number(n)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4);return rgb[0]*.2126+rgb[1]*.7152+rgb[2]*.0722;};
+  const a=luminance(bg),b=luminance(fg);return (Math.max(a,b)+.05)/(Math.min(a,b)+.05);
+ }
+ assert.equal(await page.getByRole('button',{name:'備考',exact:true}).count(),0);
+ for(const scheme of ['light','dark']) {
+  await page.emulateMedia({colorScheme:scheme});
+  const header=page.locator('header'), original=await colors(header);
+  await page.getByRole('button',{name:'編集モード',exact:true}).click();
+  await page.getByRole('button',{name:'編集を終了',exact:true}).waitFor();
+  await page.locator('#editing-indicator').getByText('編集中',{exact:true}).waitFor();
+  for(const width of [320,390]) {await page.setViewportSize({width,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));}
+  const editingColor=await colors(header);assert.notEqual(editingColor.bg,original.bg);assert.ok(contrast(editingColor)>=4.5);
+  const rows=page.locator('.equipment-detail-grid > div'), firstRow=rows.nth(0), armourRow=rows.nth(2), normal=(await colors(firstRow)).bg;
+  await firstRow.locator('.equipment-details > summary').click();
+  await armourRow.locator('.equipment-details > summary').click();
+  const expanded=await colors(firstRow);assert.notEqual(expanded.bg,normal);assert.equal((await colors(armourRow)).bg,expanded.bg);assert.notEqual(expanded.bg,editingColor.bg);assert.ok(contrast(expanded)>=4.5);
+  assert.equal(await panel.locator('summary').filter({hasText:/^装備枠$/}).count(),0);
+  await firstRow.locator('.equipment-details > summary').click();assert.equal((await colors(firstRow)).bg,normal);assert.equal((await colors(armourRow)).bg,expanded.bg);
+  await page.evaluate(()=>scrollTo(0,document.body.scrollHeight));
+  assert.ok(Math.abs((await header.boundingBox()).y)<1);
+  assert.ok(await page.locator('#editing-indicator').evaluate(el=>{const r=el.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;}));
+  await page.screenshot({path:'/tmp/equipment-edit-'+scheme+'.png'});
+  await page.getByRole('button',{name:'編集を終了',exact:true}).click();
+  assert.equal(await page.locator('#editing-indicator').isVisible(),false);assert.equal((await colors(header)).bg,original.bg);
+  assert.deepEqual(await read(),data);
+ }
+ await page.emulateMedia({colorScheme:'light'});
+
  await edit();await page.getByRole('button',{name:'武器1の装備を検索',exact:true}).click();
  await page.locator('.equipment-option').first().waitFor();assert.equal(await page.locator('.equipment-option').count(),96);
  const q=page.locator('#equipment-query');
  // Variable range and multi-page tables are available from the candidate disclosure.
  await q.fill('Cheirosiphon');const siphon=page.locator('.equipment-option[data-equipment-id="general-store-014"]');
- await siphon.locator('.equipment-details > summary').click();await siphon.getByText(/大胆不敵が必要/).waitFor();
+ const candidateNormal=(await colors(siphon)).bg;
+ await siphon.locator('.equipment-details > summary').click();assert.notEqual((await colors(siphon)).bg,candidateNormal);await siphon.getByText(/大胆不敵が必要/).waitFor();
  await siphon.getByRole('heading',{name:'カイロサイフォンの射撃方式',exact:true}).waitFor();await siphon.getByText(/d20\+7/).waitFor();
+ await siphon.locator('.equipment-details > summary').click();assert.equal((await colors(siphon)).bg,candidateNormal);
  await page.getByRole('button',{name:'装備検索を閉じる',exact:true}).click();
  const slot=page.locator('#magic-editor-weapon1');await page.locator('.magic-slot-editor').filter({hasText:'武器1の魔法効果を設定'}).locator(':scope > summary').click();
  await slot.getByRole('button',{name:'＋ 魔法効果',exact:true}).click();await slot.locator('[data-magic-id="0"]').selectOption('magic-effect-smiting');await slot.locator('[data-magic-bonus="0"]').fill('3');

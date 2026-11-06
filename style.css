@@ -783,13 +783,7 @@ dialog li {
   color: var(--danger);
   font-size: 12px;
 }
-.equipment-notes {
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-.equipment-notes ul {
-  padding-left: 20px;
-}
+
 #character-form input[type="search"] {
   font-size: 16px;
 }
@@ -817,3 +811,29 @@ dialog li {
 .status-grid > div, .equipment-description { min-width: 0; }
 
 @media (max-width: 680px) { .equipment-detail-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* Teal indicates expanded equipment; orange indicates editing the roster. */
+:root { --equipment-open: #e5f2ee; --edit-header: #ffe1b5; --edit-header-ink: #402a16; }
+.equipment-details { border-radius: 10px; }
+.equipment-option, .equipment-detail-grid > div { border-radius: 10px; }
+.equipment-details[open],
+.equipment-option:has(> .equipment-details[open]),
+.equipment-detail-grid > div:has(> dd > .equipment-details[open]) {
+  background-color: var(--equipment-open);
+  color: var(--ink);
+}
+.equipment-details[open] { padding-inline: 8px; }
+header.roster-edit-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding-top: max(18px, env(safe-area-inset-top));
+  background-color: var(--edit-header);
+  color: var(--edit-header-ink);
+}
+.roster-edit-header .brand { color: inherit; }
+#editing-indicator { font-weight: 800; white-space: nowrap; }
+html.roster-editing { scroll-padding-top: 120px; }
+@media (prefers-color-scheme: dark) {
+  :root { --equipment-open: #243e36; --edit-header: #6a431f; --edit-header-ink: #fff3e4; }
+}

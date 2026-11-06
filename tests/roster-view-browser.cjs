@@ -225,7 +225,7 @@ const os = require("node:os");
       );
     assert.equal(await other.locator(".character-extra").isVisible(), true);
     await page
-      .getByRole("button", { name: "編集モードを終了", exact: true })
+      .getByRole("button", { name: "編集を終了", exact: true })
       .click();
     assert.equal(await page.evaluate(() => window.writeCount), 0);
     assert.deepEqual(await disk(), data);
