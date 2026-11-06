@@ -847,3 +847,6 @@ html.roster-editing { scroll-padding-top: 120px; }
 .ability-source-breakdown { position: absolute; left: 0; right: 0; z-index: 2; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); box-shadow: 0 4px 12px #0003; font-size: 13px; overflow-wrap: anywhere; }
 .ability-source-breakdown p { margin-top: 0; }
 #equipment-category-control[hidden] { display: none; }
+
+.roster-card > .ability-sources { margin: 6px 0 0; }
+.roster-card > .ability-sources + [data-action="toggle-character-info"] { margin-top: 8px; }
