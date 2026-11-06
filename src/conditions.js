@@ -12,3 +12,5 @@ export function setCondition(character,id,selected) {
  const current=character.conditions||[];
  character.conditions=selected?[...new Set([...current,id])]:current.filter(v=>v!==id);
 }
+
+export const hasConditions = c => Boolean(c.conditions?.length || c.effects?.length);
