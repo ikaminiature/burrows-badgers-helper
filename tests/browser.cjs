@@ -96,7 +96,8 @@ const assert = require("node:assert/strict");
     .waitFor();
   await page.reload();
   await page.getByRole("heading", { name: "アッシュ", exact: true }).waitFor();
-  assert.equal(await page.locator(".wound-count").first().textContent(), "16");
+  await page.locator(".gauge").first().waitFor();
+  assert.equal(await page.locator(".gauge").first().locator(".filled").count(), 16);
   assert.equal(await page.locator("article").first().locator("img").count(), 1);
   await page.getByRole("link", { name: "ホーム", exact: true }).click();
   const [download] = await Promise.all([
@@ -177,7 +178,8 @@ const assert = require("node:assert/strict");
   await page.getByRole("heading", { name: "冒険の準備" }).waitFor();
   await page.getByRole("link", { name: /ラウンド 2 を再開/ }).click();
   await page.getByRole("heading", { name: "アッシュ", exact: true }).waitFor();
-  assert.equal(await page.locator(".wound-count").first().textContent(), "16");
+  await page.locator(".gauge").first().waitFor();
+  assert.equal(await page.locator(".gauge").first().locator(".filled").count(), 16);
   assert.equal(await page.locator("article").first().locator("img").count(), 1);
   await page.locator("article").first().getByText("状態・効果（1）").waitFor();
   assert.equal(

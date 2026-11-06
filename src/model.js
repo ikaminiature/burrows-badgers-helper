@@ -1,3 +1,4 @@
+import { conditions } from "./conditions.js";
 export const stats = [
   "Movement",
   "Strike",
@@ -320,6 +321,9 @@ export function validateData(d) {
         c.wounds > 17 ||
         typeof c.acted !== "boolean" ||
         (c.wounds === 17 && !c.acted) ||
+        (c.conditions !== undefined &&
+          (!Array.isArray(c.conditions) || new Set(c.conditions).size !== c.conditions.length ||
+            !c.conditions.every(id => conditions.some(v => v.id === id)))) ||
         !Array.isArray(c.effects) ||
         !c.effects.every(
           (e) =>
