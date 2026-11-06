@@ -1,3 +1,5 @@
+import { specialMagicItems, magicEffects, magicEffect } from "./equipment-rules.js";
+import { equipmentDetails, magicDetails, magicReferenceLibrary } from "./equipment-view.js";
 import { skills, skillCategories, searchSkills, matchSkill, skillName } from "./skills.js";
 import {
   stats,
@@ -411,6 +413,8 @@ function characterForm(c) {
   let skillSelections = structuredClone(c?.skillSelections || inventory.skillEntries.map(() => null));
   let skillsTouched = false;
   const equipmentSelections = structuredClone(c?.equipmentSelections || {});
+  const equipmentMagic = structuredClone(c?.equipmentMagic || {});
+  let magicTouched = false;
   let recentEquipmentIds = [...(data.recentEquipmentIds || [])],
     recentTouched = false;
   let processing = false;
@@ -437,7 +441,7 @@ function characterForm(c) {
     )
       .map(
         ([key, label]) =>
-          `<div class="equipment-slot"><label>${label}<input name="slot-${key}" maxlength="20000" value="${esc(inventory.equipmentSlots[key])}"></label><div class="actions">${btn("検索して選ぶ", "equipment-picker", `data-slot="${key}" aria-label="${label}の装備を検索"`)}${btn("未装備", "equipment-clear", `data-slot="${key}" aria-label="${label}を未装備にする"`)}</div><p class="muted" id="selection-${key}">${equipmentSelections[key] ? esc(equipmentDisplayName(equipmentSelections[key])) : ""}</p></div>`,
+          `<div class="equipment-slot"><label>${label}<input name="slot-${key}" maxlength="20000" value="${esc(inventory.equipmentSlots[key])}"></label><div class="actions">${btn("検索して選ぶ", "equipment-picker", `data-slot="${key}" aria-label="${label}の装備を検索"`)}${btn("未装備", "equipment-clear", `data-slot="${key}" aria-label="${label}を未装備にする"`)}</div><p class="muted" id="selection-${key}">${equipmentSelections[key] ? esc(equipmentDisplayName(equipmentSelections[key])) : ""}</p><details class="magic-slot-editor"><summary>${label}の魔法効果を設定</summary><div id="magic-editor-${key}"></div></details></div>`,
       )
       .join(
         "",
@@ -447,7 +451,7 @@ function characterForm(c) {
       .map(([key, label]) => `<option value="${key}">${label}</option>`)
       .join(
         "",
-      )}</select></label><p id="equipment-result-status" role="status"></p><div id="equipment-results"></div>${btn("装備検索を閉じる", "equipment-picker-close")}</section>${c?.equipment ? `<details><summary>旧装備（未分類・原文）</summary><p class="muted">原文を保持しています。必要な装備を上の6枠へ手動で割り振ってください。</p><textarea readonly aria-label="旧装備の原文">${esc(c.equipment)}</textarea></details>` : ""}<section aria-label="スキル"><h3>スキル</h3><details id="skill-picker"><summary>スキルを検索して追加</summary><label>スキル検索<input id="skill-query" type="search" placeholder="日本語・英語"></label><label>スキルカテゴリ<select id="skill-category"><option value="">すべて</option>${skillCategories.map(v => `<option>${v}</option>`).join("")}</select></label><div id="skill-results"></div></details><div id="character-skillEntries"></div>${btn("＋ スキル", "add-character-entry", 'data-list="skillEntries"')}</section><section aria-label="呪文"><h3>呪文</h3><div id="character-spellEntries"></div>${btn("＋ 呪文", "add-character-entry", 'data-list="spellEntries"')}</section><label>特殊効果・メモ<textarea name="notes" maxlength="20000">${esc(c?.notes || "")}</textarea></label><p id="form-error" class="error" role="alert"></p><div class="actions"><button id="character-save" class="primary">保存</button>${btn("キャンセル", "close")}</div></form>`,
+      )}</select></label><label>装備データ<select id="equipment-source"><option value="general">一般商店（96種類）</option><option value="special">スペシャル魔法装備（12種類）</option></select></label>${magicReferenceLibrary()}<p id="equipment-result-status" role="status"></p><div id="equipment-results"></div>${btn("装備検索を閉じる", "equipment-picker-close")}</section>${c?.equipment ? `<details><summary>旧装備（未分類・原文）</summary><p class="muted">原文を保持しています。必要な装備を上の6枠へ手動で割り振ってください。</p><textarea readonly aria-label="旧装備の原文">${esc(c.equipment)}</textarea></details>` : ""}<section aria-label="スキル"><h3>スキル</h3><details id="skill-picker"><summary>スキルを検索して追加</summary><label>スキル検索<input id="skill-query" type="search" placeholder="日本語・英語"></label><label>スキルカテゴリ<select id="skill-category"><option value="">すべて</option>${skillCategories.map(v => `<option>${v}</option>`).join("")}</select></label><div id="skill-results"></div></details><div id="character-skillEntries"></div>${btn("＋ スキル", "add-character-entry", 'data-list="skillEntries"')}</section><section aria-label="呪文"><h3>呪文</h3><div id="character-spellEntries"></div>${btn("＋ 呪文", "add-character-entry", 'data-list="spellEntries"')}</section><label>特殊効果・メモ<textarea name="notes" maxlength="20000">${esc(c?.notes || "")}</textarea></label><p id="form-error" class="error" role="alert"></p><div class="actions"><button id="character-save" class="primary">保存</button>${btn("キャンセル", "close")}</div></form>`,
   );
   const picker = modal.querySelector("#equipment-picker"),
     results = modal.querySelector("#equipment-results"),
@@ -463,24 +467,26 @@ function characterForm(c) {
       ? equipmentDisplayName(equipmentSelections[key])
       : "");
   const renderResults = () => {
-    const matches = searchEquipment(catalog, {
+    const sourceItems = modal.querySelector("#equipment-source").value === "special" ? specialMagicItems : catalog;
+    const matches = searchEquipment(sourceItems, {
       query: query.value,
       category: category.value,
       slot: activeSlot,
       recent: recentEquipmentIds,
     });
     modal.querySelector("#equipment-result-status").textContent =
-      `${matches.length} / ${catalog.length} 件`;
+      `${matches.length} / ${sourceItems.length} 件`;
     results.innerHTML =
       matches
         .map(
           (item) =>
-            `<div class="equipment-option" data-equipment-id="${item.id}"><strong>${esc(equipmentDisplayName(item))}</strong><small>${esc(item.nameEn)} · ${equipmentCategoryLabels[item.category]}${recentEquipmentIds.includes(item.id) ? " · 最近の選択" : ""}</small>${item.reviewRequired ? '<span class="review-flag">表記要確認</span>' : ""}${equipmentNotes(item)}${btn("選ぶ", "equipment-choose", `data-equipment-id="${item.id}"`)}</div>`,
+            `<div class="equipment-option" data-equipment-id="${item.id}">${equipmentDetails(item)}<small>${equipmentCategoryLabels[item.category]}${recentEquipmentIds.includes(item.id) ? " · 最近の選択" : ""}</small>${item.reviewRequired ? '<span class="review-flag">表記要確認</span>' : ""}${equipmentNotes(item)}${btn("選ぶ", "equipment-choose", `data-equipment-id="${item.id}"`)}</div>`,
         )
         .join("") || "<p>該当する装備はありません。</p>";
   };
   query.oninput = renderResults;
   category.onchange = renderResults;
+  modal.querySelector("#equipment-source").onchange = renderResults;
   for (const button of modal.querySelectorAll(
     '[data-action="equipment-picker"]',
   ))
@@ -490,6 +496,7 @@ function characterForm(c) {
       picker.hidden = false;
       query.value = "";
       category.value = "";
+      modal.querySelector("#equipment-source").value = "general";
       modal.querySelector("#equipment-picker-title").textContent =
         equipmentCategories[activeSlot] + "の装備を検索";
       modal.querySelector("#equipment-result-status").textContent =
@@ -529,6 +536,7 @@ function characterForm(c) {
       const key = button.dataset.slot;
       modal.querySelector(`[name="slot-${key}"]`).value = "";
       delete equipmentSelections[key];
+      if (equipmentMagic[key]) { delete equipmentMagic[key]; magicTouched = true; drawMagic(key); }
       selectionText(key);
     };
   const closePicker = () => {
@@ -545,9 +553,11 @@ function characterForm(c) {
   results.onclick = (e) => {
     const button = e.target.closest('[data-action="equipment-choose"]');
     if (!button) return;
-    const item = catalog.find((item) => item.id === button.dataset.equipmentId);
+    const item = [...catalog, ...specialMagicItems].find((item) => item.id === button.dataset.equipmentId);
     if (!item) return;
-    equipmentSelections[activeSlot] = structuredClone(item);
+    equipmentSelections[activeSlot] = Object.fromEntries(
+      ["id", "nameJa", "nameEn", "category", "range", "notesJa", ...(item.reviewRequired ? ["reviewRequired"] : [])].map(k => [k, structuredClone(item[k])])
+    );
     modal.querySelector(`[name="slot-${activeSlot}"]`).value = item.nameJa;
     selectionText(activeSlot);
     recentEquipmentIds = [
@@ -557,6 +567,28 @@ function characterForm(c) {
     recentTouched = true;
     closePicker();
   };
+  const drawMagic = (key) => {
+    const root = modal.querySelector("#magic-editor-" + key), value = equipmentMagic[key] || { effects: [], notes: "" };
+    root.innerHTML = `<p class="muted">基本装備を維持して効果を手動登録します。能力値や装備枠は自動変更しません。</p>${value.effects.map((v,i) => `<div class="magic-entry"><label>魔法効果 ${i+1}<select data-magic-id="${i}">${!magicEffect(v.id) ? `<option value="${esc(v.id)}">${esc(v.id)}（現在の値を保持）</option>` : ""}${magicEffects.map(effect => `<option value="${effect.id}" ${effect.id===v.id?"selected":""}>${esc(effect.nameJa)} / ${effect.nameEn}</option>`).join("")}</select></label>${magicEffect(v.id)?.needsBonus || v.bonus !== null ? `<label>ボーナス値<input type="number" required min="0" max="9007199254740991" step="1" data-magic-bonus="${i}" value="${esc(v.bonus ?? 1)}"></label>` : ""}${btn("削除", "remove-magic-effect", `data-index="${i}" aria-label="${equipmentCategories[key]}の魔法効果 ${i+1} を削除"`)}</div>`).join("")}<button type="button" data-add-magic="${key}">＋ 魔法効果</button><label>魔法装備の補足<textarea maxlength="20000" data-magic-notes>${esc(value.notes)}</textarea></label>${magicDetails(value)}`;
+    const touch = () => { magicTouched = true; return equipmentMagic[key] ||= { effects: [], notes: "" }; };
+    root.onchange = e => {
+      if(e.target.dataset.magicId !== undefined) {
+        const effect = magicEffect(e.target.value);
+        touch().effects[Number(e.target.dataset.magicId)] = { id:effect.id, bonus:effect.needsBonus?1:null };
+        drawMagic(key);
+      }
+    };
+    root.oninput = e => {
+      if(e.target.dataset.magicBonus !== undefined && e.target.validity.valid && e.target.value !== "") touch().effects[Number(e.target.dataset.magicBonus)].bonus = Number(e.target.value);
+      else if(e.target.hasAttribute("data-magic-notes")) touch().notes = e.target.value;
+    };
+    root.onclick = e => {
+      const add = e.target.closest("[data-add-magic]"), remove = e.target.closest('[data-action="remove-magic-effect"]');
+      if(add) { touch().effects.push({id:magicEffects[0].id,bonus:1}); drawMagic(key); }
+      if(remove) { touch().effects.splice(Number(remove.dataset.index),1); drawMagic(key); }
+    };
+  };
+  for (const key of Object.keys(equipmentCategories)) drawMagic(key);
   const drawEntries = (key) => {
     const label = key === "skillEntries" ? "スキル" : "呪文",
       node = modal.querySelector("#character-" + key);
@@ -746,6 +778,7 @@ function characterForm(c) {
       skills: c?.skills || "",
       spells: c?.spells || "",
       notes: f.get("notes"),
+      ...(magicTouched || c?.equipmentMagic !== undefined ? {equipmentMagic: structuredClone(equipmentMagic)} : {}),
       equipmentSlots: Object.fromEntries(
         Object.keys(equipmentCategories).map((k) => [k, f.get("slot-" + k)]),
       ),
@@ -784,8 +817,8 @@ function equipmentNotes(item) {
 function equipmentSlotDisplay(c, key) {
   const item = c.equipmentSelections?.[key],
     name = characterInventory(c).equipmentSlots[key];
-  if (!item || item.nameJa !== name) return esc(name) || "—";
-  return `<span>${esc(equipmentDisplayName(item))}</span>${item.reviewRequired ? '<span class="review-flag">表記要確認</span>' : ""}${equipmentNotes(item)}`;
+  if (!item || item.nameJa !== name) return (esc(name) || "—") + magicDetails(c.equipmentMagic?.[key]);
+  return `${equipmentDetails(item)}${item.reviewRequired ? '<span class="review-flag">表記要確認</span>' : ""}${equipmentNotes(item)}${magicDetails(c.equipmentMagic?.[key])}`;
 }
 function skillDisplay(text, selection) {
   const matched = matchSkill(text, selection);
@@ -795,7 +828,7 @@ function skillDisplay(text, selection) {
 }
 function characterExtras(c) {
   const inventory = characterInventory(c);
-  return `<h3>装備</h3><dl class="status-grid">${Object.entries(
+  return `<h3>装備</h3><dl class="status-grid equipment-detail-grid">${Object.entries(
     equipmentCategories,
   )
     .map(
