@@ -64,6 +64,12 @@ export function normalizeEquipmentSearch(value) {
     .replace(/[ぁ-ゖ]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0x60))
     .replace(/\s/g, "");
 }
+export function equipmentAllowedInSlot(item,slot) {
+  if (slot === "weapon1" || slot === "weapon2") return item.category === "weapon";
+  if (slot === "armour1" || slot === "armour2") return item.category === "armour";
+  if (slot === "item") return item.category !== "weapon" && item.category !== "armour";
+  return true;
+}
 export function searchEquipment(
   items,
   { query = "", category = "", slot = "", recent = [] } = {},
@@ -81,11 +87,13 @@ export function searchEquipment(
       : slot === "item"
         ? "item"
         : "";
+  const fixedSlot = ["weapon1", "weapon2", "armour1", "armour2", "item"].includes(slot);
   return items
     .map((item, index) => ({ item, index }))
     .filter(
       ({ item }) =>
-        (!category || item.category === category) &&
+        equipmentAllowedInSlot(item, slot) &&
+        (fixedSlot || !category || item.category === category) &&
         tokens.every((token) =>
           normalizeEquipmentSearch(item.nameJa + " " + item.nameEn).includes(
             token,

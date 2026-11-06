@@ -152,3 +152,27 @@ export function magicEffect(id) { return magicEffects.find(e=>e.id===id); }
 
 for(const [n,ids] of [[89,[54]],[90,[52]],[91,[53]]]) equipmentRules['general-store-'+n.toString().padStart(3,'0')].relatedEquipmentIds=ids.map(id=>'general-store-'+String(id).padStart(3,'0'));
 for(const [n,ids] of [[38,['slippery']],[49,['bloodhound']],[94,['bloodhound','unarmed-fighter','unreliable']],[95,['strong','unarmed-fighter','unreliable']],[96,['resist-magic','unarmed-fighter','unreliable']]]) equipmentRules['general-store-'+String(n).padStart(3,'0')].skillIds=ids.map(id=>'skill-'+id);
+
+// Structured reading of the existing equipment rules. Conditions are retained;
+// requirements, roll bonuses and extra wounds are not treated as granted skills.
+const fixedEquipmentValues = {
+ '002': ['strong',3,'両手武器を使用中'],
+ '003': ['strong',1,'ポールアームを使用中'],
+ '005': ['strong',1,'ロンデルダガーを使用中'],
+ '007': ['strong',2,'この武器の射撃。他のストロングは適用しない'],
+ '010': ['strong',1,'この武器の射撃。他のストロングは適用しない'],
+ '013': ['strong',4,'この武器の射撃。他のストロングは適用しない'],
+ '015': ['strong',3,'この武器の射撃。他のストロングは適用しない'],
+ '017': ['strong',2,'魔法使い・不気味を持つ相手に対して'],
+ '018': ['tough',1,''], '019': ['tough',2,''], '022': ['tough',1,''], '023': ['tough',4,''],
+ '032': ['strong',1,'弓・戦弓で特殊弾薬を使用した射撃1回'],
+ '034': ['strong',1,'スリングで特殊弾薬を使用した射撃1回'],
+ '035': ['strong',1,'黒色火薬武器で特殊弾薬を使用した射撃1回'],
+ '036': ['strong',1,'火のついた松明を片手武器として使用中'],
+ '093': ['strong',2,'絆の幼虫の追加攻撃（所持者自身への付与ではない）'],
+ '095': ['strong',1,'攻撃幼虫自身のスキル'],
+};
+export const equipmentAbilityGrants = Object.fromEntries(Object.entries(fixedEquipmentValues).map(([n,value])=>['general-store-'+n,value]));
+equipmentAbilityGrants['special-magic-ultimate-protection']=['tough',6,'通常のライトアーマーのボーナスを置き換える'];
+equipmentAbilityGrants['special-magic-axe-slaughter']=['strong',3,'基本装備の両手武器を使用中'];
+equipmentAbilityGrants['special-magic-father-swords']=['strong',3,'両手剣を使用中'];

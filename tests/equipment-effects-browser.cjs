@@ -66,7 +66,7 @@ const {enableRosterEditing}=require('./support/roster.cjs');
  await page.emulateMedia({colorScheme:'light'});
 
  await edit();await page.getByRole('button',{name:'武器1の装備を検索',exact:true}).click();
- await page.locator('.equipment-option').first().waitFor();assert.equal(await page.locator('.equipment-option').count(),96);
+ await page.locator('.equipment-option').first().waitFor();assert.equal(await page.locator('.equipment-option').count(),17);
  const q=page.locator('#equipment-query');
  // Variable range and multi-page tables are available from the candidate disclosure.
  await q.fill('Cheirosiphon');const siphon=page.locator('.equipment-option[data-equipment-id="general-store-014"]');
@@ -108,7 +108,7 @@ const {enableRosterEditing}=require('./support/roster.cjs');
  assert.deepEqual((await read()).warbands[0].characters[0],stored);
  await page.getByRole('link',{name:'戦闘',exact:true}).click();assert.equal(await page.locator('.wound-count').textContent(),'6');
  await page.getByRole('button',{name:'キャラクター詳細',exact:true}).click();assert.equal(await page.locator('#modal .equipment-magic-details').count(),0);await page.getByRole('button',{name:'閉じる',exact:true}).click();
- await page.evaluate(()=>navigator.serviceWorker.ready);await page.reload();await context.setOffline(true);await page.reload();await roster();await edit();await page.getByRole('button',{name:'武器2の装備を検索',exact:true}).click();
+ await page.evaluate(()=>navigator.serviceWorker.ready);await page.reload();await context.setOffline(true);await page.reload();await roster();await edit();await page.getByRole('button',{name:'スペシャルの装備を検索',exact:true}).click();
  await page.locator('#equipment-source').selectOption('special');await q.fill('抵抗の指輪');await page.locator('.equipment-option').getByText('抵抗の指輪',{exact:true}).waitFor();
  assert.deepEqual(errors,[]);
  console.log('PASS: 96 unchanged catalog + 12 magic, independent default-closed bilingual/range/effect references, shared rules and tables, numeric manual effects, JSON/photo/legacy/game isolation, 320px/offline');

@@ -837,3 +837,13 @@ html.roster-editing { scroll-padding-top: 120px; }
 @media (prefers-color-scheme: dark) {
   :root { --equipment-open: #243e36; --edit-header: #6a431f; --edit-header-ink: #fff3e4; }
 }
+
+.ability-sources { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 4px; margin-block: 8px; position: relative; }
+.ability-source { min-width: 0; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); }
+.ability-source > summary { padding: 4px 1px; list-style: none; cursor: pointer; text-align: center; }
+.ability-source > summary::-webkit-details-marker { display: none; }
+.ability-name { display: block; white-space: nowrap; font-size: 11px; font-weight: 700; text-decoration: underline dotted; text-underline-offset: 3px; }
+.ability-source-values { display: flex; justify-content: space-evenly; gap: 1px; font-size: 10px; white-space: nowrap; }
+.ability-source-breakdown { position: absolute; left: 0; right: 0; z-index: 2; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); box-shadow: 0 4px 12px #0003; font-size: 13px; overflow-wrap: anywhere; }
+.ability-source-breakdown p { margin-top: 0; }
+#equipment-category-control[hidden] { display: none; }
