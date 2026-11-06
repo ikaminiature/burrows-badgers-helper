@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "python3 -m http.server 5173",
-    "test": "node tests/model.test.js && node tests/build.test.js && node tests/species.test.js && node tests/equipment.test.js && node tests/skills.test.js",
+    "test": "node tests/model.test.js && node tests/build.test.js && node tests/species.test.js && node tests/equipment.test.js && node tests/skills.test.js && node tests/equipment-rules.test.js",
     "build": "node scripts/build.js",
-    "test:browser": "node tests/browser.cjs && node tests/warband-browser.cjs && node tests/cards-browser.cjs && node tests/update-browser.cjs && node tests/inventory-browser.cjs && node tests/species-browser.cjs && node tests/roster-view-browser.cjs && node tests/roles-browser.cjs && node tests/equipment-browser.cjs && node tests/skills-browser.cjs"
+    "test:browser": "node tests/browser.cjs && node tests/warband-browser.cjs && node tests/cards-browser.cjs && node tests/update-browser.cjs && node tests/inventory-browser.cjs && node tests/species-browser.cjs && node tests/roster-view-browser.cjs && node tests/roles-browser.cjs && node tests/equipment-browser.cjs && node tests/skills-browser.cjs && node tests/equipment-effects-browser.cjs"
   },
   "devDependencies": {
     "playwright": "1.64.1"

@@ -245,6 +245,13 @@ export function validateData(d) {
           Object.keys(c.equipmentSlots).some(
             (k) => !Object.hasOwn(equipmentCategories, k),
           ))) ||
+      (c.equipmentMagic !== undefined &&
+        (!c.equipmentMagic || typeof c.equipmentMagic !== "object" || Array.isArray(c.equipmentMagic) ||
+          !Object.entries(c.equipmentMagic).every(([key, value]) =>
+            Object.hasOwn(equipmentCategories, key) && value && str(value.notes) &&
+            Array.isArray(value.effects) && value.effects.every(effect =>
+              effect && str(effect.id, 200) && effect.id.length > 0 &&
+              (effect.bonus === null || (Number.isSafeInteger(effect.bonus) && effect.bonus >= 0)))))) ||
       (c.skillSelections !== undefined &&
         (!Array.isArray(c.skillSelections) ||
           !Array.isArray(c.skillEntries) ||

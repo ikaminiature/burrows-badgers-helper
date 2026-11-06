@@ -802,3 +802,18 @@ dialog li {
 #skill-results { max-height: 24rem; overflow-y: auto; overscroll-behavior: contain; }
 .skill-option { border: 1px solid var(--border, #888); border-radius: .5rem; padding: .75rem; margin-block: .5rem; }
 .skill-option button { margin-top: .5rem; }
+
+.equipment-details > summary { cursor: pointer; padding: .6rem .15rem; overflow-wrap: anywhere; }
+.equipment-english { display: block; font-size: .82rem; overflow-wrap: anywhere; }
+.equipment-description { font-size: .92rem; }
+.equipment-description h4 { margin-bottom: .4rem; }
+.equipment-shared-rule, .equipment-magic-details, .magic-reference-library { margin-block: .5rem; }
+.equipment-shared-rule > summary, .equipment-magic-details summary, .magic-reference-library summary, .magic-slot-editor > summary { cursor: pointer; padding-block: .65rem; }
+.reference-table-scroll { max-width: 100%; overflow-x: auto; }
+.equipment-reference-table table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.equipment-reference-table th, .equipment-reference-table td { border: 1px solid #888; padding: .4rem; vertical-align: top; white-space: normal; overflow-wrap: anywhere; }
+.equipment-reference-table th:first-child { width: 3rem; }
+.magic-entry { border: 1px solid #888; border-radius: .5rem; padding: .5rem; margin-block: .5rem; }
+.status-grid > div, .equipment-description { min-width: 0; }
+
+@media (max-width: 680px) { .equipment-detail-grid { grid-template-columns: minmax(0, 1fr); } }
