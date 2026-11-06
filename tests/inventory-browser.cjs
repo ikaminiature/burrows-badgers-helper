@@ -207,10 +207,10 @@ const os = require("node:os");
     await page.locator(".gauge").first().waitFor();
   assert.equal(await page.locator(".gauge").locator(".filled").count(), 8);
     await page
-      .getByRole("button", { name: "キャラクター詳細", exact: true })
+      .getByRole("button", { name: "装備・スキル・呪文を表示", exact: true })
       .click();
     await page
-      .locator("#modal li")
+      .locator(".battle .character-extra li")
       .getByText("ストロング（1）", { exact: true })
       .waitFor();
     assert.deepEqual(errors, []);
