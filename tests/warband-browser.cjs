@@ -185,33 +185,10 @@ const os = require("node:os");
     await page
       .getByRole("textbox", { name: "隠しておいた装備 2", exact: true })
       .fill("矢");
-    await page
-      .getByRole("button", { name: "＋ アジト・アップグレード", exact: true })
-      .click();
-    await page
-      .getByRole("textbox", { name: "アジト・アップグレード 1", exact: true })
-      .fill("工房");
-    await page
-      .getByRole("textbox", { name: "アジト・アップグレード 1", exact: true })
-      .fill("鍛冶場");
-    await page
-      .getByRole("button", {
-        name: "アジト・アップグレード 1 を削除",
-        exact: true,
-      })
-      .click();
-    assert.equal(
-      await page
-        .getByRole("textbox", { name: "アジト・アップグレード 1", exact: true })
-        .count(),
-      0,
-    );
-    await page
-      .getByRole("button", { name: "＋ アジト・アップグレード", exact: true })
-      .click();
-    await page
-      .getByRole("textbox", { name: "アジト・アップグレード 1", exact: true })
-      .fill("工房");
+    await page.getByRole("checkbox", {name:"鍛冶場を登録",exact:true}).check();
+    await page.getByRole("checkbox", {name:"鍛冶場を登録",exact:true}).uncheck();
+    assert.equal(await page.getByRole("checkbox", {name:"鍛冶場を登録",exact:true}).isChecked(),false);
+    await page.getByRole("checkbox", {name:"図書館を登録",exact:true}).check();
     await page
       .getByRole("textbox", { name: "隠しておいた装備 1", exact: true })
       .fill("長弓");
@@ -267,12 +244,7 @@ const os = require("node:os");
         .inputValue(),
       "盾",
     );
-    assert.equal(
-      await page
-        .getByRole("textbox", { name: "アジト・アップグレード 1", exact: true })
-        .inputValue(),
-      "工房",
-    );
+    assert.equal(await page.getByRole("checkbox",{name:"図書館を登録",exact:true}).isChecked(),true);
     await close();
     await openEditor("別バンド");
     assert.equal(
@@ -333,6 +305,7 @@ const os = require("node:os");
       notes: "第一行\n第二行",
       stash: backup.warbands[0].status.stash,
       upgrades: backup.warbands[0].status.upgrades,
+      denUpgrades: [{id:"library",choice:null}],
     });
     assert.deepEqual(
       backup.warbands[0].status.stash.map((e) => e.name),
@@ -340,7 +313,7 @@ const os = require("node:os");
     );
     assert.deepEqual(
       backup.warbands[0].status.upgrades.map((e) => e.name),
-      ["工房"],
+      [],
     );
     await openEditor("森の守り手");
     await page
