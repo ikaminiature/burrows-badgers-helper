@@ -121,6 +121,7 @@ export function loadData(input) {
       if (c.experience === undefined) c.experience = 0;
     }
   if (d.game && typeof d.game === "object" && !Array.isArray(d.game)) {
+    if (d.game.notes === undefined) d.game.notes = "";
     if (d.game.vp === undefined) d.game.vp = 0;
     if (d.game.sideQuests === undefined) d.game.sideQuests = ["", ""];
   }
@@ -149,6 +150,8 @@ export function startGame(w) {
   return {
     id: id(),
     name: w.name,
+    sourceWarbandId: w.id,
+    notes: "",
     status: structuredClone(w.status || emptyBandStatus()),
     round: 1,
     vp: 0,
@@ -321,6 +324,8 @@ export function validateData(d) {
       !str(g.name, 200) ||
       !Number.isInteger(g.round) ||
       g.round < 1 ||
+      (g.notes !== undefined && !str(g.notes)) ||
+      (g.sourceWarbandId !== undefined && !validId(g.sourceWarbandId)) ||
       (g.vp !== undefined && (!Number.isSafeInteger(g.vp) || g.vp < 0)) ||
       (g.sideQuests !== undefined && (!Array.isArray(g.sideQuests) ||
         g.sideQuests.length !== 2 || !g.sideQuests.every(v => str(v)))) ||

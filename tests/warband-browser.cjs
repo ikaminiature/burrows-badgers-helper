@@ -285,7 +285,7 @@ const os = require("node:os");
     const backup = JSON.parse(fs.readFileSync(file));
     assert.equal(backup.version, 2);
     // Only the newly requested battle fields are defaulted; all old fields stay exact.
-    assert.deepEqual(backup.game, {...legacy.game, vp:0, sideQuests:["", ""]});
+    assert.deepEqual(backup.game, {...legacy.game, notes:"", vp:0, sideQuests:["", ""]});
     assert.deepEqual(
       backup.warbands[0].characters,
       legacy.warbands[0].characters.map((c) => ({
@@ -400,7 +400,7 @@ const os = require("node:os");
     await openEditor('森の守り手');assert.equal(await page.getByRole('textbox',{name:'アーキタイプ',exact:true}).inputValue(),'戦士');await close();await saved();
     await page.getByRole('link',{name:'ホーム',exact:true}).click();
     const [knownDownload]=await Promise.all([page.waitForEvent('download'),page.getByRole('button',{name:'JSON を書き出す'}).click()]);
-    const knownFile=path.join(path.dirname(file),'known.json');await knownDownload.saveAs(knownFile);const knownBackup=JSON.parse(fs.readFileSync(knownFile));assert.equal(knownBackup.warbands[0].status.alliance,'王党派');assert.equal(knownBackup.warbands[0].status.archetype,'戦士');assert.deepEqual(knownBackup.game,{...legacy.game,vp:0,sideQuests:["", ""]});
+    const knownFile=path.join(path.dirname(file),'known.json');await knownDownload.saveAs(knownFile);const knownBackup=JSON.parse(fs.readFileSync(knownFile));assert.equal(knownBackup.warbands[0].status.alliance,'王党派');assert.equal(knownBackup.warbands[0].status.archetype,'戦士');assert.deepEqual(knownBackup.game,{...legacy.game,notes:"",vp:0,sideQuests:["", ""]});
     // New games retain a status snapshot independently of subsequent roster edits.
     await page.getByRole("link", { name: "ホーム", exact: true }).click();
     await page.getByRole("link", { name: "ゲームを開始", exact: true }).click();

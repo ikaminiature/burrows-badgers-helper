@@ -705,7 +705,7 @@ dialog li {
 .character-extra dl {
   margin-top: 8px;
 }
-.roster-card > [data-action="character-panel"] {
+.roster-card > .character-tools {
   margin-top: 12px;
   width: 100%;
 }
@@ -849,7 +849,7 @@ html.roster-editing { scroll-padding-top: 120px; }
 #equipment-category-control[hidden] { display: none; }
 
 .roster-card > .ability-sources { margin: 6px 0 0; }
-.roster-card > .ability-sources + [data-action="character-panel"] { margin-top: 8px; }
+.roster-card > .ability-sources + .character-tools { margin-top: 8px; }
 
 /* Shared reference cards: tint the entire open item in both colour schemes. */
 .spell-details { border: 1px solid var(--line); border-radius: .5rem; padding: .5rem; overflow-wrap: anywhere; }
@@ -903,7 +903,7 @@ html.roster-editing { scroll-padding-top: 120px; }
 .den-top { display: flex; align-items: flex-start; gap: 6px; }
 .den-top > div { min-width: 0; flex: 1; }
 .den-check { min-width: 44px; min-height: 44px; display: grid; place-items: center; margin: 0; }
-.den-details { padding: 6px; overflow-wrap: anywhere; border-radius: 6px; }
+.den-details { padding: 0 3px; overflow-wrap: anywhere; border-radius: 6px; }
 .den-details[open] { background: var(--bg); box-shadow: inset 3px 0 var(--accent); }
 .den-details summary { cursor: pointer; font-weight: 700; }
 .den-details .detail-text, .den-details li { font-size: 14px; }
@@ -913,9 +913,14 @@ html.roster-editing { scroll-padding-top: 120px; }
 .den-choice select { width: 100%; min-width: 0; }
 .den-details table th:first-child { white-space: nowrap; width: 3.5em; }
 
-.den-details summary { font-size: clamp(11px, 3.2vw, 14px); line-height: 1.4; padding-block: 3px; }
+.den-details summary { font-size: clamp(12px, 3.4vw, 14px); line-height: 1.4; min-height: 44px; padding-block: 4px; align-content: center; white-space: nowrap; overflow-x: auto; overflow-wrap: normal; }
 .den-english { display: inline; font-size: inherit; font-weight: inherit; }
-.den-option, .den-upgrade { padding: 4px; margin-block: 5px; }
+.den-option, .den-upgrade { padding: 0 3px; margin-block: 2px; }
+.split-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+.split-actions button { min-width: 0; width: 100%; padding-inline: 5px; }
+.battle-tools { margin-top: 12px; }
+.battle-tools button { font-size: 14px; }
+#notes-editor { min-height: 240px; resize: vertical; }
 .character-panel-open { overflow: hidden; }
 .roster-card[data-character-id] { touch-action: pan-y pinch-zoom; }
 #character-panel { position: fixed; inset: 0 auto 0 0; margin: 0; width: min(430px, 94vw); max-width: 94vw; height: 100dvh; max-height: 100dvh; border: 0; border-radius: 0 12px 12px 0; padding: 0; background: var(--panel); color: var(--ink); overflow: hidden; }
