@@ -1,3 +1,4 @@
+import { createCharacterPanel } from "./character-panel.js";
 import { denUpgradePicker, denUpgradeList } from "./den-upgrade-view.js";
 import { denUpgradeById, selectDenUpgrade, chooseDenEffect } from "./den-upgrades.js";
 import { questSlotHtml, selectQuest, selectWildQuest } from "./side-quest-view.js";
@@ -51,11 +52,8 @@ let data,
   failed = false,
   pending = 0;
 let rosterEditMode = false;
-const expandedCards = new Set();
-const expandedBattleCards = new Set();
 function resetRosterView() {
   rosterEditMode = false;
-  expandedCards.clear();
 }
 let restoreQueue = Promise.resolve(),
   updateBusy = false;
@@ -259,7 +257,7 @@ function bandView(w) {
     )
     .join(
       "",
-    )}<h2>メモ</h2><p class="detail-text">${esc(s.notes) || "—"}</p></section><div class="row between"><h2>登録キャラクター</h2>${btn(rosterEditMode ? "編集を終了" : "編集モード", "toggle-roster-edit", `aria-pressed="${rosterEditMode}"`)}</div>${w.characters.map((c, i) => `<article class="card roster-card"><div class="roster-top"><div class="roster-photo">${portrait(c)}${characterRole(c) !== "none" ? `<span class="character-role">${characterRoles[characterRole(c)]}</span>` : ""}<span class="level">Lv. ${String(c.level).padStart(2, "0")}</span></div><div class="roster-info"><div class="identity"><h3>${btn(esc(c.name), "roster-detail", `data-id="${c.id}" class="character-name" title="${esc(c.name)}"`)}</h3><span class="muted">${esc(c.species)}</span></div><div class="point-trackers">${points(c, "fate", "運命点")}${points(c, "experience", "経験値")}</div></div></div><div class="card-stats">${cardStats.map((pair) => (pair ? `<span aria-label="${pair[1]} ${esc(c.stats[pair[1]])}">${pair[0]}${esc(c.stats[pair[1]].replace(/^D/, ""))}</span>` : '<span aria-hidden="true"></span>')).join("")}</div><div class="ability-sources" data-character-id="${c.id}" aria-label="${esc(c.name)}のスキル・装備由来の能力値">${abilitySourcesHtml(deriveAbilitySources(c, rosterAbilityCatalog || []))}</div>${btn(expandedCards.has(c.id) ? "装備・スキル・呪文を閉じる" : "装備・スキル・呪文を表示", "toggle-character-info", `data-id="${c.id}" aria-expanded="${expandedCards.has(c.id)}" aria-controls="character-info-${c.id}"`)}<section id="character-info-${c.id}" class="character-extra" aria-label="${esc(c.name)}の装備・スキル・呪文" ${expandedCards.has(c.id) ? "" : "hidden"}>${characterExtras(c)}</section>${rosterEditMode ? `<div class="actions">${btn("編集", "edit-character", `data-id="${c.id}"`)}${btn("複製", "duplicate", `data-id="${c.id}"`)}${btn("↑", "up", `data-id="${c.id}" aria-label="${esc(c.name)}を上へ" ${i === 0 ? "disabled" : ""}`)}${btn("↓", "down", `data-id="${c.id}" aria-label="${esc(c.name)}を下へ" ${i === w.characters.length - 1 ? "disabled" : ""}`)}${btn("削除", "delete-character", `data-id="${c.id}" class="danger"`)}</div>` : ""}</article>`).join("") || '<p class="empty">キャラクターは未登録です。</p>'}<section class="card"><h2>管理・編集メニュー</h2><div class="actions">${btn("ステータス編集", "band-status")}${btn("名前変更", "rename-band")}${btn("＋ キャラクター登録", "new-character", 'class="primary"')}${btn("ウォーバンド削除", "delete-band", 'class="danger"')}</div></section>`;
+    )}<h2>メモ</h2><p class="detail-text">${esc(s.notes) || "—"}</p></section><div class="row between"><h2>登録キャラクター</h2>${btn(rosterEditMode ? "編集を終了" : "編集モード", "toggle-roster-edit", `aria-pressed="${rosterEditMode}"`)}</div>${w.characters.map((c, i) => `<article class="card roster-card" data-character-id="${c.id}" data-panel-source="roster"><div class="roster-top"><div class="roster-photo">${portrait(c)}${characterRole(c) !== "none" ? `<span class="character-role">${characterRoles[characterRole(c)]}</span>` : ""}<span class="level">Lv. ${String(c.level).padStart(2, "0")}</span></div><div class="roster-info"><div class="identity"><h3>${btn(esc(c.name), "roster-detail", `data-id="${c.id}" class="character-name" title="${esc(c.name)}"`)}</h3><span class="muted">${esc(c.species)}</span></div><div class="point-trackers">${points(c, "fate", "運命点")}${points(c, "experience", "経験値")}</div></div></div><div class="card-stats">${cardStats.map((pair) => (pair ? `<span aria-label="${pair[1]} ${esc(c.stats[pair[1]])}">${pair[0]}${esc(c.stats[pair[1]].replace(/^D/, ""))}</span>` : '<span aria-hidden="true"></span>')).join("")}</div><div class="ability-sources" data-character-id="${c.id}" aria-label="${esc(c.name)}のスキル・装備由来の能力値">${abilitySourcesHtml(deriveAbilitySources(c, rosterAbilityCatalog || []))}</div>${btn("詳細", "character-panel", `data-id="${c.id}" data-source="roster" aria-haspopup="dialog"`)}${rosterEditMode ? `<div class="actions">${btn("編集", "edit-character", `data-id="${c.id}"`)}${btn("複製", "duplicate", `data-id="${c.id}"`)}${btn("↑", "up", `data-id="${c.id}" aria-label="${esc(c.name)}を上へ" ${i === 0 ? "disabled" : ""}`)}${btn("↓", "down", `data-id="${c.id}" aria-label="${esc(c.name)}を下へ" ${i === w.characters.length - 1 ? "disabled" : ""}`)}${btn("削除", "delete-character", `data-id="${c.id}" class="danger"`)}</div>` : ""}</article>`).join("") || '<p class="empty">キャラクターは未登録です。</p>'}<section class="card"><h2>管理・編集メニュー</h2><div class="actions">${btn("ステータス編集", "band-status")}${btn("名前変更", "rename-band")}${btn("＋ キャラクター登録", "new-character", 'class="primary"')}${btn("ウォーバンド削除", "delete-band", 'class="danger"')}</div></section>`;
 }
 function freeEffects(c) {
   return c.effects.map(e=>`<div class="effect" data-effect-id="${e.id}"><strong>${esc(e.name)}</strong><p class="detail-text">${esc(e.description)}</p><div class="actions">${btn("編集", "edit-effect", `data-id="${c.id}" data-effect="${e.id}" aria-label="${esc(e.name)}を編集"`)}${btn("削除", "remove-effect", `data-id="${c.id}" data-effect="${e.id}" aria-label="${esc(e.name)}を削除"`)}</div></div>`).join("") || '<p class="muted">登録なし</p>';
@@ -296,7 +294,7 @@ function battleView() {
   )
     .map(
       (c) =>
-        `<article data-character-id="${c.id}" class="card roster-card battle ${c.acted ? "acted" : ""} ${c.wounds === 17 ? "out" : ""}"><div class="roster-top"><div class="roster-photo">${portrait(c)}${characterRole(c) !== "none" ? `<span class="character-role">${characterRoles[characterRole(c)]}</span>` : ""}<span class="level">Lv. ${String(c.level).padStart(2,"0")}</span></div><div class="roster-info"><div class="identity"><h3>${esc(c.name)}</h3><span class="muted">${esc(c.species)}</span></div>${c.wounds === 17 ? '<span class="badge">戦闘不能</span>' : ''}<div class="point-trackers">${points(c,"fate","運命点",false,true)}${points(c,"experience","経験値",false,true)}</div></div></div><div class="card-stats">${cardStats.map(pair=>pair?`<span aria-label="${pair[1]} ${esc(c.stats[pair[1]])}">${pair[0]}${esc(c.stats[pair[1]].replace(/^D/,""))}</span>`:'<span aria-hidden="true"></span>').join("")}</div><div class="ability-sources" data-character-id="${c.id}" aria-label="${esc(c.name)}のスキル・装備由来の能力値">${abilitySourcesHtml(deriveAbilitySources(c,rosterAbilityCatalog||[]))}</div><div class="gauge" role="img" aria-label="負傷 ${c.wounds} / 17">${Array.from({ length: 17 }, (_, i) => `<span class="pip ${[4, 7, 10, 13].includes(i + 1) ? "threshold" : ""} ${i === 16 ? "last" : ""} ${i < c.wounds ? "filled" : ""}">${i + 1}</span>`).join("")}</div><div class="row between"><div class="row wound-controls">${btn("−1", "minus", `data-id="${c.id}" aria-label="${esc(c.name)}の負傷を1減らす" ${c.wounds === 0 ? "disabled" : ""}`)}${btn("＋1", "plus", `data-id="${c.id}" aria-label="${esc(c.name)}の負傷を1増やす" ${c.wounds === 17 ? "disabled" : ""}`)}</div><label class="check"><input type="checkbox" aria-label="行動済み" title="行動済み" data-acted="${c.id}" ${c.acted ? "checked" : ""} ${c.wounds === 17 ? "disabled" : ""}></label></div>${conditionPanel(c)}${btn(expandedBattleCards.has(c.id) ? "装備・スキル・呪文を閉じる" : "装備・スキル・呪文を表示", "toggle-battle-info", `data-id="${c.id}" aria-expanded="${expandedBattleCards.has(c.id)}" aria-controls="battle-info-${c.id}"`)}<section id="battle-info-${c.id}" class="character-extra" ${expandedBattleCards.has(c.id)?'':'hidden'}>${characterExtras(c)}</section></article>`,
+        `<article data-character-id="${c.id}" data-panel-source="battle" class="card roster-card battle ${c.acted ? "acted" : ""} ${c.wounds === 17 ? "out" : ""}"><div class="roster-top"><div class="roster-photo">${portrait(c)}${characterRole(c) !== "none" ? `<span class="character-role">${characterRoles[characterRole(c)]}</span>` : ""}<span class="level">Lv. ${String(c.level).padStart(2,"0")}</span></div><div class="roster-info"><div class="identity"><h3>${esc(c.name)}</h3><span class="muted">${esc(c.species)}</span></div>${c.wounds === 17 ? '<span class="badge">戦闘不能</span>' : ''}<div class="point-trackers">${points(c,"fate","運命点",false,true)}${points(c,"experience","経験値",false,true)}</div></div></div><div class="card-stats">${cardStats.map(pair=>pair?`<span aria-label="${pair[1]} ${esc(c.stats[pair[1]])}">${pair[0]}${esc(c.stats[pair[1]].replace(/^D/,""))}</span>`:'<span aria-hidden="true"></span>').join("")}</div><div class="ability-sources" data-character-id="${c.id}" aria-label="${esc(c.name)}のスキル・装備由来の能力値">${abilitySourcesHtml(deriveAbilitySources(c,rosterAbilityCatalog||[]))}</div><div class="gauge" role="img" aria-label="負傷 ${c.wounds} / 17">${Array.from({ length: 17 }, (_, i) => `<span class="pip ${[4, 7, 10, 13].includes(i + 1) ? "threshold" : ""} ${i === 16 ? "last" : ""} ${i < c.wounds ? "filled" : ""}">${i + 1}</span>`).join("")}</div><div class="row between"><div class="row wound-controls">${btn("−1", "minus", `data-id="${c.id}" aria-label="${esc(c.name)}の負傷を1減らす" ${c.wounds === 0 ? "disabled" : ""}`)}${btn("＋1", "plus", `data-id="${c.id}" aria-label="${esc(c.name)}の負傷を1増やす" ${c.wounds === 17 ? "disabled" : ""}`)}</div><label class="check"><input type="checkbox" aria-label="行動済み" title="行動済み" data-acted="${c.id}" ${c.acted ? "checked" : ""} ${c.wounds === 17 ? "disabled" : ""}></label></div>${conditionPanel(c)}${btn("詳細", "character-panel", `data-id="${c.id}" data-source="battle" aria-haspopup="dialog"`)}</article>`,
     )
     .join(
       "",
@@ -931,36 +929,18 @@ function skillDisplay(text, selection) {
   const {skill, value} = matched;
   return `<li class="skill-detail"><details><summary><strong>${esc(skillName(skill,value))}</strong><span class="skill-english">${esc(skill.parameterized ? skill.nameEn.replace("X", String(value)) : skill.nameEn)}</span></summary><dl><dt>カテゴリ</dt><dd>${skill.category}</dd><dt>使用条件</dt><dd class="detail-text">${esc(skill.conditions)}</dd><dt>効果説明</dt><dd class="detail-text">${esc(skill.description)}</dd></dl></details></li>`;
 }
-function characterExtras(c) {
-  const inventory = characterInventory(c);
-  return `<h3>装備</h3><dl class="status-grid equipment-detail-grid">${Object.entries(
-    equipmentCategories,
-  )
-    .map(
-      ([key, label]) =>
-        `<div><dt>${label}</dt><dd class="detail-text">${equipmentSlotDisplay(c, key)}</dd></div>`,
-    )
-    .join(
-      "",
-    )}</dl>${c.equipment ? `<details><summary>旧装備（未分類・原文）</summary><p class="detail-text">${esc(c.equipment)}</p></details>` : ""}${[
-    ["skillEntries", "スキル"],
-    ["spellEntries", "呪文"],
-  ]
-    .map(
-      ([key, label]) =>
-        `<h3>${label}</h3><ol>${
-          inventory[key]
-            .map(
-              (text, i) => key === "skillEntries" ? skillDisplay(text, c.skillSelections?.[i]) :
-                `<li class="spell-detail">${spellDetails(text, c.spellSelections?.[i])}</li>`,
-            )
-            .join("") || "<li>登録なし</li>"
-        }</ol>`,
-    )
-    .join(
-      "",
-    )}${c.skills || c.spells ? `<details><summary>移行前のスキル・呪文の原文</summary><h3>スキル</h3><p class="detail-text">${esc(c.skills)}</p><h3>呪文</h3><p class="detail-text">${esc(c.spells)}</p></details>` : ""}<h3>特殊効果・メモ</h3><p class="detail-text">${esc(c.notes) || "—"}</p>`;
+function characterExtras(c, activeTab = null) {
+  const inventory=characterInventory(c);
+  const section=(category,label,body)=>`<section data-extra-category="${category}" ${activeTab&&activeTab!==category?'hidden':''}><h3>${label}</h3>${body}</section>`;
+  const equipment=`<dl class="status-grid equipment-detail-grid">${Object.entries(equipmentCategories).map(([key,label])=>`<div><dt>${label}</dt><dd class="detail-text">${equipmentSlotDisplay(c,key)}</dd></div>`).join("")}</dl>${c.equipment?`<details><summary>旧装備（未分類・原文）</summary><p class="detail-text">${esc(c.equipment)}</p></details>`:''}<h3>特殊効果・メモ</h3><p class="detail-text">${esc(c.notes)||'—'}</p>`;
+  const skills=`<ol>${inventory.skillEntries.map((text,i)=>skillDisplay(text,c.skillSelections?.[i])).join('')||'<li>登録なし</li>'}</ol>${c.skills?`<details><summary>移行前のスキルの原文</summary><p class="detail-text">${esc(c.skills)}</p></details>`:''}`;
+  const spells=`<ol>${inventory.spellEntries.map((text,i)=>`<li class="spell-detail">${spellDetails(text,c.spellSelections?.[i])}</li>`).join('')||'<li>登録なし</li>'}</ol>${c.spells?`<details><summary>移行前の呪文の原文</summary><p class="detail-text">${esc(c.spells)}</p></details>`:''}`;
+  return section('equipment','装備',equipment)+section('skills','スキル',skills)+section('spells','呪文',spells);
 }
+const characterPanel=createCharacterPanel({
+  getCharacter:(source,id)=>source==='battle'&&screen==='battle'?data.game?.characters.find(c=>c.id===id):source==='roster'&&screen==='bands'?band()?.characters.find(c=>c.id===id):null,
+  renderContent:characterExtras,
+});
 function detail(c, editable = false) {
   show(
     `<div class="row">${portrait(c)}<div><h2>${esc(c.name)}</h2><p>${esc(c.species)} · Lv.${c.level}</p></div></div><div class="stats">${stats.map((s) => `<div><span class="muted">${s}</span><br><strong>${esc(c.stats[s])}</strong></div>`).join("")}</div>${characterExtras(c)}${editable ? btn("編集", "edit-character", `data-id="${c.id}"`) : ""}${btn("閉じる", "close")}`,
@@ -1055,27 +1035,9 @@ document.addEventListener("click", (e) => {
       app.querySelector('[data-action="vp-minus"]').disabled = data.game.vp === 0;
       app.querySelector('[data-action="vp-plus"]').disabled = data.game.vp === Number.MAX_SAFE_INTEGER;
       break;
-    case "toggle-battle-info": {
-      if (!c) break;
-      const open = !expandedBattleCards.has(c.id);
-      if (open) expandedBattleCards.add(c.id); else expandedBattleCards.delete(c.id);
-      document.getElementById("battle-info-"+c.id).hidden = !open;
-      b.textContent = open ? "装備・スキル・呪文を閉じる" : "装備・スキル・呪文を表示";
-      b.setAttribute("aria-expanded",String(open));
+    case "character-panel":
+      characterPanel.open(b.dataset.source,b.dataset.id);
       break;
-    }
-    case "toggle-character-info": {
-      if (!wc) break;
-      const open = !expandedCards.has(wc.id);
-      if (open) expandedCards.add(wc.id);
-      else expandedCards.delete(wc.id);
-      document.getElementById("character-info-" + wc.id).hidden = !open;
-      b.textContent = open
-        ? "装備・スキル・呪文を閉じる"
-        : "装備・スキル・呪文を表示";
-      b.setAttribute("aria-expanded", String(open));
-      break;
-    }
     case "new-band":
       resetRosterView();
       nameForm();
@@ -1151,7 +1113,6 @@ document.addEventListener("click", (e) => {
     case "start": {
       const selected = data.warbands.find((x) => x.id === b.dataset.id);
       const run = () => {
-        expandedBattleCards.clear();
         change(() => (data.game = startGame(selected)));
         location.hash = "battle";
       };
@@ -1180,7 +1141,6 @@ document.addEventListener("click", (e) => {
         "ゲームを終了",
         "このゲームの負傷・状態・ラウンドを削除します。登録済みウォーバンドは保持します。",
         () => {
-          expandedBattleCards.clear();
           change(() => (data.game = null));
           location.hash = "home";
         },

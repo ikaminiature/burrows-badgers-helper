@@ -1,3 +1,4 @@
+const {openPanel,closePanel}=require('./support/panel.cjs');
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
@@ -14,7 +15,7 @@ const {enableRosterEditing}=require('./support/roster.cjs');
  data.game.characters[0].wounds=7;
  await page.evaluate(d=>new Promise(resolve=>{const r=indexedDB.open('bb-helper',1);r.onsuccess=()=>{const db=r.result,tx=db.transaction('data','readwrite');tx.objectStore('data').put(d,'app');tx.oncomplete=()=>{db.close();resolve();};};}),data);
  await page.reload();
- async function roster(){await page.getByRole('link',{name:'ウォーバンド',exact:true}).click();await page.getByRole('button',{name:'開く',exact:true}).click();}
+ async function roster(){await closePanel(page);await page.getByRole('link',{name:'ウォーバンド',exact:true}).click();await page.getByRole('button',{name:'開く',exact:true}).click();}
  async function noInputFocus(button){
    await button.scrollIntoViewIfNeeded();
    await page.evaluate(()=>{window.characterFocusEvents=[];document.addEventListener('pointerdown',()=>{window.characterOpenScroll={x:scrollX,y:scrollY};},{once:true});document.addEventListener('focusin',e=>{if(e.target.matches('#character-form input,#character-form textarea,#character-form select'))window.characterFocusEvents.push(e.target.tagName);});});
@@ -27,7 +28,7 @@ const {enableRosterEditing}=require('./support/roster.cjs');
    await page.getByRole('textbox',{name:'名前',exact:true}).tap();
    assert.equal(await page.locator('#character-form input[name=name]').evaluate(n=>n===document.activeElement),true);
  }
- async function edit(){await enableRosterEditing(page);await noInputFocus(page.getByRole('button',{name:'編集',exact:true}));}
+ async function edit(){await closePanel(page);await enableRosterEditing(page);await noInputFocus(page.getByRole('button',{name:'編集',exact:true}));}
  async function saved(){await page.locator('#save-status').filter({hasText:'端末に保存済み'}).waitFor();}
  await roster();
  await noInputFocus(page.getByRole('button',{name:'＋ キャラクター登録',exact:true}));
@@ -50,7 +51,7 @@ const {enableRosterEditing}=require('./support/roster.cjs');
  await page.getByRole('button',{name:'＋ 呪文',exact:true}).click();await page.getByRole('textbox',{name:'呪文 5',exact:true}).fill('<独自呪文>');
  await page.getByRole('button',{name:'呪文 2 を削除',exact:true}).click();
  await page.getByRole('button',{name:'保存',exact:true}).click();await saved();await page.reload();await roster();
- await page.getByRole('button',{name:'装備・スキル・呪文を表示',exact:true}).click();
+ await openPanel(page,null,'呪文');
  const cards=page.locator('.character-extra .spell-details');assert.equal(await cards.count(),4);
  assert.deepEqual(await cards.evaluateAll(ns=>ns.map(n=>n.open)),[false,false,false,false]);
  const heal=cards.filter({hasText:'ヒール'}),crush=cards.filter({hasText:'粉砕'});

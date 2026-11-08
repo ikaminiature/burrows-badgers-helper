@@ -1,3 +1,4 @@
+const {openPanel,closePanel}=require('./support/panel.cjs');
 const { enableRosterEditing } = require("./support/roster.cjs");
 const { chromium } = require("playwright");
 const assert = require("node:assert/strict");
@@ -207,10 +208,11 @@ const os = require("node:os");
     await page.locator(".gauge").first().waitFor();
   assert.equal(await page.locator(".gauge").locator(".filled").count(), 8);
     await page
-      .getByRole("button", { name: "装備・スキル・呪文を表示", exact: true })
+      .getByRole("button", { name: "詳細", exact: true })
       .click();
+    await page.locator("#character-panel").getByRole("tab",{name:"スキル",exact:true}).click();
     await page
-      .locator(".battle .character-extra li")
+      .locator("#character-panel .character-extra li")
       .getByText("ストロング（1）", { exact: true })
       .waitFor();
     assert.deepEqual(errors, []);

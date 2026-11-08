@@ -1,3 +1,4 @@
+const {openPanel,closePanel}=require('./support/panel.cjs');
 const { chromium } = require("playwright");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -115,54 +116,19 @@ const os = require("node:os");
         await cards.getByRole("button", { name: text, exact: true }).count(),
         0,
       );
-    await first
-      .getByRole("button", { name: "装備・スキル・呪文を表示", exact: true })
-      .click();
-    assert.equal(await first.locator(".character-extra").isVisible(), true);
-    assert.equal(await other.locator(".character-extra").isVisible(), false);
-    assert.equal(
-      await first
-        .getByRole("button", {
-          name: "装備・スキル・呪文を閉じる",
-          exact: true,
-        })
-        .getAttribute("aria-expanded"),
-      "true",
-    );
-    const panel = first.locator(".character-extra");
-    assert.equal(
-      await panel.locator("input,textarea,select,button").count(),
-      0,
-    );
-    assert.deepEqual(await panel.locator("dt").allTextContents(), [
-      "武器1",
-      "武器2",
-      "鎧1",
-      "鎧2",
-      "アイテム",
-      "スペシャル",
-    ]);
-    for (const text of [
-      "剣",
-      "弓",
-      "鎧",
-      "盾",
-      "道具",
-      "特別装備",
-      "スキルＡ",
-      "スキルＢ",
-      "呪文Ａ",
-      "呪文Ｂ",
-    ])
-      await panel.getByText(text, { exact: true }).waitFor();
-    await panel.getByText("特殊効果\nメモ", { exact: true }).waitFor();
-    await other
-      .getByRole("button", { name: "装備・スキル・呪文を表示", exact: true })
-      .click();
-    await first
-      .getByRole("button", { name: "装備・スキル・呪文を閉じる", exact: true })
-      .click();
-    assert.equal(await other.locator(".character-extra").isVisible(), true);
+    await openPanel(page,first);
+    const panel=page.locator("#character-panel .character-extra");
+    assert.equal(await panel.locator("input,textarea,select,button").count(),0);
+    assert.deepEqual(await panel.locator("dt").allTextContents(),["武器1","武器2","鎧1","鎧2","アイテム","スペシャル"]);
+    for(const text of ["剣","弓","鎧","盾","道具","特別装備"])await panel.getByText(text,{exact:true}).waitFor();
+    await panel.getByText("特殊効果\nメモ",{exact:true}).waitFor();
+    await page.locator("#character-panel").getByRole("tab",{name:"スキル",exact:true}).click();
+    for(const text of ["スキルＡ","スキルＢ"])await panel.getByText(text,{exact:true}).waitFor();
+    await page.locator("#character-panel").getByRole("tab",{name:"呪文",exact:true}).click();
+    for(const text of ["呪文Ａ","呪文Ｂ"])await panel.getByText(text,{exact:true}).waitFor();
+    await closePanel(page);await openPanel(page,other);
+    await page.locator("#character-panel").getByRole("heading",{name:second.name,exact:true}).waitFor();
+    await closePanel(page);
     await first.getByRole("button", { name: c.name, exact: true }).click();
     assert.equal(
       await page
@@ -223,7 +189,7 @@ const os = require("node:os");
         await first.getByRole("button", { name: text, exact: true }).count(),
         1,
       );
-    assert.equal(await other.locator(".character-extra").isVisible(), true);
+    assert.equal(await other.locator(".character-extra").isVisible(), false);
     await page
       .getByRole("button", { name: "編集を終了", exact: true })
       .click();
@@ -303,7 +269,7 @@ const os = require("node:os");
     assert.deepEqual(await disk(), after);
     assert.deepEqual(errors, []);
     console.log(
-      "PASS: independent collapse, readonly extras, view/edit mode with no DB writes, edit/duplicate/delete confirmation, horizontal point labels at 320/390px light/dark, JSON/photo/battle preservation",
+      "PASS: character-specific panel, readonly tabs, view/edit mode with no DB writes, edit/duplicate/delete confirmation, horizontal point labels at 320/390px light/dark, JSON/photo/battle preservation",
     );
   } finally {
     await browser.close();

@@ -1,3 +1,4 @@
+const {openPanel,closePanel}=require('./support/panel.cjs');
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
@@ -17,8 +18,8 @@ const {enableRosterEditing}=require('./support/roster.cjs');
  data.game.characters[0].wounds=7;
  await page.evaluate(d=>new Promise(resolve=>{const r=indexedDB.open('bb-helper',1);r.onsuccess=()=>{const db=r.result,tx=db.transaction('data','readwrite');tx.objectStore('data').put(d,'app');tx.oncomplete=()=>{db.close();resolve();};};}),data);
  await page.reload();
- async function roster(){await page.getByRole('link',{name:'ウォーバンド',exact:true}).click();await page.getByRole('button',{name:'開く',exact:true}).click();}
- async function edit(){await enableRosterEditing(page);await page.getByRole('button',{name:'編集',exact:true}).click();}
+ async function roster(){await closePanel(page);await page.getByRole('link',{name:'ウォーバンド',exact:true}).click();await page.getByRole('button',{name:'開く',exact:true}).click();}
+ async function edit(){await closePanel(page);await enableRosterEditing(page);await page.getByRole('button',{name:'編集',exact:true}).click();}
  async function saved(){await page.locator('#save-status').filter({hasText:'端末に保存済み'}).waitFor();}
  await roster();await edit();
  assert.equal(await page.getByRole('textbox',{name:'スキル 1',exact:true}).inputValue(),'Strong (1)');
@@ -41,7 +42,7 @@ const {enableRosterEditing}=require('./support/roster.cjs');
  await page.locator('[data-skill-value="0"]').fill('2');
  await page.getByRole('button',{name:'保存',exact:true}).click();await saved();
  await page.reload();await roster();
- await page.getByRole('button',{name:'装備・スキル・呪文を表示',exact:true}).click();
+ await openPanel(page,null,'スキル');
  const details=page.locator('.character-extra .skill-detail details');
  assert.equal(await details.count(),3);
  assert.deepEqual(await details.evaluateAll(nodes=>nodes.map(n=>n.open)),[false,false,false]);
@@ -51,7 +52,7 @@ const {enableRosterEditing}=require('./support/roster.cjs');
  assert.equal(await details.first().getAttribute('open'),null);
  await p.locator('summary').click();assert.equal(await p.getAttribute('open'),null);
  for(const width of [320,375,390]){await page.setViewportSize({width,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));}
- await page.getByRole('link',{name:'ホーム',exact:true}).click();
+ await closePanel(page);await page.getByRole('link',{name:'ホーム',exact:true}).click();
  const [download]=await Promise.all([page.waitForEvent('download'),page.getByRole('button',{name:'JSON を書き出す'}).click()]);
  const file=path.join(fs.mkdtempSync(path.join(os.tmpdir(),'bb-skills-')),'backup.json');await download.saveAs(file);
  const exported=JSON.parse(fs.readFileSync(file)),savedChar=exported.warbands[0].characters[0];
@@ -62,8 +63,8 @@ const {enableRosterEditing}=require('./support/roster.cjs');
  await page.reload();await roster();await edit();assert.equal(await page.getByRole('textbox',{name:'スキル 3',exact:true}).inputValue(),'タフ（3）');
  await page.getByRole('button',{name:'キャンセル',exact:true}).click();
  await page.getByRole('link',{name:'戦闘',exact:true}).click();
- await page.getByRole('button',{name:'装備・スキル・呪文を表示',exact:true}).click();
- await page.locator('.battle .character-extra').getByText('ストロング（1）',{exact:true}).waitFor();await page.locator('.battle .character-extra').getByText('未知の技',{exact:true}).waitFor();
+ await openPanel(page,null,'スキル');
+ await page.locator('#character-panel .character-extra').getByText('ストロング（1）',{exact:true}).waitFor();await page.locator('#character-panel .character-extra').getByText('未知の技',{exact:true}).waitFor();
  await page.evaluate(()=>navigator.serviceWorker.ready);await page.reload();
  await context.setOffline(true);await page.reload();await roster();await edit();await page.locator('#skill-picker summary').click();
  await page.getByRole('searchbox',{name:'スキル検索',exact:true}).fill('DARKSENSE');await page.locator('[data-skill-id="skill-darksense"]').getByText('暗視',{exact:true}).waitFor();

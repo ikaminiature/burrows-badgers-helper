@@ -1,3 +1,4 @@
+const {openPanel,closePanel}=require('./support/panel.cjs');
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path');
 (async()=>{
@@ -45,9 +46,9 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('nod
  assert.equal(await card.locator('.gauge .filled').count(),0);assert.equal(await card.locator('.gauge .pip').count(),17);
  assert.doesNotMatch(await card.innerText(),/ペナルティ|未行動|0\s*\/\s*17/);
  assert.equal(await card.getByRole('checkbox',{name:'行動済み',exact:true}).isChecked(),false);
- await card.getByRole('button',{name:'装備・スキル・呪文を表示',exact:true}).click();
- const extras=card.locator('.character-extra');await extras.locator('.equipment-details > summary').first().click();await extras.locator('.skill-detail summary').click();await extras.locator('.spell-details summary').click();
- assert.ok(await extras.locator('details[open]').count()>=3);
+ await openPanel(page,card);
+ const extras=page.locator('#character-panel .character-extra');await extras.locator('.equipment-details > summary').first().click();await page.locator('#character-panel').getByRole('tab',{name:'スキル',exact:true}).click();await extras.locator('.skill-detail summary').click();await page.locator('#character-panel').getByRole('tab',{name:'呪文',exact:true}).click();await extras.locator('.spell-details summary').click();
+ assert.ok(await extras.locator('details[open]').count()>=3);await closePanel(page);
  await card.locator('.condition-picker > summary').click();const labels=['スニーク','バーサーク','朦朧','麻痺','炎上','盲目'];
  for(const name of labels)await card.locator('.condition-picker').getByRole('checkbox',{name,exact:true}).check();
  await page.locator('#save-status').filter({hasText:'端末に保存済み'}).waitFor();
