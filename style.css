@@ -913,5 +913,4 @@ html.roster-editing { scroll-padding-top: 120px; }
 .den-details th, .den-details td { border: 1px solid var(--line); padding: 6px; text-align: left; }
 .den-choice[hidden], .den-chosen[hidden] { display: none; }
 .den-choice select { width: 100%; min-width: 0; }
-.legacy-den-upgrades { font-size: 13px; overflow-wrap: anywhere; }
 .den-details table th:first-child { white-space: nowrap; width: 3.5em; }
