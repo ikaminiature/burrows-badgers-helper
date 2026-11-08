@@ -24,7 +24,7 @@ test('複数登録・解除・祠の選択・旧原文・独立戦闘とJSON、�
  const snapshot=startGame(w);chooseDenEffect(s,'shrine','woods-and-shadows');assert.equal(snapshot.status.denUpgrades.find(v=>v.id==='shrine').choice,'spirit-world');
  selectDenUpgrade(s,'shrine',false);selectDenUpgrade(s,'shrine',true);assert.equal(s.denUpgrades.find(v=>v.id==='shrine').choice,null);
  assert.throws(()=>chooseDenEffect(s,'shrine','unknown'));assert.throws(()=>selectDenUpgrade(s,'unknown',true));
- assert.ok(!denUpgradePicker(s).includes('<textarea'));assert.match(denUpgradeList(s),/祠&lt;&amp;&gt;/);assert.match(denUpgradePicker(s),/旧アップグレードの原文/);
+ assert.ok(!denUpgradePicker(s).includes('<textarea'));for(const html of [denUpgradeList(s),denUpgradePicker(s)]){assert.doesNotMatch(html,/旧アップグレードの原文|自由な原文|legacy-den-upgrades/);}assert.deepEqual(s.upgrades,old.upgrades);
 });
 test('任意メタデータの検証、旧値は無変更、未知IDは保持して未確認表示',()=>{
  const s=emptyBandStatus(),w={id:'w',name:'バンド',status:s,characters:[]},d={version:2,warbands:[w],game:null};
