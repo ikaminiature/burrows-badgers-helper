@@ -1,3 +1,4 @@
+const {openPanel,closePanel}=require('./support/panel.cjs');
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
@@ -19,11 +20,11 @@ const {enableRosterEditing}=require('./support/roster.cjs');
  data.game.round=3;data.game.characters[0].wounds=6;
  await page.evaluate(d=>new Promise(resolve=>{const r=indexedDB.open('bb-helper',1);r.onsuccess=()=>{const db=r.result,tx=db.transaction('data','readwrite');tx.objectStore('data').put(d,'app');tx.oncomplete=()=>{db.close();resolve();};};}),data);
  await page.reload();
- async function roster(){await page.getByRole('link',{name:'ウォーバンド',exact:true}).click();await page.getByRole('button',{name:'開く',exact:true}).click();}
- async function edit(){await enableRosterEditing(page);await page.getByRole('button',{name:'編集',exact:true}).click();}
+ async function roster(){await closePanel(page);await page.getByRole('link',{name:'ウォーバンド',exact:true}).click();await page.getByRole('button',{name:'開く',exact:true}).click();}
+ async function edit(){await closePanel(page);await enableRosterEditing(page);await page.getByRole('button',{name:'編集',exact:true}).click();}
  async function saved(){await page.locator('#save-status').filter({hasText:'端末に保存済み'}).waitFor();}
  async function read(){return page.evaluate(()=>new Promise(resolve=>{const r=indexedDB.open('bb-helper',1);r.onsuccess=()=>{const db=r.result,tx=db.transaction('data');const get=tx.objectStore('data').get('app');get.onsuccess=()=>resolve(get.result);tx.oncomplete=()=>db.close();};}));}
- await roster();await page.getByRole('button',{name:'装備・スキル・呪文を表示',exact:true}).click();
+ await roster();await openPanel(page);
  const panel=page.locator('.character-extra');assert.equal(await panel.locator('.equipment-details').count(),4);
  assert.deepEqual(await panel.locator('.equipment-details').evaluateAll(nodes=>nodes.map(n=>n.open)),[false,false,false,false]);
  const pistol=panel.locator('[data-reference-id="general-store-010"]');
@@ -34,6 +35,7 @@ const {enableRosterEditing}=require('./support/roster.cjs');
  await panel.getByText('自由な剣',{exact:true}).waitFor();
  for(const id of ['060','082']) {const node=panel.locator('[data-reference-id="general-store-'+id+'"]');await node.locator(':scope > summary').click();const materials=node.locator('.equipment-shared-rule').filter({hasText:'魔法使いのポーチと素材'});await materials.locator('summary').click();await materials.getByText(/最大6個/).waitFor();}
  assert.deepEqual(await read(),data); // Viewing references must never migrate or save data.
+ await closePanel(page);
  // UI-only states: separate equipment colors and persistent editing indicator.
  async function colors(node){return node.evaluate(el=>{const c=getComputedStyle(el);return {bg:c.backgroundColor,fg:c.color};});}
  function contrast({bg,fg}) {
@@ -43,18 +45,20 @@ const {enableRosterEditing}=require('./support/roster.cjs');
  assert.equal(await page.getByRole('button',{name:'備考',exact:true}).count(),0);
  for(const scheme of ['light','dark']) {
   await page.emulateMedia({colorScheme:scheme});
-  const header=page.locator('header'), original=await colors(header);
+  const header=page.locator('body > header'), original=await colors(header);
   await page.getByRole('button',{name:'編集モード',exact:true}).click();
   await page.getByRole('button',{name:'編集を終了',exact:true}).waitFor();
   await page.locator('#editing-indicator').getByText('編集中',{exact:true}).waitFor();
   for(const width of [320,390]) {await page.setViewportSize({width,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));}
   const editingColor=await colors(header);assert.notEqual(editingColor.bg,original.bg);assert.ok(contrast(editingColor)>=4.5);
-  const rows=page.locator('.equipment-detail-grid > div'), firstRow=rows.nth(0), armourRow=rows.nth(2), normal=(await colors(firstRow)).bg;
+  await openPanel(page);
+  const rows=page.locator('#character-panel .equipment-detail-grid > div'), firstRow=rows.nth(0), armourRow=rows.nth(2), normal=(await colors(firstRow)).bg;
   await firstRow.locator('.equipment-details > summary').click();
   await armourRow.locator('.equipment-details > summary').click();
   const expanded=await colors(firstRow);assert.notEqual(expanded.bg,normal);assert.equal((await colors(armourRow)).bg,expanded.bg);assert.notEqual(expanded.bg,editingColor.bg);assert.ok(contrast(expanded)>=4.5);
   assert.equal(await panel.locator('summary').filter({hasText:/^装備枠$/}).count(),0);
   await firstRow.locator('.equipment-details > summary').click();assert.equal((await colors(firstRow)).bg,normal);assert.equal((await colors(armourRow)).bg,expanded.bg);
+  await closePanel(page);
   await page.evaluate(()=>scrollTo(0,document.body.scrollHeight));
   assert.ok(Math.abs((await header.boundingBox()).y)<1);
   assert.ok(await page.locator('#editing-indicator').evaluate(el=>{const r=el.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;}));
@@ -89,11 +93,11 @@ const {enableRosterEditing}=require('./support/roster.cjs');
  await serpent.getByText('蛇の指輪',{exact:true}).waitFor();await serpent.locator('.equipment-details > summary').click();await serpent.getByText(/使用者はd6点/).waitFor();
  await serpent.getByRole('button',{name:'選ぶ',exact:true}).click();
  await page.getByRole('button',{name:'保存',exact:true}).click();await saved();
- await page.reload();await roster();await page.getByRole('button',{name:'装備・スキル・呪文を表示',exact:true}).click();
+ await page.reload();await roster();await openPanel(page);
  const magic=page.locator('.equipment-detail-grid .equipment-magic-details');await magic.locator(':scope > summary').click();await magic.locator('summary').filter({hasText:'討伐'}).click();await magic.getByText(/白兵武器なら/).waitFor();await magic.getByText('手動で登録した補足',{exact:true}).waitFor();
  for(const width of [320,375,390]){await page.setViewportSize({width,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));}
  await page.setViewportSize({width:375,height:844});await page.screenshot({path:'/tmp/equipment-effects-mobile.png',fullPage:true});
- await page.getByRole('link',{name:'ホーム',exact:true}).click();const [download]=await Promise.all([page.waitForEvent('download'),page.getByRole('button',{name:'JSON を書き出す'}).click()]);
+ await closePanel(page);await page.getByRole('link',{name:'ホーム',exact:true}).click();const [download]=await Promise.all([page.waitForEvent('download'),page.getByRole('button',{name:'JSON を書き出す'}).click()]);
  const file=path.join(fs.mkdtempSync(path.join(os.tmpdir(),'bb-equipment-effects-')),'backup.json');await download.saveAs(file);const exported=JSON.parse(fs.readFileSync(file)),stored=exported.warbands[0].characters[0];
  assert.equal(stored.equipmentSelections.weapon1.id,'general-store-010');assert.equal(stored.equipmentSelections.special.id,'special-magic-serpents-ring');
  assert.deepEqual(stored.equipmentMagic.weapon1,{effects:[{id:'magic-effect-smiting',bonus:3},{id:'magic-effect-flame',bonus:null}],notes:'手動で登録した補足'});
@@ -108,7 +112,7 @@ const {enableRosterEditing}=require('./support/roster.cjs');
  assert.deepEqual((await read()).warbands[0].characters[0],stored);
  await page.getByRole('link',{name:'戦闘',exact:true}).click();await page.locator(".gauge").first().waitFor();
   assert.equal(await page.locator(".gauge").locator(".filled").count(),6);
- await page.getByRole('button',{name:'装備・スキル・呪文を表示',exact:true}).click();assert.equal(await page.locator('.battle .character-extra .equipment-magic-details').count(),0);await page.evaluate(()=>navigator.serviceWorker.ready);await page.reload();await context.setOffline(true);await page.reload();await roster();await edit();await page.getByRole('button',{name:'スペシャルの装備を検索',exact:true}).click();
+ await openPanel(page);assert.equal(await page.locator('#character-panel .character-extra .equipment-magic-details').count(),0);await page.evaluate(()=>navigator.serviceWorker.ready);await page.reload();await context.setOffline(true);await page.reload();await roster();await edit();await page.getByRole('button',{name:'スペシャルの装備を検索',exact:true}).click();
  await page.locator('#equipment-source').selectOption('special');await q.fill('抵抗の指輪');await page.locator('.equipment-option').getByText('抵抗の指輪',{exact:true}).waitFor();
  assert.deepEqual(errors,[]);
  console.log('PASS: 96 unchanged catalog + 12 magic, independent default-closed bilingual/range/effect references, shared rules and tables, numeric manual effects, JSON/photo/legacy/game isolation, 320px/offline');

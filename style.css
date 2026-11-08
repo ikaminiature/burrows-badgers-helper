@@ -705,7 +705,7 @@ dialog li {
 .character-extra dl {
   margin-top: 8px;
 }
-.roster-card > [data-action="toggle-character-info"] {
+.roster-card > [data-action="character-panel"] {
   margin-top: 12px;
   width: 100%;
 }
@@ -849,7 +849,7 @@ html.roster-editing { scroll-padding-top: 120px; }
 #equipment-category-control[hidden] { display: none; }
 
 .roster-card > .ability-sources { margin: 6px 0 0; }
-.roster-card > .ability-sources + [data-action="toggle-character-info"] { margin-top: 8px; }
+.roster-card > .ability-sources + [data-action="character-panel"] { margin-top: 8px; }
 
 /* Shared reference cards: tint the entire open item in both colour schemes. */
 .spell-details { border: 1px solid var(--line); border-radius: .5rem; padding: .5rem; overflow-wrap: anywhere; }
@@ -906,11 +906,29 @@ html.roster-editing { scroll-padding-top: 120px; }
 .den-details { padding: 6px; overflow-wrap: anywhere; border-radius: 6px; }
 .den-details[open] { background: var(--bg); box-shadow: inset 3px 0 var(--accent); }
 .den-details summary { cursor: pointer; font-weight: 700; }
-.den-english { display: block; font-size: 12px; font-weight: 400; }
-.den-cost { font-size: 13px; margin: 4px 6px; }
 .den-details .detail-text, .den-details li { font-size: 14px; }
 .den-details table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .den-details th, .den-details td { border: 1px solid var(--line); padding: 6px; text-align: left; }
 .den-choice[hidden], .den-chosen[hidden] { display: none; }
 .den-choice select { width: 100%; min-width: 0; }
 .den-details table th:first-child { white-space: nowrap; width: 3.5em; }
+
+.den-details summary { font-size: clamp(11px, 3.2vw, 14px); line-height: 1.4; padding-block: 3px; }
+.den-english { display: inline; font-size: inherit; font-weight: inherit; }
+.den-option, .den-upgrade { padding: 4px; margin-block: 5px; }
+.character-panel-open { overflow: hidden; }
+.roster-card[data-character-id] { touch-action: pan-y pinch-zoom; }
+#character-panel { position: fixed; inset: 0 auto 0 0; margin: 0; width: min(430px, 94vw); max-width: 94vw; height: 100dvh; max-height: 100dvh; border: 0; border-radius: 0 12px 12px 0; padding: 0; background: var(--panel); color: var(--ink); overflow: hidden; }
+#character-panel[open] { display: flex; flex-direction: column; animation: panel-enter .18s ease-out; }
+#character-panel::backdrop { background: rgb(0 0 0 / .35); }
+#character-panel .panel-header { flex: 0 0 auto; background: var(--panel); color: var(--ink); padding: max(12px,env(safe-area-inset-top)) 12px 10px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--line); }
+.panel-header h2 { font-size: 18px; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.panel-tabs { display: flex; gap: 5px; padding: 8px 12px; }
+.panel-tabs button { flex: 1; min-width: 0; }
+.panel-tabs [aria-selected=true] { background: var(--accent); color: white; }
+.panel-scroll { padding: 0 12px max(20px,env(safe-area-inset-bottom)); overflow-y: auto; overscroll-behavior: contain; flex: 1; min-height: 0; touch-action: pan-y pinch-zoom; }
+.panel-scroll [hidden] { display: none; }
+.panel-scroll dl { grid-template-columns: minmax(0,1fr); }
+@keyframes panel-enter { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+@media(prefers-reduced-motion: reduce) { #character-panel[open] { animation: none; } }
+#character-panel { touch-action: pan-y pinch-zoom; }

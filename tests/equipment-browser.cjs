@@ -1,3 +1,4 @@
+const {openPanel,closePanel}=require('./support/panel.cjs');
 const { chromium } = require("playwright");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -209,9 +210,9 @@ const { enableRosterEditing } = require("./support/roster.cjs");
       .waitFor();
     const card = page.locator(".roster-card");
     await card
-      .getByRole("button", { name: "装備・スキル・呪文を表示", exact: true })
+      .getByRole("button", { name: "詳細", exact: true })
       .click();
-    const panel = card.locator(".character-extra");
+    const panel = page.locator("#character-panel .character-extra");
     await panel.getByText("ピストル（12″）", { exact: true }).waitFor();
     await panel.getByText("弓（18″）", { exact: true }).waitFor();
     await panel.getByText("独自の自由入力鎧", { exact: true }).waitFor();
@@ -221,6 +222,7 @@ const { enableRosterEditing } = require("./support/roster.cjs");
     assert.equal(await pistolDetails.getByRole("button", { name: "備考", exact: true }).count(), 0);
     await pistolDetails.locator(".equipment-details > summary").click();
     await pistolDetails.getByText(/ピストルによる射撃はストロング/).waitFor();
+    await closePanel(page);
     await card.getByRole("button", { name: c.name, exact: true }).click();
     await page
       .locator("#modal")

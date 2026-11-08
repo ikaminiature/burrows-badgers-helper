@@ -1,0 +1,2 @@
+exports.closePanel=async page=>{const p=page.locator('#character-panel');if(await p.isVisible()){await p.getByRole('button',{name:'閉じる',exact:true}).click();await p.waitFor({state:'hidden'});}};
+exports.openPanel=async(page,card,tab='装備')=>{await exports.closePanel(page);await (card||page).getByRole('button',{name:'詳細',exact:true}).first().click();const p=page.locator('#character-panel');await p.waitFor();await p.getByRole('tab',{name:tab,exact:true}).click();return p;};
