@@ -1,4 +1,4 @@
-const VERSION = "20";
+const VERSION = "21";
 const PREFIX = "bb-helper:" + self.registration.scope + ":";
 const CACHE = PREFIX + VERSION;
 const FILES = [
@@ -7,6 +7,8 @@ const FILES = [
   "./style.css",
   "./src/app.js",
   "./src/model.js",
+  "./src/den-upgrades.js",
+  "./src/den-upgrade-view.js",
   "./src/conditions.js",
   "./src/side-quests.js",
   "./src/side-quest-view.js",

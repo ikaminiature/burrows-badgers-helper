@@ -897,3 +897,21 @@ html.roster-editing { scroll-padding-top: 120px; }
 .quest-table-scroll th, .quest-table-scroll td { border: 1px solid var(--line); padding: 6px; text-align: left; }
 .legacy-quest { margin-top: 6px; font-size: 13px; overflow-wrap: anywhere; }
 @media(prefers-color-scheme: dark) { .condition-alert { color: #ffc66d; } }
+
+.den-option, .den-upgrade { border: 1px solid var(--line); border-radius: 8px; padding: 8px; margin-block: 8px; min-width: 0; }
+.den-option.is-selected { border-color: var(--accent); background: var(--equipment-open); }
+.den-top { display: flex; align-items: flex-start; gap: 6px; }
+.den-top > div { min-width: 0; flex: 1; }
+.den-check { min-width: 44px; min-height: 44px; display: grid; place-items: center; margin: 0; }
+.den-details { padding: 6px; overflow-wrap: anywhere; border-radius: 6px; }
+.den-details[open] { background: var(--bg); box-shadow: inset 3px 0 var(--accent); }
+.den-details summary { cursor: pointer; font-weight: 700; }
+.den-english { display: block; font-size: 12px; font-weight: 400; }
+.den-cost { font-size: 13px; margin: 4px 6px; }
+.den-details .detail-text, .den-details li { font-size: 14px; }
+.den-details table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.den-details th, .den-details td { border: 1px solid var(--line); padding: 6px; text-align: left; }
+.den-choice[hidden], .den-chosen[hidden] { display: none; }
+.den-choice select { width: 100%; min-width: 0; }
+.legacy-den-upgrades { font-size: 13px; overflow-wrap: anywhere; }
+.den-details table th:first-child { white-space: nowrap; width: 3.5em; }

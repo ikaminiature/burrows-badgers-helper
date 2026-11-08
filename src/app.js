@@ -1,3 +1,5 @@
+import { denUpgradePicker, denUpgradeList } from "./den-upgrade-view.js";
+import { denUpgradeById, selectDenUpgrade, chooseDenEffect } from "./den-upgrades.js";
 import { questSlotHtml, selectQuest, selectWildQuest } from "./side-quest-view.js";
 import { conditions, setCondition, hasConditions } from "./conditions.js";
 import { spells, spellArchetypes, elementalSpecialisms, searchSpells, matchSpell } from "./spells.js";
@@ -252,7 +254,7 @@ function bandView(w) {
     ["treasury", "トレジャリー"],
   ])}</dl>${Object.entries(bandLists)
     .map(
-      ([k, l]) =>
+      ([k, l]) => k === "upgrades" ? denUpgradeList(s) :
         `<h2>${l}</h2><ul>${s[k].map((e) => `<li class="detail-text">${esc(e.name) || "（未入力）"}</li>`).join("") || "<li>登録なし</li>"}</ul>`,
     )
     .join(
@@ -361,7 +363,7 @@ function bandStatusForm(w) {
       bandLists,
     )
       .map(
-        ([k, l]) =>
+        ([k, l]) => k === "upgrades" ? denUpgradePicker(s) :
           `<section aria-label="${l}"><h3>${l}</h3><div id="list-${k}"></div>${btn("＋ " + l, "add-status-item", `data-list="${k}"`)}</section>`,
       )
       .join("")}`,
@@ -419,7 +421,24 @@ function bandStatusForm(w) {
       }
     };
   };
-  for (const k of Object.keys(bandLists)) draw(k);
+  const denPicker=modal.querySelector("#den-picker");
+  denPicker.onchange=e=>{
+    const input=e.target, upgradeId=input.dataset.denSelect || input.dataset.denChoice;
+    if(!upgradeId)return;
+    if(input.dataset.denSelect)selectDenUpgrade(s,upgradeId,input.checked);
+    else chooseDenEffect(s,upgradeId,input.value);
+    const row=input.closest(".den-option"), selection=s.denUpgrades?.find(v=>v.id===upgradeId), upgrade=denUpgradeById(upgradeId);
+    row.classList.toggle("is-selected",Boolean(selection));
+    const choice=row.querySelector(".den-choice");
+    if(choice){
+      choice.hidden=!selection;
+      const select=choice.querySelector("select");select.disabled=!selection;select.value=selection?.choice||"";
+      const note=row.querySelector(".den-chosen");note.hidden=!selection;
+      note.textContent="選択した効果："+(upgrade.choices.find(v=>v.id===selection?.choice)?.name || (selection?.choice ? selection.choice+"（未確認）" : "未選択"));
+    }
+    save();render();
+  };
+  for (const k of Object.keys(bandLists).filter(k=>k!=="upgrades")) draw(k);
   for (const b of modal.querySelectorAll('[data-action="add-status-item"]'))
     b.onclick = () => {
       const k = b.dataset.list;
@@ -436,7 +455,7 @@ function statusReadOnly(name, s, description) {
     bandLists,
   )
     .map(
-      ([k, l]) =>
+      ([k, l]) => k === "upgrades" ? denUpgradeList(s) :
         `<h3>${l}</h3><ol>${s[k].map((item) => `<li class="detail-text">${esc(item.name) || "（未入力）"}</li>`).join("") || "<li>登録なし</li>"}</ol>`,
     )
     .join("")}`;

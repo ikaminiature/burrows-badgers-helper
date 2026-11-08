@@ -192,6 +192,10 @@ export function validateData(d) {
         (k) => typeof s[k] === "number" && Number.isFinite(s[k]),
       ) ||
       !Object.keys(bandTexts).every((k) => str(s[k])) ||
+      (s.denUpgrades !== undefined &&
+        (!Array.isArray(s.denUpgrades) || new Set(s.denUpgrades.map(v=>v?.id)).size !== s.denUpgrades.length ||
+          !s.denUpgrades.every(v=>v && str(v.id,200) && v.id.length>0 &&
+            (v.choice===null || (str(v.choice,200) && v.choice.length>0))))) ||
       !Object.keys(bandLists).every((k) => {
         if (!Array.isArray(s[k])) return false;
         const seen = new Set();
