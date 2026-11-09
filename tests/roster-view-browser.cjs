@@ -121,7 +121,7 @@ const os = require("node:os");
     assert.equal(await panel.locator("input,textarea,select,button").count(),0);
     assert.deepEqual(await panel.locator("dt").allTextContents(),["武器1","武器2","鎧1","鎧2","アイテム","スペシャル"]);
     for(const text of ["剣","弓","鎧","盾","道具","特別装備"])await panel.getByText(text,{exact:true}).waitFor();
-    await panel.getByText("特殊効果\nメモ",{exact:true}).waitFor();
+    assert.equal(await panel.getByText("特殊効果\nメモ",{exact:true}).count(),0);
     await page.locator("#character-panel").getByRole("tab",{name:"スキル",exact:true}).click();
     for(const text of ["スキルＡ","スキルＢ"])await panel.getByText(text,{exact:true}).waitFor();
     await page.locator("#character-panel").getByRole("tab",{name:"呪文",exact:true}).click();

@@ -26,7 +26,7 @@ const {enableRosterEditing}=require('./support/roster.cjs');
  async function pick(id){await page.locator('.equipment-option[data-equipment-id="'+id+'"]').getByRole('button',{name:'選ぶ',exact:true}).click();}
  await roster();
  assert.equal(await page.locator('.roster-card .ability-sources').count(),2);assert.equal(await group.locator('.ability-source').count(),4);
- assert.ok(await group.evaluate(el=>el.previousElementSibling.classList.contains('card-stats')&&el.nextElementSibling.dataset.action==='character-panel'));
+ assert.ok(await group.evaluate(el=>el.previousElementSibling.classList.contains('card-stats')&&el.nextElementSibling.classList.contains('character-tools')&&el.nextElementSibling.children[0].dataset.action==='character-panel'&&el.nextElementSibling.children[1].dataset.action==='character-notes'));
  await summary('strong').getByText('技 2',{exact:true}).waitFor();await summary('strong').getByText('装 3※',{exact:true}).waitFor();
  await summary('tough').getByText('技 1',{exact:true}).waitFor();await summary('tough').getByText('装 複数',{exact:true}).waitFor();
  await summary('weak').getByText('技 1',{exact:true}).waitFor();assert.doesNotMatch(await source('weak').innerText(),/装/);await summary('delicate').getByText('技 2',{exact:true}).waitFor();
