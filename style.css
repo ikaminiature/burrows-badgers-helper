@@ -921,7 +921,7 @@ html.roster-editing { scroll-padding-top: 120px; }
 .battle-tools { margin-top: 12px; }
 .battle-tools button { font-size: 14px; }
 #notes-editor { min-height: 240px; resize: vertical; }
-.character-panel-open { overflow: hidden; }
+.overlay-scroll-locked { overscroll-behavior: none; }
 .roster-card[data-character-id] { touch-action: pan-y pinch-zoom; }
 #character-panel { position: fixed; inset: 0 auto 0 0; margin: 0; width: min(430px, 94vw); max-width: 94vw; height: 100dvh; max-height: 100dvh; border: 0; border-radius: 0 12px 12px 0; padding: 0; background: var(--panel); color: var(--ink); overflow: hidden; }
 #character-panel[open] { display: flex; flex-direction: column; animation: panel-enter .18s ease-out; }
@@ -948,3 +948,5 @@ html.roster-editing { scroll-padding-top: 120px; }
 .app-share img { display: block; width: 164px; height: 164px; max-width: 100%; }
 .app-share figcaption { margin-top: 8px; font-weight: 700; }
 .app-share p { margin: 8px auto 0; max-width: 28em; font-size: 13px; }
+
+dialog { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }

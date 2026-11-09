@@ -1,24 +1,24 @@
+import { openDialog } from "./overlay-scroll.js";
 export function horizontalSwipe(dx,dy,direction){
  return dx*direction>=60 && Math.abs(dx)>Math.abs(dy)*1.8;
 }
 const interactive='button,input,select,textarea,a,summary,label,[contenteditable="true"]';
 export function createCharacterPanel({getCharacter,renderContent}){
  const dialog=document.createElement('dialog');dialog.id='character-panel';dialog.className='character-panel';dialog.setAttribute('aria-label','キャラクター詳細');document.body.append(dialog);
- let origin=null,scroll=null,gesture=null;
+ let origin=null,gesture=null;
  function close(){if(dialog.open)dialog.close();}
  function open(source,id){
   if(document.querySelector('#modal[open]'))return;
   const c=getCharacter(source,id);if(!c)return;
   const character=structuredClone(c);
-  if(!dialog.open){origin=document.activeElement;scroll={x:window.scrollX,y:window.scrollY};}
+  if(!dialog.open)origin=document.activeElement;
   dialog.innerHTML='<header class="panel-header"><h2 tabindex="-1" autofocus></h2><button type="button" data-panel-close>閉じる</button></header><div class="panel-tabs" role="tablist" aria-label="詳細の種類"></div><div class="panel-scroll character-extra"></div>';
   dialog.querySelector('h2').textContent=character.name;
   const tabs=[['equipment','装備'],['skills','スキル'],['spells','呪文']];
   dialog.querySelector('.panel-tabs').innerHTML=tabs.map(([id,name],i)=>`<button type="button" role="tab" data-panel-tab="${id}" id="panel-tab-${id}" aria-controls="panel-content-${id}" aria-selected="${i===0}" tabindex="${i===0?0:-1}">${name}</button>`).join('');
   dialog.querySelector('.panel-scroll').innerHTML=renderContent(character,'equipment');
   for(const section of dialog.querySelectorAll('[data-extra-category]')){section.id='panel-content-'+section.dataset.extraCategory;section.setAttribute('role','tabpanel');section.setAttribute('aria-labelledby','panel-tab-'+section.dataset.extraCategory);}
-  document.documentElement.classList.add('character-panel-open');
-  if(!dialog.open)dialog.showModal();
+  openDialog(dialog);
   dialog.querySelector('h2').focus({preventScroll:true});
  }
  function tab(id,focus=false){
@@ -28,7 +28,7 @@ export function createCharacterPanel({getCharacter,renderContent}){
  }
  dialog.addEventListener('click',e=>{if(e.target.closest('[data-panel-close]'))close();const b=e.target.closest('[data-panel-tab]');if(b)tab(b.dataset.panelTab);if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)close();}});
  dialog.addEventListener('keydown',e=>{if(!e.target.matches('[data-panel-tab]'))return;const ids=['equipment','skills','spells'],i=ids.indexOf(e.target.dataset.panelTab);let n;if(e.key==='ArrowRight')n=(i+1)%3;if(e.key==='ArrowLeft')n=(i+2)%3;if(e.key==='Home')n=0;if(e.key==='End')n=2;if(n!==undefined){e.preventDefault();tab(ids[n],true);}});
- dialog.addEventListener('close',()=>{if(dialog.open)return;document.documentElement.classList.remove('character-panel-open');gesture=null;if(origin?.isConnected)origin.focus?.({preventScroll:true});if(scroll)window.scrollTo({left:scroll.x,top:scroll.y,behavior:'instant'});origin=null;scroll=null;dialog.innerHTML='';});
+ dialog.addEventListener('close',()=>{if(dialog.open)return;gesture=null;if(origin?.isConnected)origin.focus?.({preventScroll:true});origin=null;dialog.innerHTML='';});
  document.addEventListener('pointerdown',e=>{
   gesture=null;if(e.pointerType!=='touch'||!e.isPrimary||e.target.closest(interactive))return;
   if(dialog.open){if(dialog.contains(e.target))gesture={pointer:e.pointerId,x:e.clientX,y:e.clientY,close:true};return;}

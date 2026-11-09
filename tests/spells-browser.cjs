@@ -26,7 +26,7 @@ const {enableRosterEditing}=require('./support/roster.cjs');
    assert.deepEqual(await page.evaluate(()=>window.characterFocusEvents),[]);
    assert.equal(await page.evaluate(()=>document.activeElement.tagName),'H2');
    assert.equal(await page.locator('#modal').evaluate(n=>n.scrollTop),0);
-   assert.deepEqual(await page.evaluate(()=>({x:scrollX,y:scrollY})),await page.evaluate(()=>window.characterOpenScroll));
+   assert.deepEqual(await page.evaluate(()=>document.body.style.position==='fixed'?{x:(-parseFloat(document.body.style.left)||0),y:(-parseFloat(document.body.style.top)||0)}:{x:scrollX,y:scrollY}),await page.evaluate(()=>window.characterOpenScroll));
    await page.getByRole('textbox',{name:'名前',exact:true}).tap();
    assert.equal(await page.locator('#character-form input[name=name]').evaluate(n=>n===document.activeElement),true);
  }
