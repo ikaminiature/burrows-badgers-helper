@@ -19,6 +19,7 @@ for (const f of [
   "icon-192.png",
   "icon-512.png",
   "apple-touch-icon.png",
+  "share-qr.png",
 ])
   await copyFile(f, `dist/${f}`);
 await cp("src", "dist/src", { recursive: true });

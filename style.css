@@ -942,3 +942,9 @@ html.roster-editing { scroll-padding-top: 120px; }
 .ability-source[data-ability="weak"] .ability-source-values, .ability-source[data-ability="delicate"] .ability-source-values { grid-template-columns: minmax(0,1fr); }
 #band-status-form output { display: block; padding: 10px 0; font-weight: 700; }
 .hero .stack { margin-top: 18px; }
+
+.app-share { margin: 28px 0 12px; text-align: center; }
+.app-share a { display: inline-block; padding: 12px; border-radius: 8px; background: #fff; line-height: 0; }
+.app-share img { display: block; width: 164px; height: 164px; max-width: 100%; }
+.app-share figcaption { margin-top: 8px; font-weight: 700; }
+.app-share p { margin: 8px auto 0; max-width: 28em; font-size: 13px; }

@@ -1,9 +1,10 @@
-const VERSION = "25";
+const VERSION = "26";
 const PREFIX = "bb-helper:" + self.registration.scope + ":";
 const CACHE = PREFIX + VERSION;
 const FILES = [
   "./",
   "./index.html",
+  "./share-qr.png",
   "./style.css",
   "./src/app.js",
   "./src/character-panel.js",
