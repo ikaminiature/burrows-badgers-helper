@@ -177,10 +177,11 @@ test("ステータス・独立リストのJSON往復とゲームスナップシ�
     characters: [character("a")],
   });
   d.game = startGame(d.warbands[0]);
-  assert.deepEqual(loadData(JSON.parse(JSON.stringify(d))), d);
+  const recalculated=structuredClone(d);recalculated.warbands[0].status.rating=0;
+  assert.deepEqual(loadData(JSON.parse(JSON.stringify(d))), recalculated);
   s.stash[0].name = "剣";
   s.rating = 999;
-  assert.equal(d.game.status.rating, 123.5);
+  assert.equal(d.game.status.rating, 0);
   assert.equal(d.game.status.stash[0].name, "弓");
   // No item count limit; order and separate lists survive serialization.
   s.stash = Array.from({ length: 350 }, (_, i) => ({

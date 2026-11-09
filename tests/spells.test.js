@@ -37,7 +37,7 @@ test('原資料の数値・例外を保持し、本文の食い違いも推測�
 });
 test('旧原文・写真・JSON復元・独立戦闘スナップショットと不正メタデータ',()=>{
  const c={id:'c',name:'旧キャラ',species:'独自',level:6,fate:2,experience:3,photo:'',stats:Object.fromEntries(stats.map(s=>[s,'D10'])),equipment:'旧剣',skills:'独自技',spells:'Heal\n自由呪文',notes:'保持'};
- const w={id:'w',name:'バンド',status:emptyBandStatus(),characters:[c]},d={version:2,warbands:[w],game:startGame(w)};
+ const w={id:'w',name:'バンド',status:{...emptyBandStatus(),rating:c.level},characters:[c]},d={version:2,warbands:[w],game:startGame(w)};
  const old=structuredClone(d),game=structuredClone(d.game);assert.deepEqual(loadData(d),old);
  c.spellEntries=['ヒール','独自'];c.spellSelections=[{id:searchSpells('Heal')[0].id},null];
  assert.deepEqual(loadData(JSON.parse(JSON.stringify(d))),d);assert.deepEqual(d.game,game);

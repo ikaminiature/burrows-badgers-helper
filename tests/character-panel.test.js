@@ -7,7 +7,7 @@ test('横スワイプは方向・60px・縦横比を満たす場合だけ成立'
 });
 test('Strong/Toughは技装、Weak/Delicateは技のみ。計算結果は無変更',()=>{
  const result=Object.fromEntries(['strong','tough','weak','delicate'].map(id=>[id,{skill:[{name:'技',value:2}],equipment:[{name:'装備',value:9}]}])),before=structuredClone(result),html=abilitySourcesHtml(result);
- for(const id of ['weak','delicate']){const part=html.split(`data-ability="${id}"`)[1].split('</details>')[0];assert.match(part,/技 2/);assert.doesNotMatch(part,/装 9|装：装備|装備：9/);}
+ for(const id of ['weak','delicate']){const part=html.split(`data-ability="${id}"`)[1].split('</details>')[0];assert.match(part,/>2<\/span>/);assert.doesNotMatch(part,/技 /);assert.doesNotMatch(part,/装 9|装：装備|装備：9/);}
  for(const id of ['strong','tough'])assert.match(html.split(`data-ability="${id}"`)[1].split('</details>')[0],/装 9/);
  assert.deepEqual(result,before);
 });

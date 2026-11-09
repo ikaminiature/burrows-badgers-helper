@@ -840,10 +840,10 @@ html.roster-editing { scroll-padding-top: 120px; }
 
 .ability-sources { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 4px; margin-block: 8px; position: relative; }
 .ability-source { min-width: 0; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); }
-.ability-source > summary { padding: 4px 1px; list-style: none; cursor: pointer; text-align: center; }
+.ability-source > summary { padding: 4px 3px; list-style: none; cursor: pointer; text-align: center; }
 .ability-source > summary::-webkit-details-marker { display: none; }
-.ability-name { display: block; white-space: nowrap; font-size: 11px; font-weight: 700; text-decoration: underline dotted; text-underline-offset: 3px; }
-.ability-source-values { display: flex; justify-content: space-evenly; gap: 1px; font-size: 10px; white-space: nowrap; }
+.ability-name { display: block; white-space: nowrap; font-size: 11px; font-weight: 700; min-width: 0; width: 100%; overflow: hidden; text-overflow: ellipsis; border-bottom: 1px dotted currentColor; padding-bottom: 2px; }
+.ability-source-values { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 2px; font-size: 10px; white-space: nowrap; min-height: 15px; align-items: center; }
 .ability-source-breakdown { position: absolute; left: 0; right: 0; z-index: 2; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); box-shadow: 0 4px 12px #0003; font-size: 13px; overflow-wrap: anywhere; }
 .ability-source-breakdown p { margin-top: 0; }
 #equipment-category-control[hidden] { display: none; }
@@ -937,3 +937,8 @@ html.roster-editing { scroll-padding-top: 120px; }
 @keyframes panel-enter { from { transform: translateX(-100%); } to { transform: translateX(0); } }
 @media(prefers-reduced-motion: reduce) { #character-panel[open] { animation: none; } }
 #character-panel { touch-action: pan-y pinch-zoom; }
+
+.ability-source-values > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.ability-source[data-ability="weak"] .ability-source-values, .ability-source[data-ability="delicate"] .ability-source-values { grid-template-columns: minmax(0,1fr); }
+#band-status-form output { display: block; padding: 10px 0; font-weight: 700; }
+.hero .stack { margin-top: 18px; }

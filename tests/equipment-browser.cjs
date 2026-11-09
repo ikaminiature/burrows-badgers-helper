@@ -61,6 +61,8 @@ const { enableRosterEditing } = require("./support/roster.cjs");
       data = { version: 2, warbands: [w], game: startGame(w) };
     data.game.round = 3;
     data.game.characters[0].wounds = 5;
+    // Seed current-format fixtures with their calculated rating.
+    data.warbands.forEach(w=>{w.status.rating=w.characters.reduce((sum,c)=>sum+c.level,0);});
     await page.evaluate(
       (d) =>
         new Promise((resolve) => {

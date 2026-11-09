@@ -111,6 +111,7 @@ const http = require("node:http");
     g.characters[0].wounds = 6;
     g.characters[0].acted = true;
     const data = { version: 2, warbands: [w], game: g };
+    data.warbands.forEach(w=>{w.status.rating=w.characters.reduce((sum,c)=>sum+c.level,0);});
     await page.evaluate(
       (d) =>
         new Promise((resolve, reject) => {

@@ -18,7 +18,7 @@ const assert = require("node:assert/strict");
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(process.env.TEST_URL || "http://127.0.0.1:5173");
   await page.getByRole("heading", { name: "冒険の準備" }).waitFor();
-  await page.getByRole("link", { name: /ウォーバンドを管理/ }).click();
+  await page.getByRole("link", { name: "ウォーバンド",exact:true }).click();
   await page.getByRole("button", { name: "＋ ウォーバンドを登録" }).click();
   await page
     .getByRole("textbox", { name: "名前", exact: true })
@@ -197,7 +197,7 @@ const assert = require("node:assert/strict");
   });
   await page.getByRole("button", { name: "ゲームを終了", exact: true }).click();
   await page.getByRole("button", { name: "確認して実行" }).click();
-  await page.getByRole("link", { name: /ウォーバンドを管理/ }).click();
+  await page.getByRole("link", { name: "ウォーバンド",exact:true }).click();
   await page.getByRole("button", { name: "開く", exact: true }).click();
   await enableRosterEditing(page);
   await page.getByRole("button", { name: "編集", exact: true }).first().click();

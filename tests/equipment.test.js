@@ -152,7 +152,7 @@ test("選択装備のID・射程・備考・自由入力のJSON往復とゲー�
   d.warbands.push({
     id: "w",
     name: "森",
-    status: emptyBandStatus(),
+    status: {...emptyBandStatus(),rating:c.level},
     characters: [c],
   });
   d.game = startGame(d.warbands[0]);

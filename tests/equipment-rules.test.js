@@ -61,7 +61,7 @@ test('魔法効果14件と全決定表、原資料の訳語差、初期閉状態
 });
 test('魔法効果はIDと数値のみ、旧データ・JSON・ゲームを独立して保持し不正値を拒否',()=>{
  const c={id:'c',name:'保持',species:'自由種族',level:4,fate:3,experience:2,photo:'',stats:Object.fromEntries(stats.map(s=>[s,'D8'])),equipment:'古い装備',skills:'旧スキル',spells:'呪文',notes:'メモ'};
- const w={id:'w',name:'保持バンド',status:emptyBandStatus(),characters:[c]},d={version:2,warbands:[w],game:startGame(w)};
+ const w={id:'w',name:'保持バンド',status:{...emptyBandStatus(),rating:c.level},characters:[c]},d={version:2,warbands:[w],game:startGame(w)};
  assert.deepEqual(loadData(d),d);const game=structuredClone(d.game);
  c.equipmentMagic={weapon1:{effects:[{id:'magic-effect-smiting',bonus:3},{id:'magic-effect-flame',bonus:null}],notes:'手動の補足'}};
  const loaded=loadData(JSON.parse(JSON.stringify(d)));assert.deepEqual(loaded,d);assert.deepEqual(loaded.game,game);

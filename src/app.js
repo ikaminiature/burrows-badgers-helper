@@ -23,6 +23,8 @@ import {
   loadData,
   emptyBandStatus,
   bandNumbers,
+  warbandRating,
+  updateWarbandRatings,
   bandTexts,
   bandLists,
   characterRoles,
@@ -93,6 +95,7 @@ const portrait = (c) =>
     : '<span class="portrait" aria-hidden="true">♟</span>';
 const band = () => data.warbands.find((w) => w.id === bandId);
 function save() {
+  updateWarbandRatings(data);
   pending++;
   status.textContent = "保存中…";
   const snapshot = structuredClone(data);
@@ -165,7 +168,7 @@ function render() {
       ),
     );
   if (screen === "home")
-    app.innerHTML = `<div class="hero"><div class="eyebrow">BURROWS & BADGERS · 2ND EDITION</div><h1>小さな戦士たちの、<br>次の冒険へ。</h1><p>ウォーバンドを整えて、卓上の戦いに集中。</p><div class="stack"><a class="button primary" href="#choose">ゲームを開始</a>${data.game ? `<a class="button" href="#battle">${esc(data.game.name)} · ラウンド ${data.game.round} を再開</a>` : ""}</div></div>${updater.html()}<h2>冒険の準備</h2><a class="button" href="#bands">ウォーバンドを管理（${data.warbands.length}）</a><section class="card"><h2>データのバックアップ</h2><p class="muted">データと写真はこの端末・ブラウザ内に保存されます。定期的に写真を含む JSON を保管してください。</p><div class="actions">${btn("JSON を書き出す", "export")}${btn("JSON から復元", "import")}</div><input id="restore-file" type="file" accept="application/json,.json" hidden></section><details class="card"><summary>オフラインで使う・ホーム画面に追加</summary><p>一度オンラインで開き、読み込みを終えてから使ってください。iPhone は Safari の共有メニューから「ホーム画面に追加」を選びます。</p><p class="muted">非公式の補助ツールです。ルールの自動判定は負傷管理のみ。ブラウザのデータ削除で保存内容が消えるため、バックアップを推奨します。</p></details>`;
+    app.innerHTML = `<div class="hero"><div class="eyebrow">BURROWS & BADGERS · 2ND EDITION</div><h1>小さな戦士たちの、<br>次の冒険へ。</h1><div class="stack"><a class="button primary" href="#choose">ゲームを開始</a>${data.game ? `<a class="button" href="#battle">${esc(data.game.name)} · ラウンド ${data.game.round} を再開</a>` : ""}</div></div>${updater.html()}<h2>冒険の準備</h2><section class="card"><h2>データのバックアップ</h2><p class="muted">データと写真はこの端末・ブラウザ内に保存されます。定期的に写真を含む JSON を保管してください。</p><div class="actions">${btn("JSON を書き出す", "export")}${btn("JSON から復元", "import")}</div><input id="restore-file" type="file" accept="application/json,.json" hidden></section><details class="card"><summary>オフラインで使う・ホーム画面に追加</summary><p>一度オンラインで開き、読み込みを終えてから使ってください。iPhone は Safari の共有メニューから「ホーム画面に追加」を選びます。</p><p class="muted">非公式の補助ツールです。ルールの自動判定は負傷管理のみ。ブラウザのデータ削除で保存内容が消えるため、バックアップを推奨します。</p></details>`;
   if (screen === "bands")
     app.innerHTML = band()
       ? bandView(band())
@@ -331,9 +334,9 @@ function bandStatusForm(w) {
     render();
   }
   show(
-    `<div class="status-toolbar"><h2>ウォーバンドステータス編集</h2>${btn("閉じる", "close")}</div><p class="muted">有効な入力は端末に自動保存します。数値は手動入力です。</p><form id="band-status-form"><label>バンド名<input name="name" required maxlength="200" value="${esc(w.name)}"></label><div class="status-grid">${Object.entries(
+    `<div class="status-toolbar"><h2>ウォーバンドステータス編集</h2>${btn("閉じる", "close")}</div><p class="muted">有効な入力は端末に自動保存します。レーティングは所属キャラクターのレベル合計です。その他の数値は手動入力です。</p><form id="band-status-form"><label>バンド名<input name="name" required maxlength="200" value="${esc(w.name)}"></label><div class="status-grid"><div><span>レーティング</span><output aria-label="レーティング">${warbandRating(w)}</output></div>${Object.entries(
       bandNumbers,
-    )
+    ).filter(([key])=>key!=="rating")
       .map(
         ([k, l]) =>
           `<label>${l}<input type="number" step="any" required name="${k}" value="${s[k]}"></label>`,
@@ -372,7 +375,7 @@ function bandStatusForm(w) {
   form.oninput = (e) => {
     const field = e.target,
       key = field.name;
-    if (key === "archetype" || key === "alliance") return;
+    if (key === "rating" || key === "archetype" || key === "alliance") return;
     const valid =
       field.checkValidity() && (key !== "name" || field.value.trim());
     modal.querySelector("#status-error").textContent = valid
@@ -952,7 +955,7 @@ function gameNotes() {
 function characterExtras(c, activeTab = null) {
   const inventory=characterInventory(c);
   const section=(category,label,body)=>`<section data-extra-category="${category}" ${activeTab&&activeTab!==category?'hidden':''}><h3>${label}</h3>${body}</section>`;
-  const equipment=`<dl class="status-grid equipment-detail-grid">${Object.entries(equipmentCategories).map(([key,label])=>`<div><dt>${label}</dt><dd class="detail-text">${equipmentSlotDisplay(c,key)}</dd></div>`).join("")}</dl>${c.equipment?`<details><summary>旧装備（未分類・原文）</summary><p class="detail-text">${esc(c.equipment)}</p></details>`:''}`;
+  const equipment=`<dl class="status-grid equipment-detail-grid">${Object.entries(equipmentCategories).map(([key,label])=>`<div>${activeTab&&key!=="special"&&inventory.equipmentSlots[key]?"":`<dt>${label}</dt>`}<dd class="detail-text">${equipmentSlotDisplay(c,key)}</dd></div>`).join("")}</dl>${c.equipment?`<details><summary>旧装備（未分類・原文）</summary><p class="detail-text">${esc(c.equipment)}</p></details>`:''}`;
   const skills=`<ol>${inventory.skillEntries.map((text,i)=>skillDisplay(text,c.skillSelections?.[i])).join('')||'<li>登録なし</li>'}</ol>${c.skills?`<details><summary>移行前のスキルの原文</summary><p class="detail-text">${esc(c.skills)}</p></details>`:''}`;
   const spells=`<ol>${inventory.spellEntries.map((text,i)=>`<li class="spell-detail">${spellDetails(text,c.spellSelections?.[i])}</li>`).join('')||'<li>登録なし</li>'}</ol>${c.spells?`<details><summary>移行前の呪文の原文</summary><p class="detail-text">${esc(c.spells)}</p></details>`:''}`;
   return section('equipment','装備',equipment)+section('skills','スキル',skills)+section('spells','呪文',spells);

@@ -193,6 +193,7 @@ test("全プリセットのJSON往復、成長値とゲームの独立性", () =
     });
     d.game = startGame(d.warbands[0]);
     c.level = 9;
+    d.warbands[0].status.rating=9;
     c.stats.Movement = "D20";
     c.skillEntries.push("成長スキル");
     const loaded = loadData(JSON.parse(JSON.stringify(d)));

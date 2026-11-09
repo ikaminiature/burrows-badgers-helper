@@ -125,7 +125,12 @@ export function loadData(input) {
     if (d.game.vp === undefined) d.game.vp = 0;
     if (d.game.sideQuests === undefined) d.game.sideQuests = ["", ""];
   }
-  return validateData(d);
+  return updateWarbandRatings(validateData(d));
+}
+export const warbandRating = w => w.characters.reduce((total,c)=>total+c.level,0);
+export function updateWarbandRatings(data) {
+  for(const w of data.warbands) w.status.rating=warbandRating(w);
+  return data;
 }
 export const id = () => crypto.randomUUID();
 export function penalty(w) {
@@ -152,7 +157,7 @@ export function startGame(w) {
     name: w.name,
     sourceWarbandId: w.id,
     notes: "",
-    status: structuredClone(w.status || emptyBandStatus()),
+    status: {...structuredClone(w.status || emptyBandStatus()),rating:warbandRating(w)},
     round: 1,
     vp: 0,
     sideQuests: ["", ""],
