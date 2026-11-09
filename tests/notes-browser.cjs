@@ -7,7 +7,9 @@ const {openPanel,closePanel}=require('./support/panel.cjs');
  const c={id:'a',name:'アッシュ',species:'マウス',level:2,fate:2,experience:3,photo:'',stats:Object.fromEntries(stats.map(s=>[s,'D8'])),equipment:'剣',skills:'Strong (2)',spells:'Heal',notes:'既存の個別メモ\n２行目'};
  const w={id:'w',name:'メモ検証',status:emptyBandStatus(),characters:[c,{...structuredClone(c),id:'b',name:'バーチ',notes:'別人'}]},data={version:2,warbands:[w],game:startGame(w)};
  data.game.characters[0].wounds=7;data.game.characters[0].acted=true;data.game.vp=4;delete data.game.notes;delete data.game.sourceWarbandId;
- await page.evaluate(d=>new Promise(resolve=>{const r=indexedDB.open('bb-helper',1);r.onsuccess=()=>{const db=r.result,t=db.transaction('data','readwrite');t.objectStore('data').put(d,'app');t.oncomplete=()=>{db.close();resolve();};};}),data);
+ // Seed current-format fixtures with their calculated rating.
+    data.warbands.forEach(w=>{w.status.rating=w.characters.reduce((sum,c)=>sum+c.level,0);});
+    await page.evaluate(d=>new Promise(resolve=>{const r=indexedDB.open('bb-helper',1);r.onsuccess=()=>{const db=r.result,t=db.transaction('data','readwrite');t.objectStore('data').put(d,'app');t.oncomplete=()=>{db.close();resolve();};};}),data);
  const expected=loadData(data);
  async function stored(){return page.evaluate(()=>new Promise(resolve=>{const r=indexedDB.open('bb-helper',1);r.onsuccess=()=>{const db=r.result,q=db.transaction('data').objectStore('data').get('app');q.onsuccess=()=>{resolve(q.result);db.close();};};}));}
  async function saved(){await page.locator('#save-status').filter({hasText:'端末に保存済み'}).waitFor();}

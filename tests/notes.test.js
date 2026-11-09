@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {stats,startGame,emptyBandStatus,loadData,nextRound,validateData} from '../src/model.js';
 import {setCharacterNotes} from '../src/notes.js';
 const character=id=>({id,name:id,species:'マウス',level:1,fate:1,experience:0,photo:'',stats:Object.fromEntries(stats.map(s=>[s,'D6'])),equipment:'剣',skills:'',spells:'',notes:'元のメモ'});
-function fixture(){const w={id:'w',name:'バンド',status:emptyBandStatus(),characters:[character('c'),character('other')]};return {version:2,warbands:[w],game:startGame(w)};}
+function fixture(){const w={id:'w',name:'バンド',status:{...emptyBandStatus(),rating:2},characters:[character('c'),character('other')]};return {version:2,warbands:[w],game:startGame(w)};}
 test('双方向同期はnotesだけを更新し、戦闘の負傷等や別キャラを維持',()=>{
  const d=fixture();d.game.characters[0].wounds=7;d.game.characters[0].acted=true;const before=structuredClone(d);
  assert.equal(setCharacterNotes(d,'battle',null,'c','戦闘から\n更新'),true);

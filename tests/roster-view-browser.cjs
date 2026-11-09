@@ -82,6 +82,8 @@ const os = require("node:os");
             };
           }),
       );
+    // Seed current-format fixtures with their calculated rating.
+    data.warbands.forEach(w=>{w.status.rating=w.characters.reduce((sum,c)=>sum+c.level,0);});
     await page.evaluate(
       (d) =>
         new Promise((resolve) => {
@@ -119,7 +121,7 @@ const os = require("node:os");
     await openPanel(page,first);
     const panel=page.locator("#character-panel .character-extra");
     assert.equal(await panel.locator("input,textarea,select,button").count(),0);
-    assert.deepEqual(await panel.locator("dt").allTextContents(),["武器1","武器2","鎧1","鎧2","アイテム","スペシャル"]);
+    assert.deepEqual(await panel.locator("dt").allTextContents(),["スペシャル"]);
     for(const text of ["剣","弓","鎧","盾","道具","特別装備"])await panel.getByText(text,{exact:true}).waitFor();
     assert.equal(await panel.getByText("特殊効果\nメモ",{exact:true}).count(),0);
     await page.locator("#character-panel").getByRole("tab",{name:"スキル",exact:true}).click();

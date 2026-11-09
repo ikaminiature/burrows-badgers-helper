@@ -16,7 +16,9 @@ const {enableRosterEditing}=require('./support/roster.cjs');
  const c={id:'c',name:'スキル確認用の長いキャラクター名',species:'旧種族',level:6,fate:2,experience:3,photo:'data:image/png;base64,'+fs.readFileSync('icon-192.png').toString('base64'),stats:Object.fromEntries(stats.map(s=>[s,'D10'])),equipment:'旧装備',skills:'Strong (1)\n未知の技',spells:'自由呪文',notes:'保持するメモ'};
  const w={id:'w',name:'スキルテスト',status:emptyBandStatus(),characters:[c]}, data={version:2,warbands:[w],game:startGame(w)};
  data.game.characters[0].wounds=7;
- await page.evaluate(d=>new Promise(resolve=>{const r=indexedDB.open('bb-helper',1);r.onsuccess=()=>{const db=r.result,tx=db.transaction('data','readwrite');tx.objectStore('data').put(d,'app');tx.oncomplete=()=>{db.close();resolve();};};}),data);
+ // Seed current-format fixtures with their calculated rating.
+    data.warbands.forEach(w=>{w.status.rating=w.characters.reduce((sum,c)=>sum+c.level,0);});
+    await page.evaluate(d=>new Promise(resolve=>{const r=indexedDB.open('bb-helper',1);r.onsuccess=()=>{const db=r.result,tx=db.transaction('data','readwrite');tx.objectStore('data').put(d,'app');tx.oncomplete=()=>{db.close();resolve();};};}),data);
  await page.reload();
  async function roster(){await closePanel(page);await page.getByRole('link',{name:'ウォーバンド',exact:true}).click();await page.getByRole('button',{name:'開く',exact:true}).click();}
  async function edit(){await closePanel(page);await enableRosterEditing(page);await page.getByRole('button',{name:'編集',exact:true}).click();}

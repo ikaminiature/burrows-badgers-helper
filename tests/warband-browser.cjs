@@ -135,10 +135,8 @@ const os = require("node:os");
       page.getByRole("button", { name: "閉じる", exact: true }).click();
     await openEditor("旧ウォーバンド");
     assert.equal(
-      await page
-        .getByRole("spinbutton", { name: "レーティング", exact: true })
-        .inputValue(),
-      "0",
+      await page.locator('#band-status-form output').textContent(),
+      "2",
     );
     assert.equal(
       await page
@@ -164,7 +162,7 @@ const os = require("node:os");
     ])
       await page.getByRole("textbox", { name: label, exact: true }).fill(value);
     for (const [label, value] of [
-      ["レーティング", "123.5"],
+
       ["年金", "4"],
       ["労働力", "5"],
       ["資材", "6"],
@@ -227,10 +225,8 @@ const os = require("node:os");
     await page.reload();
     await openEditor("森の守り手");
     assert.equal(
-      await page
-        .getByRole("spinbutton", { name: "レーティング", exact: true })
-        .inputValue(),
-      "123.5",
+      await page.locator('#band-status-form output').textContent(),
+      "2",
     );
     assert.equal(
       await page
@@ -248,9 +244,7 @@ const os = require("node:os");
     await close();
     await openEditor("別バンド");
     assert.equal(
-      await page
-        .getByRole("spinbutton", { name: "レーティング", exact: true })
-        .inputValue(),
+      await page.locator('#band-status-form output').textContent(),
       "0",
     );
     await close();
@@ -295,7 +289,7 @@ const os = require("node:os");
       })),
     );
     assert.deepEqual(backup.warbands[0].status, {
-      rating: 123.5,
+      rating: 2,
       pension: 4,
       labour: 5,
       materials: 6,
@@ -317,7 +311,7 @@ const os = require("node:os");
     );
     await openEditor("森の守り手");
     await page
-      .getByRole("spinbutton", { name: "レーティング", exact: true })
+      .getByRole("spinbutton", { name: "年金", exact: true })
       .fill("999");
     await close();
     await saved();
@@ -332,10 +326,8 @@ const os = require("node:os");
     await page.reload();
     await openEditor("森の守り手");
     assert.equal(
-      await page
-        .getByRole("spinbutton", { name: "レーティング", exact: true })
-        .inputValue(),
-      "123.5",
+      await page.locator('#band-status-form output').textContent(),
+      "2",
     );
     await close();
     const expectedAlliances = [
@@ -414,7 +406,7 @@ const os = require("node:os");
     await page.getByRole("button", { name: "確認して実行" }).click();
     await openEditor("森の守り手");
     await page
-      .getByRole("spinbutton", { name: "レーティング", exact: true })
+      .getByRole("spinbutton", { name: "年金", exact: true })
       .fill("777");
     await close();
     await page.getByRole("link", { name: "戦闘", exact: true }).click();
@@ -423,7 +415,7 @@ const os = require("node:os");
       .click();
     assert.equal(
       await page.locator("#modal > dl dd").first().textContent(),
-      "123.5",
+      "2",
     );
     await close();
     await restore({
@@ -434,10 +426,8 @@ const os = require("node:os");
     await page.reload();
     await openEditor("旧ウォーバンド");
     assert.equal(
-      await page
-        .getByRole("spinbutton", { name: "レーティング", exact: true })
-        .inputValue(),
-      "0",
+      await page.locator('#band-status-form output').textContent(),
+      "2",
     );
     await close();
     await page.getByRole("link", { name: "戦闘", exact: true }).click();

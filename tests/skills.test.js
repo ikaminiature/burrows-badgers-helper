@@ -35,7 +35,7 @@ test('日英・全半角検索、完全一致のみの安全な旧スキル対�
 });
 test('旧原文と写真、数値別保存、JSON復元、戦闘スナップショットの独立',()=>{
  const c={id:'c',name:'旧キャラ',species:'独自',level:6,fate:2,experience:3,photo:'',stats:Object.fromEntries(stats.map(s=>[s,'D10'])),equipment:'昔の剣',skills:'Strong (1)\n独自スキル',spells:'自由呪文',notes:'メモ'};
- const w={id:'w',name:'旧バンド',status:emptyBandStatus(),characters:[c]};
+ const w={id:'w',name:'旧バンド',status:{...emptyBandStatus(),rating:c.level},characters:[c]};
  const d={version:2,warbands:[w],game:startGame(w)};
  const game=structuredClone(d.game); assert.deepEqual(loadData(d),d);
  c.skillEntries=['ストロング（3）','独自スキル','受け流し'];

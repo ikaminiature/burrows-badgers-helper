@@ -47,7 +47,7 @@ test('自由入力は完全一致のみ参照、固定値のない魔法効果�
  equip(c,'special','special-magic-ultimate-protection');assert.ok(deriveAbilitySources(c,catalog).tough.equipment.some(e=>e.value===6));
 });
 test('導出表示はデータを増やさずJSON・独立ゲーム・旧原文を維持',()=>{
- const c=base();c.skills='Strong (2)';equip(c,'weapon1',2);const w={id:'w',name:'保持',status:emptyBandStatus(),characters:[c]},d={version:2,warbands:[w],game:startGame(w)},before=structuredClone(d);
+ const c=base();c.skills='Strong (2)';equip(c,'weapon1',2);const w={id:'w',name:'保持',status:{...emptyBandStatus(),rating:c.level},characters:[c]},d={version:2,warbands:[w],game:startGame(w)},before=structuredClone(d);
  abilitySourcesHtml(deriveAbilitySources(c,catalog));assert.deepEqual(d,before);assert.deepEqual(loadData(JSON.parse(JSON.stringify(d))),before);
  assert.equal(Object.hasOwn(c,'abilitySources'),false);c.skills='Strong (4)';assert.equal(deriveAbilitySources(d.game.characters[0],catalog).strong.skill[0].value,2);
 });

@@ -31,7 +31,9 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('nod
  const {parseEquipmentCatalog}=await import('../src/equipment.js');const catalog=parseEquipmentCatalog(JSON.parse(fs.readFileSync('data/bb2_general_store_ja_en.json')));c.equipmentSelections={weapon1:catalog[1],armour1:catalog[17]};c.equipmentSlots.weapon1=catalog[1].nameJa;c.equipmentSlots.armour1=catalog[17].nameJa;
  const w={id:'w',name:'戦闘テスト',status:emptyBandStatus(),characters:[c,{...structuredClone(c),id:'d',name:'バーチ',role:'none',photo:''}]};
  const data={version:2,warbands:[w],game:startGame(w)};delete data.game.vp;delete data.game.sideQuestSelections;data.game.sideQuests=['旧クエスト<&>\n原文','以前の目標'];data.game.characters[0].effects=[{id:'old-effect',name:'自由な状態',description:'保持する説明'}];
- await page.evaluate(d=>new Promise(resolve=>{const r=indexedDB.open('bb-helper',1);r.onsuccess=()=>{const db=r.result,t=db.transaction('data','readwrite');t.objectStore('data').put(d,'app');t.oncomplete=()=>{db.close();resolve();};};}),data);
+ // Seed current-format fixtures with their calculated rating.
+    data.warbands.forEach(w=>{w.status.rating=w.characters.reduce((sum,c)=>sum+c.level,0);});
+    await page.evaluate(d=>new Promise(resolve=>{const r=indexedDB.open('bb-helper',1);r.onsuccess=()=>{const db=r.result,t=db.transaction('data','readwrite');t.objectStore('data').put(d,'app');t.oncomplete=()=>{db.close();resolve();};};}),data);
  await page.reload();await page.getByRole('link',{name:'戦闘',exact:true}).click();
  const card=page.locator('.battle[data-character-id="c"]');
  // Reload completes before app.js has necessarily finished reading IndexedDB.

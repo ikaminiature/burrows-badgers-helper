@@ -53,6 +53,8 @@ const { enableRosterEditing } = require("./support/roster.cjs");
     page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(process.env.TEST_URL || "http://127.0.0.1:5173");
     await page.getByRole("heading", { name: "冒険の準備" }).waitFor();
+    // Seed current-format fixtures with their calculated rating.
+    data.warbands.forEach(w=>{w.status.rating=w.characters.reduce((sum,c)=>sum+c.level,0);});
     await page.evaluate(
       (d) =>
         new Promise((resolve) => {

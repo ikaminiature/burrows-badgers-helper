@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {conditions,setCondition} from '../src/conditions.js';
 import {stats,startGame,emptyBandStatus,loadData,nextRound,wound,penalty,sorted} from '../src/model.js';
-const fixture=()=>{const c={id:'c',name:'状態テスト',species:'独自',level:6,fate:2,experience:3,photo:'',stats:Object.fromEntries(stats.map(s=>[s,'D10'])),equipment:'旧装備',skills:'旧技',spells:'旧呪文',notes:'メモ'};const w={id:'w',name:'バンド',status:emptyBandStatus(),characters:[c]};return {version:2,warbands:[w],game:startGame(w)};};
+const fixture=()=>{const c={id:'c',name:'状態テスト',species:'独自',level:6,fate:2,experience:3,photo:'',stats:Object.fromEntries(stats.map(s=>[s,'D10'])),equipment:'旧装備',skills:'旧技',spells:'旧呪文',notes:'メモ'};const w={id:'w',name:'バンド',status:{...emptyBandStatus(),rating:c.level},characters:[c]};return {version:2,warbands:[w],game:startGame(w)};};
 test('提供36–37ページの6状態と数値・例外、Stunnedの訳語',()=>{
  assert.deepEqual(conditions.map(c=>c.nameJa),['スニーク','バーサーク','朦朧','麻痺','炎上','盲目']);
  assert.equal(new Set(conditions.map(c=>c.id)).size,6);

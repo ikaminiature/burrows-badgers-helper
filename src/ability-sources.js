@@ -37,13 +37,13 @@ export function deriveAbilitySources(character={}, catalog=[]) {
  return result;
 }
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function sourceLabel(entries) {
+function sourceLabel(entries,empty="—") {
  const values=[...new Set(entries.map(e=>e.value).filter(Number.isSafeInteger))];
- if(!values.length)return '—';
+ if(!values.length)return empty;
  if(values.length>1)return '複数';
  const value=String(values[0]);
  return value.length>3?'詳細':value+(entries.some(e=>e.condition)?'※':'');
 }
 export function abilitySourcesHtml(result) {
- return Object.entries(sourceAbilities).map(([id,label])=>`<details class="ability-source" data-ability="${id}"><summary><span class="ability-name">${label}</span><span class="ability-source-values"><span>技 ${sourceLabel(result[id].skill)}</span>${["strong","tough"].includes(id)?`<span>装 ${sourceLabel(result[id].equipment)}</span>`:""}</span></summary><div class="ability-source-breakdown"><p>${label}の内訳（合算しません。※は条件付き）</p>${([['skill','技：スキル'],...(['strong','tough'].includes(id)?[['equipment','装：装備']]:[])]).map(([key,name])=>`<strong>${name}</strong><ul>${result[id][key].map(e=>`<li>${esc(e.name)}：${e.value===null?'固定値なし':esc(e.value)}${e.condition?'／'+esc(e.condition):''}</li>`).join('')||'<li>取得できる数値なし</li>'}</ul>`).join('')}</div></details>`).join('');
+ return Object.entries(sourceAbilities).map(([id,label])=>`<details class="ability-source" data-ability="${id}"><summary><span class="ability-name">${label}</span><span class="ability-source-values"><span>${["strong","tough"].includes(id)?"技 ":""}${sourceLabel(result[id].skill,["strong","tough"].includes(id)?"—":"")}</span>${["strong","tough"].includes(id)?`<span>装 ${sourceLabel(result[id].equipment)}</span>`:""}</span></summary><div class="ability-source-breakdown"><p>${label}の内訳（合算しません。※は条件付き）</p>${([['skill',['strong','tough'].includes(id)?'技：スキル':'スキル'],...(['strong','tough'].includes(id)?[['equipment','装：装備']]:[])]).map(([key,name])=>`<strong>${name}</strong><ul>${result[id][key].map(e=>`<li>${esc(e.name)}：${e.value===null?'固定値なし':esc(e.value)}${e.condition?'／'+esc(e.condition):''}</li>`).join('')||'<li>取得できる数値なし</li>'}</ul>`).join('')}</div></details>`).join('');
 }
