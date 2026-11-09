@@ -17,3 +17,11 @@ export function setCharacterNotes(data, source, bandId, characterId, text) {
  let changed=false;for(const target of targets)if(target.notes!==text){target.notes=text;changed=true;}
  return changed;
 }
+
+export function setWarbandNotes(data, bandId, text) {
+ if(typeof text!=='string'||text.length>20000)throw Error('メモは20000文字以内で入力してください');
+ const w=data.warbands.find(w=>w.id===bandId);
+ if(!w||w.status.notes===text)return false;
+ w.status.notes=text;
+ return true;
+}

@@ -1,4 +1,5 @@
-import { setCharacterNotes } from "./notes.js";
+import { openDialog, closeAllDialogs } from "./overlay-scroll.js";
+import { setWarbandNotes, setCharacterNotes } from "./notes.js";
 import { createCharacterPanel } from "./character-panel.js";
 import { denUpgradePicker, denUpgradeList } from "./den-upgrade-view.js";
 import { denUpgradeById, selectDenUpgrade, chooseDenEffect } from "./den-upgrades.js";
@@ -128,7 +129,7 @@ function show(html, { focusHeading = false } = {}) {
     heading.tabIndex = -1;
     heading.setAttribute("autofocus", "");
   }
-  if (!modal.open) modal.showModal();
+  openDialog(modal);
   (heading || modal.querySelector("input,button"))?.focus({ preventScroll: true });
 }
 function confirmAction(title, message, action) {
@@ -141,6 +142,7 @@ function confirmAction(title, message, action) {
   };
 }
 function navigate() {
+  closeAllDialogs();
   const route = location.hash.slice(1) || "home";
   if (route !== screen) {
     resetRosterView();
@@ -261,7 +263,7 @@ function bandView(w) {
     )
     .join(
       "",
-    )}<h2>メモ</h2><p class="detail-text">${esc(s.notes) || "—"}</p></section><div class="row between"><h2>登録キャラクター</h2>${btn(rosterEditMode ? "編集を終了" : "編集モード", "toggle-roster-edit", `aria-pressed="${rosterEditMode}"`)}</div>${w.characters.map((c, i) => `<article class="card roster-card" data-character-id="${c.id}" data-panel-source="roster"><div class="roster-top"><div class="roster-photo">${portrait(c)}${characterRole(c) !== "none" ? `<span class="character-role">${characterRoles[characterRole(c)]}</span>` : ""}<span class="level">Lv. ${String(c.level).padStart(2, "0")}</span></div><div class="roster-info"><div class="identity"><h3>${btn(esc(c.name), "roster-detail", `data-id="${c.id}" class="character-name" title="${esc(c.name)}"`)}</h3><span class="muted">${esc(c.species)}</span></div><div class="point-trackers">${points(c, "fate", "運命点")}${points(c, "experience", "経験値")}</div></div></div><div class="card-stats">${cardStats.map((pair) => (pair ? `<span aria-label="${pair[1]} ${esc(c.stats[pair[1]])}">${pair[0]}${esc(c.stats[pair[1]].replace(/^D/, ""))}</span>` : '<span aria-hidden="true"></span>')).join("")}</div><div class="ability-sources" data-character-id="${c.id}" aria-label="${esc(c.name)}のスキル・装備由来の能力値">${abilitySourcesHtml(deriveAbilitySources(c, rosterAbilityCatalog || []))}</div>${characterButtons(c,"roster")}${rosterEditMode ? `<div class="actions">${btn("編集", "edit-character", `data-id="${c.id}"`)}${btn("複製", "duplicate", `data-id="${c.id}"`)}${btn("↑", "up", `data-id="${c.id}" aria-label="${esc(c.name)}を上へ" ${i === 0 ? "disabled" : ""}`)}${btn("↓", "down", `data-id="${c.id}" aria-label="${esc(c.name)}を下へ" ${i === w.characters.length - 1 ? "disabled" : ""}`)}${btn("削除", "delete-character", `data-id="${c.id}" class="danger"`)}</div>` : ""}</article>`).join("") || '<p class="empty">キャラクターは未登録です。</p>'}<section class="card"><h2>管理・編集メニュー</h2><div class="actions">${btn("ステータス編集", "band-status")}${btn("名前変更", "rename-band")}${btn("＋ キャラクター登録", "new-character", 'class="primary"')}${btn("ウォーバンド削除", "delete-band", 'class="danger"')}</div></section>`;
+    )}<div class="row between"><h2>メモ</h2>${btn("メモ", "band-notes", 'aria-haspopup="dialog"')}</div><p class="detail-text band-notes-text">${esc(s.notes) || "—"}</p></section><div class="row between"><h2>登録キャラクター</h2>${btn(rosterEditMode ? "編集を終了" : "編集モード", "toggle-roster-edit", `aria-pressed="${rosterEditMode}"`)}</div>${w.characters.map((c, i) => `<article class="card roster-card" data-character-id="${c.id}" data-panel-source="roster"><div class="roster-top"><div class="roster-photo">${portrait(c)}${characterRole(c) !== "none" ? `<span class="character-role">${characterRoles[characterRole(c)]}</span>` : ""}<span class="level">Lv. ${String(c.level).padStart(2, "0")}</span></div><div class="roster-info"><div class="identity"><h3>${btn(esc(c.name), "roster-detail", `data-id="${c.id}" class="character-name" title="${esc(c.name)}"`)}</h3><span class="muted">${esc(c.species)}</span></div><div class="point-trackers">${points(c, "fate", "運命点")}${points(c, "experience", "経験値")}</div></div></div><div class="card-stats">${cardStats.map((pair) => (pair ? `<span aria-label="${pair[1]} ${esc(c.stats[pair[1]])}">${pair[0]}${esc(c.stats[pair[1]].replace(/^D/, ""))}</span>` : '<span aria-hidden="true"></span>')).join("")}</div><div class="ability-sources" data-character-id="${c.id}" aria-label="${esc(c.name)}のスキル・装備由来の能力値">${abilitySourcesHtml(deriveAbilitySources(c, rosterAbilityCatalog || []))}</div>${characterButtons(c,"roster")}${rosterEditMode ? `<div class="actions">${btn("編集", "edit-character", `data-id="${c.id}"`)}${btn("複製", "duplicate", `data-id="${c.id}"`)}${btn("↑", "up", `data-id="${c.id}" aria-label="${esc(c.name)}を上へ" ${i === 0 ? "disabled" : ""}`)}${btn("↓", "down", `data-id="${c.id}" aria-label="${esc(c.name)}を下へ" ${i === w.characters.length - 1 ? "disabled" : ""}`)}${btn("削除", "delete-character", `data-id="${c.id}" class="danger"`)}</div>` : ""}</article>`).join("") || '<p class="empty">キャラクターは未登録です。</p>'}<section class="card"><h2>管理・編集メニュー</h2><div class="actions">${btn("ステータス編集", "band-status")}${btn("名前変更", "rename-band")}${btn("＋ キャラクター登録", "new-character", 'class="primary"')}${btn("ウォーバンド削除", "delete-band", 'class="danger"')}</div></section>`;
 }
 function freeEffects(c) {
   return c.effects.map(e=>`<div class="effect" data-effect-id="${e.id}"><strong>${esc(e.name)}</strong><p class="detail-text">${esc(e.description)}</p><div class="actions">${btn("編集", "edit-effect", `data-id="${c.id}" data-effect="${e.id}" aria-label="${esc(e.name)}を編集"`)}${btn("削除", "remove-effect", `data-id="${c.id}" data-effect="${e.id}" aria-label="${esc(e.name)}を削除"`)}</div></div>`).join("") || '<p class="muted">登録なし</p>';
@@ -942,6 +944,14 @@ function notesEditor({title,description,value,onInput}) {
   show(`<h2>メモ</h2><p>${esc(title)}</p><p class="muted">${esc(description)}入力内容は自動保存されます。</p><label>メモ<textarea id="notes-editor" maxlength="20000" rows="10">${esc(value)}</textarea></label>${btn("閉じる","close")}`,{focusHeading:true});
   modal.querySelector('#notes-editor').addEventListener('input',e=>{if(onInput(e.target.value))save();});
 }
+function bandNotes() {
+  const w=band();if(!w)return;
+  notesEditor({title:w.name,description:'ウォーバンド全体のメモです。',value:w.status.notes,onInput:text=>{
+    if(!setWarbandNotes(data,w.id,text))return false;
+    const preview=app.querySelector('.band-notes-text');if(bandId===w.id&&preview)preview.textContent=text||'—';
+    return true;
+  }});
+}
 function characterNotes(source,id) {
   const c=source==='battle'?data.game?.characters.find(c=>c.id===id):band()?.characters.find(c=>c.id===id);
   if(!c)return;
@@ -1057,6 +1067,9 @@ document.addEventListener("click", (e) => {
       document.getElementById("battle-vp").value = String(data.game.vp);
       app.querySelector('[data-action="vp-minus"]').disabled = data.game.vp === 0;
       app.querySelector('[data-action="vp-plus"]').disabled = data.game.vp === Number.MAX_SAFE_INTEGER;
+      break;
+    case "band-notes":
+      bandNotes();
       break;
     case "character-notes":
       characterNotes(b.dataset.source,b.dataset.id);
