@@ -19,6 +19,7 @@ test("公開ビルドは同じ入力なら同じ版、静的ファイル変更�
       "icon-192.png",
       "icon-512.png",
       "apple-touch-icon.png",
+      "share-qr.png",
     ])
       await cp(name, join(dir, name), { recursive: true });
     const build = async () => {
