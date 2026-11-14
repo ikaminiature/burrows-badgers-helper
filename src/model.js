@@ -166,9 +166,13 @@ export function startGame(w) {
       ...c,
       wounds: 0,
       acted: false,
+      focused: false,
       effects: [],
     })),
   };
+}
+export function toggleFocus(character) {
+  character.focused = !character.focused;
 }
 export function adjustVP(g, delta) {
   if (!Number.isSafeInteger(delta)) throw Error("VPの変更値が不正です");
@@ -353,6 +357,7 @@ export function validateData(d) {
         c.wounds < 0 ||
         c.wounds > 17 ||
         typeof c.acted !== "boolean" ||
+        (c.focused !== undefined && typeof c.focused !== "boolean") ||
         (c.wounds === 17 && !c.acted) ||
         (c.conditions !== undefined &&
           (!Array.isArray(c.conditions) || new Set(c.conditions).size !== c.conditions.length ||

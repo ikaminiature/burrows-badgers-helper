@@ -950,3 +950,9 @@ html.roster-editing { scroll-padding-top: 120px; }
 .app-share p { margin: 8px auto 0; max-width: 28em; font-size: 13px; }
 
 dialog { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+
+.battle-controls { display: grid; grid-template-columns: auto minmax(0,1fr) 44px; gap: 8px; }
+.battle-controls .wound-controls { flex-wrap: nowrap; gap: 6px; }
+.battle-controls .check { justify-content: flex-end; }
+.focus-toggle { min-width: 0; width: 100%; padding-inline: 8px; white-space: nowrap; font-weight: 600; }
+.focus-toggle[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
