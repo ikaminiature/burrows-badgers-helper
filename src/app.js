@@ -20,6 +20,7 @@ import {
   sorted,
   startGame,
   nextRound,
+  toggleFocus,
   adjustVP,
   loadData,
   emptyBandStatus,
@@ -300,7 +301,7 @@ function battleView() {
   )
     .map(
       (c) =>
-        `<article data-character-id="${c.id}" data-panel-source="battle" class="card roster-card battle ${c.acted ? "acted" : ""} ${c.wounds === 17 ? "out" : ""}"><div class="roster-top"><div class="roster-photo">${portrait(c)}${characterRole(c) !== "none" ? `<span class="character-role">${characterRoles[characterRole(c)]}</span>` : ""}<span class="level">Lv. ${String(c.level).padStart(2,"0")}</span></div><div class="roster-info"><div class="identity"><h3>${esc(c.name)}</h3><span class="muted">${esc(c.species)}</span></div>${c.wounds === 17 ? '<span class="badge">戦闘不能</span>' : ''}<div class="point-trackers">${points(c,"fate","運命点",false,true)}${points(c,"experience","経験値",false,true)}</div></div></div><div class="card-stats">${cardStats.map(pair=>pair?`<span aria-label="${pair[1]} ${esc(c.stats[pair[1]])}">${pair[0]}${esc(c.stats[pair[1]].replace(/^D/,""))}</span>`:'<span aria-hidden="true"></span>').join("")}</div><div class="ability-sources" data-character-id="${c.id}" aria-label="${esc(c.name)}のスキル・装備由来の能力値">${abilitySourcesHtml(deriveAbilitySources(c,rosterAbilityCatalog||[]))}</div><div class="gauge" role="img" aria-label="負傷 ${c.wounds} / 17">${Array.from({ length: 17 }, (_, i) => `<span class="pip ${[4, 7, 10, 13].includes(i + 1) ? "threshold" : ""} ${i === 16 ? "last" : ""} ${i < c.wounds ? "filled" : ""}">${i + 1}</span>`).join("")}</div><div class="row between"><div class="row wound-controls">${btn("−1", "minus", `data-id="${c.id}" aria-label="${esc(c.name)}の負傷を1減らす" ${c.wounds === 0 ? "disabled" : ""}`)}${btn("＋1", "plus", `data-id="${c.id}" aria-label="${esc(c.name)}の負傷を1増やす" ${c.wounds === 17 ? "disabled" : ""}`)}</div><label class="check"><input type="checkbox" aria-label="行動済み" title="行動済み" data-acted="${c.id}" ${c.acted ? "checked" : ""} ${c.wounds === 17 ? "disabled" : ""}></label></div>${conditionPanel(c)}${characterButtons(c,"battle")}</article>`,
+        `<article data-character-id="${c.id}" data-panel-source="battle" class="card roster-card battle ${c.acted ? "acted" : ""} ${c.wounds === 17 ? "out" : ""}"><div class="roster-top"><div class="roster-photo">${portrait(c)}${characterRole(c) !== "none" ? `<span class="character-role">${characterRoles[characterRole(c)]}</span>` : ""}<span class="level">Lv. ${String(c.level).padStart(2,"0")}</span></div><div class="roster-info"><div class="identity"><h3>${esc(c.name)}</h3><span class="muted">${esc(c.species)}</span></div>${c.wounds === 17 ? '<span class="badge">戦闘不能</span>' : ''}<div class="point-trackers">${points(c,"fate","運命点",false,true)}${points(c,"experience","経験値",false,true)}</div></div></div><div class="card-stats">${cardStats.map(pair=>pair?`<span aria-label="${pair[1]} ${esc(c.stats[pair[1]])}">${pair[0]}${esc(c.stats[pair[1]].replace(/^D/,""))}</span>`:'<span aria-hidden="true"></span>').join("")}</div><div class="ability-sources" data-character-id="${c.id}" aria-label="${esc(c.name)}のスキル・装備由来の能力値">${abilitySourcesHtml(deriveAbilitySources(c,rosterAbilityCatalog||[]))}</div><div class="gauge" role="img" aria-label="負傷 ${c.wounds} / 17">${Array.from({ length: 17 }, (_, i) => `<span class="pip ${[4, 7, 10, 13].includes(i + 1) ? "threshold" : ""} ${i === 16 ? "last" : ""} ${i < c.wounds ? "filled" : ""}">${i + 1}</span>`).join("")}</div><div class="row between battle-controls"><div class="row wound-controls">${btn("−1", "minus", `data-id="${c.id}" aria-label="${esc(c.name)}の負傷を1減らす" ${c.wounds === 0 ? "disabled" : ""}`)}${btn("＋1", "plus", `data-id="${c.id}" aria-label="${esc(c.name)}の負傷を1増やす" ${c.wounds === 17 ? "disabled" : ""}`)}</div>${btn(c.focused ? "集中中" : "集中", "toggle-focus", `data-id="${c.id}" class="focus-toggle" aria-pressed="${!!c.focused}"`)}<label class="check"><input type="checkbox" aria-label="行動済み" title="行動済み" data-acted="${c.id}" ${c.acted ? "checked" : ""} ${c.wounds === 17 ? "disabled" : ""}></label></div>${conditionPanel(c)}${characterButtons(c,"battle")}</article>`,
     )
     .join(
       "",
@@ -1058,6 +1059,13 @@ document.addEventListener("click", (e) => {
       document
         .querySelector('[data-action="toggle-roster-edit"]')
         ?.focus({ preventScroll: true });
+      break;
+    case "toggle-focus":
+      if (!c) break;
+      toggleFocus(c);
+      save();
+      b.textContent = c.focused ? "集中中" : "集中";
+      b.setAttribute("aria-pressed", String(c.focused));
       break;
     case "vp-plus":
     case "vp-minus":
