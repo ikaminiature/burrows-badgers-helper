@@ -5,8 +5,8 @@ const {openPanel,closePanel}=require('./support/panel.cjs');
  await page.addInitScript(()=>{window.panelWrites=0;const put=IDBObjectStore.prototype.put;IDBObjectStore.prototype.put=function(...args){window.panelWrites++;return put.apply(this,args);};});
  await page.goto(process.env.TEST_URL||'http://127.0.0.1:5173');await page.getByRole('heading',{name:'冒険の準備'}).waitFor();
  const {stats,startGame,emptyBandStatus}=await import('../src/model.js'),{parseEquipmentCatalog}=await import('../src/equipment.js');const catalog=parseEquipmentCatalog(JSON.parse(fs.readFileSync('data/bb2_general_store_ja_en.json')));
- const c={id:'one',name:'アッシュ',species:'マウス',level:6,fate:2,experience:3,photo:'',stats:Object.fromEntries(stats.map(s=>[s,'D10'])),equipment:'旧装備',equipmentSlots:{weapon1:catalog[1].nameJa,weapon2:'',armour1:'',armour2:'',item:'',special:''},equipmentSelections:{weapon1:catalog[1]},skills:'Strong (2)\nWeak (3)\nDelicate (4)',spells:'Heal',notes:'メモ'};
- const other={...structuredClone(c),id:'two',name:'バーチ',equipmentSlots:{...c.equipmentSlots,weapon1:'別の剣'},equipmentSelections:{}},w={id:'w',name:'パネル検証',status:emptyBandStatus(),characters:[c,other]},data={version:2,warbands:[w],game:startGame(w)};data.game.characters[0].name='戦闘のアッシュ';data.game.characters[0].equipmentSlots.weapon1='戦闘限定剣';data.game.characters[0].equipmentSelections={};
+ const c={id:'one',name:'アッシュ',species:'マウス',level:6,fate:2,experience:3,photo:'',stats:Object.fromEntries(stats.map(s=>[s,'D10'])),equipment:'旧装備',equipmentSlots:{weapon1:catalog[1].nameJa,weapon2:'',armour1:'',armour2:'',item:catalog[30].nameJa,special:catalog[24].nameJa},equipmentSelections:{weapon1:catalog[1],item:catalog[30],special:catalog[24]},skills:'Strong (2)\nWeak (3)\nDelicate (4)',spells:'Heal',notes:'メモ'};
+ const other={...structuredClone(c),id:'two',name:'バーチ',equipmentSlots:{...c.equipmentSlots,weapon1:'別の剣'},equipmentSelections:{}},w={id:'w',name:'パネル検証',status:emptyBandStatus(),characters:[c,other]},data={version:2,warbands:[w],game:startGame(w)};data.game.characters[0].name='戦闘のアッシュ';data.game.characters[0].equipmentSlots.weapon1='戦闘限定剣';delete data.game.characters[0].equipmentSelections.weapon1;
  // Seed current-format fixtures with their calculated rating.
     data.warbands.forEach(w=>{w.status.rating=w.characters.reduce((sum,c)=>sum+c.level,0);});
     await page.evaluate(d=>new Promise(resolve=>{const r=indexedDB.open('bb-helper',1);r.onsuccess=()=>{const db=r.result,t=db.transaction('data','readwrite');t.objectStore('data').put(d,'app');t.oncomplete=()=>{db.close();resolve();};};}),data);await page.reload();await page.getByRole('heading',{name:'冒険の準備'}).waitFor();
@@ -17,7 +17,7 @@ const {openPanel,closePanel}=require('./support/panel.cjs');
  await page.getByRole('link',{name:'ウォーバンド',exact:true}).click();await page.getByRole('button',{name:'開く',exact:true}).click();const card=page.locator('.roster-card[data-character-id="one"]'),second=page.locator('.roster-card[data-character-id="two"]');
  assert.equal(await card.locator('.character-extra').count(),0);
  for(const id of ['weak','delicate']){const source=card.locator(`[data-ability="${id}"]`);assert.equal(await source.locator('.ability-source-values > span').count(),1);assert.doesNotMatch(await source.textContent(),/装：装備|装 —/);}
- await openPanel(page,card);await panel.getByRole('heading',{name:'アッシュ',exact:true}).waitFor();assert.equal(await panel.locator('input,textarea,select').count(),0);await panel.locator('.equipment-details > summary').click();await panel.getByText(/ストロング/).first().waitFor();
+ await openPanel(page,card);await panel.getByRole('heading',{name:'アッシュ',exact:true}).waitFor();assert.equal(await panel.locator('input,textarea,select,.consume-equipment').count(),0);await panel.locator('.equipment-details > summary').first().click();await panel.getByText(/ストロング/).first().waitFor();
  await panel.getByRole('tab',{name:'スキル',exact:true}).click();await panel.getByText('ストロング（2）',{exact:true}).waitFor();await panel.locator('.skill-detail summary').first().click();
  await panel.getByRole('tab',{name:'呪文',exact:true}).click();await panel.locator('.spell-details summary').click();await panel.getByText('難易度',{exact:true}).waitFor();
  for(const theme of ['light','dark']){await page.emulateMedia({colorScheme:theme});for(const width of [320,375,390]){await page.setViewportSize({width,height:844});assert.ok(await panel.evaluate(n=>n.scrollWidth<=n.clientWidth));}await page.screenshot({path:`/tmp/bb-character-panel-${theme}.png`});}
@@ -31,6 +31,36 @@ const {openPanel,closePanel}=require('./support/panel.cjs');
  for(const id of ['weak','delicate'])assert.equal(await battle.locator(`[data-ability="${id}"] .ability-source-values > span`).count(),1);
  const minus=battle.getByRole('button',{name:'戦闘のアッシュの負傷を1減らす',exact:true});await minus.scrollIntoViewIfNeeded();r=await minus.boundingBox();await swipe(r.x+6,r.y+15,90,2);assert.equal(await panel.isVisible(),false);
  assert.equal(await page.evaluate(()=>window.panelWrites),0);
- const disk=await page.evaluate(()=>new Promise(resolve=>{const r=indexedDB.open('bb-helper',1);r.onsuccess=()=>{const db=r.result,q=db.transaction('data').objectStore('data').get('app');q.onsuccess=()=>{resolve(q.result);db.close();};};}));assert.deepEqual(disk,data);assert.deepEqual(errors,[]);
+ async function stored(){return page.evaluate(()=>new Promise(resolve=>{const r=indexedDB.open('bb-helper',1);r.onsuccess=()=>{const db=r.result,q=db.transaction('data').objectStore('data').get('app');q.onsuccess=()=>{resolve(q.result);db.close();};};}));}
+ assert.deepEqual(await stored(),data);
+ await openPanel(page,battle);
+ const equipment=panel.getByRole('tabpanel',{name:'装備'});
+ assert.deepEqual(await equipment.locator('.equipment-detail-grid dt').allTextContents(),['スペシャル']);
+ const consume=panel.getByRole('button',{name:'ヒーリングポーションを使い切った（アイテム）',exact:true});
+ assert.equal(await panel.locator('.consume-equipment').count(),1);
+ await consume.tap();
+ await page.getByRole('button',{name:'キャンセル',exact:true}).click();
+ await consume.waitFor();
+ assert.deepEqual(await stored(),data);
+ await consume.tap();
+ await page.getByRole('button',{name:'確認して実行',exact:true}).click();
+ await page.locator('#save-status').filter({hasText:'端末に保存済み'}).waitFor();
+ assert.equal(await panel.isVisible(),true);
+ assert.equal(await consume.count(),0);
+ assert.equal(await panel.getByText('ヒーリングポーション',{exact:true}).count(),0);
+ for(const target of [data.warbands[0].characters[0],data.game.characters[0]]){
+   target.equipmentSlots.item='';delete target.equipmentSelections.item;
+ }
+ assert.deepEqual(await stored(),data);
+ await closePanel(page);
+ await page.reload();
+ await openPanel(page,battle);
+ assert.equal(await consume.count(),0);
+ await closePanel(page);
+ await page.getByRole('link',{name:'ウォーバンド',exact:true}).click();
+ await page.getByRole('button',{name:'開く',exact:true}).click();
+ await openPanel(page,card);
+ assert.equal(await panel.getByText('ヒーリングポーション',{exact:true}).count(),0);
+ assert.deepEqual(errors,[]);
  console.log('PASS: character-scoped readonly left panel/tabs/rules, two sources and characters, real touch open/close/vertical scroll/ignored controls and outside gestures, no page cycle or DB writes, ability columns and mobile themes');
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

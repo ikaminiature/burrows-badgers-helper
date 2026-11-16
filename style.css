@@ -963,3 +963,5 @@ dialog { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 .adventure-form button { justify-self: start; }
 #adventure-memories > section { margin-block: 14px; }
 #adventure-memories li button { margin-block: 4px; }
+
+.consume-equipment { margin-block: 6px; font-size: 14px; }
