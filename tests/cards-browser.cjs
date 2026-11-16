@@ -28,7 +28,7 @@ const os = require("node:os");
       .fill("カード検証");
     await page.getByRole("button", { name: "保存", exact: true }).click();
     await page
-      .getByRole("button", { name: "ステータス編集", exact: true })
+      .getByRole("button", { name: "ウォーバンド編集", exact: true })
       .click();
     for (const label of ["年金", "労働力", "資材", "トレジャリー"])
       await page

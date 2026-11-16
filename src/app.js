@@ -1,6 +1,6 @@
 import { openDialog, closeAllDialogs } from "./overlay-scroll.js";
-import { setWarbandNotes, setCharacterNotes } from "./notes.js";
-import { createCharacterPanel } from "./character-panel.js";
+import { setWarbandNotes, setCharacterNotes, setCharacterNotes2 } from "./notes.js";
+import { createCharacterPanel, bindCharacterStatusPages } from "./character-panel.js";
 import { denUpgradePicker, denUpgradeList } from "./den-upgrade-view.js";
 import { denUpgradeById, selectDenUpgrade, chooseDenEffect } from "./den-upgrades.js";
 import { questSlotHtml, selectQuest, selectWildQuest } from "./side-quest-view.js";
@@ -246,7 +246,7 @@ function bandView(w) {
           `<div><dt>${l}</dt><dd class="detail-text">${esc(s[k]) || "—"}</dd></div>`,
       )
       .join("");
-  return `${btn("ウォーバンド一覧へ", "close-band")}<section class="card band-overview"><h1>${esc(w.name)}</h1><dl class="status-grid">${fields(
+  return `<div class="row band-page-actions">${btn("ウォーバンド一覧へ", "close-band")}${btn("編集", "band-status", 'aria-label="ウォーバンドを編集" aria-haspopup="dialog"')}</div><section class="card band-overview"><h1>${esc(w.name)}</h1><dl class="status-grid">${fields(
     [
       ["rating", "レーティング"],
       ["alliance", "アライアンス"],
@@ -264,7 +264,7 @@ function bandView(w) {
     )
     .join(
       "",
-    )}<div class="row between"><h2>メモ</h2>${btn("メモ", "band-notes", 'aria-haspopup="dialog"')}</div><p class="detail-text band-notes-text">${esc(s.notes) || "—"}</p></section><div class="row between"><h2>登録キャラクター</h2>${btn(rosterEditMode ? "編集を終了" : "編集モード", "toggle-roster-edit", `aria-pressed="${rosterEditMode}"`)}</div>${w.characters.map((c, i) => `<article class="card roster-card" data-character-id="${c.id}" data-panel-source="roster"><div class="roster-top"><div class="roster-photo">${portrait(c)}${characterRole(c) !== "none" ? `<span class="character-role">${characterRoles[characterRole(c)]}</span>` : ""}<span class="level">Lv. ${String(c.level).padStart(2, "0")}</span></div><div class="roster-info"><div class="identity"><h3>${btn(esc(c.name), "roster-detail", `data-id="${c.id}" class="character-name" title="${esc(c.name)}"`)}</h3><span class="muted">${esc(c.species)}</span></div><div class="point-trackers">${points(c, "fate", "運命点")}${points(c, "experience", "経験値")}</div></div></div><div class="card-stats">${cardStats.map((pair) => (pair ? `<span aria-label="${pair[1]} ${esc(c.stats[pair[1]])}">${pair[0]}${esc(c.stats[pair[1]].replace(/^D/, ""))}</span>` : '<span aria-hidden="true"></span>')).join("")}</div><div class="ability-sources" data-character-id="${c.id}" aria-label="${esc(c.name)}のスキル・装備由来の能力値">${abilitySourcesHtml(deriveAbilitySources(c, rosterAbilityCatalog || []))}</div>${characterButtons(c,"roster")}${rosterEditMode ? `<div class="actions">${btn("編集", "edit-character", `data-id="${c.id}"`)}${btn("複製", "duplicate", `data-id="${c.id}"`)}${btn("↑", "up", `data-id="${c.id}" aria-label="${esc(c.name)}を上へ" ${i === 0 ? "disabled" : ""}`)}${btn("↓", "down", `data-id="${c.id}" aria-label="${esc(c.name)}を下へ" ${i === w.characters.length - 1 ? "disabled" : ""}`)}${btn("削除", "delete-character", `data-id="${c.id}" class="danger"`)}</div>` : ""}</article>`).join("") || '<p class="empty">キャラクターは未登録です。</p>'}<section class="card"><h2>管理・編集メニュー</h2><div class="actions">${btn("ステータス編集", "band-status")}${btn("名前変更", "rename-band")}${btn("＋ キャラクター登録", "new-character", 'class="primary"')}${btn("ウォーバンド削除", "delete-band", 'class="danger"')}</div></section>`;
+    )}<div class="row between"><h2>メモ</h2>${btn("メモ", "band-notes", 'aria-haspopup="dialog"')}</div><p class="detail-text band-notes-text">${esc(s.notes) || "—"}</p></section><div class="row between"><h2>登録キャラクター</h2>${btn(rosterEditMode ? "編集を終了" : "編集モード", "toggle-roster-edit", `aria-pressed="${rosterEditMode}"`)}</div>${w.characters.map((c, i) => `<article class="card roster-card" data-character-id="${c.id}" data-panel-source="roster"><div class="roster-top"><div class="roster-photo">${portrait(c)}${characterRole(c) !== "none" ? `<span class="character-role">${characterRoles[characterRole(c)]}</span>` : ""}<span class="level">Lv. ${String(c.level).padStart(2, "0")}</span></div><div class="roster-info"><div class="identity"><h3>${btn(esc(c.name), "roster-detail", `data-id="${c.id}" class="character-name" title="${esc(c.name)}"`)}</h3><span class="muted">${esc(c.species)}</span></div><div class="point-trackers">${points(c, "fate", "運命点")}${points(c, "experience", "経験値")}</div></div></div><div class="card-stats">${cardStats.map((pair) => (pair ? `<span aria-label="${pair[1]} ${esc(c.stats[pair[1]])}">${pair[0]}${esc(c.stats[pair[1]].replace(/^D/, ""))}</span>` : '<span aria-hidden="true"></span>')).join("")}</div><div class="ability-sources" data-character-id="${c.id}" aria-label="${esc(c.name)}のスキル・装備由来の能力値">${abilitySourcesHtml(deriveAbilitySources(c, rosterAbilityCatalog || []))}</div>${characterButtons(c,"roster")}${rosterEditMode ? `<div class="actions">${btn("編集", "edit-character", `data-id="${c.id}"`)}${btn("複製", "duplicate", `data-id="${c.id}"`)}${btn("↑", "up", `data-id="${c.id}" aria-label="${esc(c.name)}を上へ" ${i === 0 ? "disabled" : ""}`)}${btn("↓", "down", `data-id="${c.id}" aria-label="${esc(c.name)}を下へ" ${i === w.characters.length - 1 ? "disabled" : ""}`)}${btn("削除", "delete-character", `data-id="${c.id}" class="danger"`)}</div>` : ""}</article>`).join("") || '<p class="empty">キャラクターは未登録です。</p>'}<section class="card"><h2>管理・編集メニュー</h2><div class="actions">${btn("ウォーバンド編集", "band-status", 'aria-haspopup="dialog"')}${btn("＋ キャラクター登録", "new-character", 'class="primary"')}${btn("ウォーバンド削除", "delete-band", 'class="danger"')}</div></section>`;
 }
 function freeEffects(c) {
   return c.effects.map(e=>`<div class="effect" data-effect-id="${e.id}"><strong>${esc(e.name)}</strong><p class="detail-text">${esc(e.description)}</p><div class="actions">${btn("編集", "edit-effect", `data-id="${c.id}" data-effect="${e.id}" aria-label="${esc(e.name)}を編集"`)}${btn("削除", "remove-effect", `data-id="${c.id}" data-effect="${e.id}" aria-label="${esc(e.name)}を削除"`)}</div></div>`).join("") || '<p class="muted">登録なし</p>';
@@ -307,21 +307,18 @@ function battleView() {
       "",
     )}<div class="actions"><a class="button" href="#home">中断してホームへ</a>${btn("ゲームを終了", "end", 'class="danger"')}</div>`;
 }
-function nameForm(w) {
+function nameForm() {
   show(
-    `<h2>${w ? "ウォーバンド名を変更" : "ウォーバンド登録"}</h2><form id="name-form"><label>名前<input name="name" required maxlength="200" value="${esc(w?.name || "")}"></label><div class="actions"><button class="primary">保存</button>${btn("キャンセル", "close")}</div></form>`,
+    `<h2>ウォーバンド登録</h2><form id="name-form"><label>名前<input name="name" required maxlength="200"></label><div class="actions"><button class="primary">保存</button>${btn("キャンセル", "close")}</div></form>`,
   );
   modal.querySelector("form").onsubmit = (e) => {
     e.preventDefault();
     const name = new FormData(e.target).get("name").trim();
     if (!name) return;
     change(() => {
-      if (w) w.name = name;
-      else {
-        const n = { id: id(), name, characters: [], status: emptyBandStatus() };
-        data.warbands.push(n);
-        bandId = n.id;
-      }
+      const n = { id: id(), name, characters: [], status: emptyBandStatus() };
+      data.warbands.push(n);
+      bandId = n.id;
     });
     modal.close();
   };
@@ -337,7 +334,7 @@ function bandStatusForm(w) {
     render();
   }
   show(
-    `<div class="status-toolbar"><h2>ウォーバンドステータス編集</h2>${btn("閉じる", "close")}</div><p class="muted">有効な入力は端末に自動保存します。レーティングは所属キャラクターのレベル合計です。その他の数値は手動入力です。</p><form id="band-status-form"><label>バンド名<input name="name" required maxlength="200" value="${esc(w.name)}"></label><div class="status-grid"><div><span>レーティング</span><output aria-label="レーティング">${warbandRating(w)}</output></div>${Object.entries(
+    `<div class="status-toolbar"><h2>ウォーバンド編集</h2>${btn("閉じる", "close")}</div><p class="muted">有効な入力は端末に自動保存します。レーティングは所属キャラクターのレベル合計です。その他の数値は手動入力です。</p><form id="band-status-form"><label>バンド名<input name="name" required maxlength="200" value="${esc(w.name)}"></label><div class="status-grid"><div><span>レーティング</span><output aria-label="レーティング">${warbandRating(w)}</output></div>${Object.entries(
       bandNumbers,
     ).filter(([key])=>key!=="rating")
       .map(
@@ -890,6 +887,7 @@ function characterForm(c) {
       skills: c?.skills || "",
       spells: c?.spells || "",
       notes: f.get("notes"),
+      ...(c?.notes2 !== undefined ? {notes2:c.notes2} : {}),
       ...(magicTouched || c?.equipmentMagic !== undefined ? {equipmentMagic: structuredClone(equipmentMagic)} : {}),
       equipmentSlots: Object.fromEntries(
         Object.keys(equipmentCategories).map((k) => [k, f.get("slot-" + k)]),
@@ -976,9 +974,24 @@ const characterPanel=createCharacterPanel({
   renderContent:characterExtras,
 });
 function detail(c, editable = false) {
+  const currentBandId=bandId;
   show(
-    `<div class="row">${portrait(c)}<div><h2>${esc(c.name)}</h2><p>${esc(c.species)} · Lv.${c.level}</p></div></div><div class="stats">${stats.map((s) => `<div><span class="muted">${s}</span><br><strong>${esc(c.stats[s])}</strong></div>`).join("")}</div>${characterExtras(c)}${editable ? btn("編集", "edit-character", `data-id="${c.id}"`) : ""}${btn("閉じる", "close")}`,
+    `<div class="character-status-pages"><div class="row">${portrait(c)}<div><h2>${esc(c.name)}</h2><p>${esc(c.species)} · Lv.${c.level}</p></div></div>
+    <div class="panel-tabs" role="tablist" aria-label="キャラクターの表示">
+      <button type="button" role="tab" id="character-status-tab" aria-controls="character-status-page" aria-selected="true">ステータス</button>
+      <button type="button" role="tab" id="character-notes2-tab" aria-controls="character-notes2-page" aria-selected="false" tabindex="-1">メモ2</button>
+    </div>
+    <section id="character-status-page" role="tabpanel" aria-labelledby="character-status-tab"><div class="stats">${stats.map((s) => `<div><span class="muted">${s}</span><br><strong>${esc(c.stats[s])}</strong></div>`).join("")}</div>${characterExtras(c)}${editable ? btn("編集", "edit-character", `data-id="${c.id}"`) : ""}</section>
+    <section id="character-notes2-page" role="tabpanel" aria-labelledby="character-notes2-tab" hidden><p class="muted">レベルアップの履歴などを自由に記録できます。入力は自動保存されます。</p><label>メモ2<textarea id="character-notes2" maxlength="20000" rows="8"></textarea></label></section>
+    ${btn("閉じる", "close")}</div>`,
+    {focusHeading:true},
   );
+  const input=modal.querySelector('#character-notes2');
+  input.value=c.notes2??'';
+  input.addEventListener('input',()=>{
+    if(setCharacterNotes2(data,'roster',currentBandId,c.id,input.value))save();
+  });
+  bindCharacterStatusPages(modal.querySelector('.character-status-pages'),modal);
 }
 function download() {
   const blob = new Blob([JSON.stringify(data, null, 2)], {
@@ -1109,9 +1122,6 @@ document.addEventListener("click", (e) => {
       break;
     case "battle-status":
       battleStatus();
-      break;
-    case "rename-band":
-      nameForm(w);
       break;
     case "delete-band":
       confirmAction(

@@ -241,6 +241,7 @@ export function validateData(d) {
       !c.stats ||
       !stats.every((s) => dice.includes(c.stats[s])) ||
       !["equipment", "skills", "spells", "notes"].every((k) => str(c[k])) ||
+      (c.notes2 !== undefined && !str(c.notes2)) ||
       (c.equipmentSelections !== undefined &&
         (!c.equipmentSelections ||
           typeof c.equipmentSelections !== "object" ||
