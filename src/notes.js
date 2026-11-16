@@ -31,3 +31,35 @@ export function setWarbandNotes(data, bandId, text) {
  w.status.notes=text;
  return true;
 }
+
+// B&B 第2版 p.157「重傷表」。日本語名と出目は表の記載に合わせる。
+export const majorInjuries = [
+ ['1','dead','死亡','Dead'],
+ ['2','multiple-injuries','複数の負傷','Multiple Injuries'],
+ ['3','upper-leg-trauma','大腿部外傷','Upper Leg Trauma'],
+ ['4','brain-trauma','脳外傷'],
+ ['5','nerve-damage','神経障害'],
+ ['6','chest-wound','胸部負傷','Chest Wound'],
+ ['7','one-eye','片目失明'],
+ ['8','psychological-trauma','心的外傷'],
+ ['9','enfeebled','衰弱','Enfeebled'],
+ ['10','shoulder-injury','肩の負傷'],
+ ['11','horrific-appearance','醜悪な容貌'],
+ ['12','ear-nose-injury','耳鼻損傷'],
+ ['13','severe-arm-injury','重度の腕の負傷'],
+ ['14','lower-leg-trauma','下腿部外傷'],
+ ['15','head-injury','頭部負傷'],
+ ['16','recurring-injury','ぶり返す負傷'],
+ ['17','persistent-injury','しつこい傷'],
+ ['18','deep-lacerations','深い裂傷'],
+ ['19–20','not-as-bad','見た目ほどひどくはない'],
+].map(([roll,id,label,english])=>({roll,id,label,english}));
+
+export function searchMajorInjuries(input) {
+ const normalize=text=>text.normalize('NFKC').toLowerCase().replace(/[–—−]/g,'-').trim();
+ const query=normalize(input);
+ return majorInjuries.filter(({roll,label,english=''})=>
+  normalize(label).includes(query) || normalize(english).includes(query) ||
+  (roll==='19–20' ? ['19','20','19-20'].includes(query) : roll===query)
+ );
+}
