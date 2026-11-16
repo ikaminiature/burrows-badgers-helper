@@ -128,7 +128,7 @@ const os = require("node:os");
         .getByRole("button", { name: "開く", exact: true })
         .click();
       await page
-        .getByRole("button", { name: "ステータス編集", exact: true })
+        .getByRole("button", { name: "ウォーバンド編集", exact: true })
         .click();
     }
     const close = () =>

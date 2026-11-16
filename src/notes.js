@@ -1,10 +1,16 @@
-// Existing character notes stay in `notes`. Only that property is synchronized.
+// Synchronize only the edited memo field; leave the rest of the battle snapshot intact.
 export function originalCharacter(data, game, characterId) {
  const bands=game.sourceWarbandId ? data.warbands.filter(w=>w.id===game.sourceWarbandId) : data.warbands;
  const matches=bands.flatMap(w=>w.characters.filter(c=>c.id===characterId).map(c=>({band:w,character:c})));
  return matches.length===1 ? matches[0] : null;
 }
 export function setCharacterNotes(data, source, bandId, characterId, text) {
+ return setCharacterMemo(data, source, bandId, characterId, 'notes', text);
+}
+export function setCharacterNotes2(data, source, bandId, characterId, text) {
+ return setCharacterMemo(data, source, bandId, characterId, 'notes2', text);
+}
+function setCharacterMemo(data, source, bandId, characterId, field, text) {
  if(typeof text!=='string'||text.length>20000)throw Error('メモは20000文字以内で入力してください');
  const game=data.game;
  const original=source==='battle'&&game ? originalCharacter(data,game,characterId) : null;
@@ -14,7 +20,7 @@ export function setCharacterNotes(data, source, bandId, characterId, text) {
  const targets=new Set([character]);
  if(source==='battle'&&original)targets.add(original.character);
  if(source==='roster'&&game){const match=originalCharacter(data,game,characterId);if(match?.band===band){const copy=game.characters.find(c=>c.id===characterId);if(copy)targets.add(copy);}}
- let changed=false;for(const target of targets)if(target.notes!==text){target.notes=text;changed=true;}
+ let changed=false;for(const target of targets)if((target[field]??'')!==text){target[field]=text;changed=true;}
  return changed;
 }
 

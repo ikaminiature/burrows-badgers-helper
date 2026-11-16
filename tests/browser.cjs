@@ -221,11 +221,15 @@ const assert = require("node:assert/strict");
   await page.getByRole("button", { name: "削除", exact: true }).first().click();
   await page.getByRole("button", { name: "確認して実行" }).click();
   assert.equal(await page.locator("article").count(), 2);
-  await page.getByRole("button", { name: "名前変更", exact: true }).click();
-  await page
-    .getByRole("textbox", { name: "名前", exact: true })
-    .fill("森の守り手");
-  await page.getByRole("button", { name: "保存", exact: true }).click();
+  assert.equal(await page.getByRole("button", { name: "名前変更", exact: true }).count(), 0);
+  const topActions = page.locator(".band-page-actions");
+  assert.deepEqual(await topActions.getByRole("button").allTextContents(), ["ウォーバンド一覧へ", "編集"]);
+  await topActions.getByRole("button", { name: "ウォーバンドを編集" }).click();
+  const bandEditor = page.locator("#modal");
+  await bandEditor.getByRole("heading", { name: "ウォーバンド編集", exact: true }).waitFor();
+  await bandEditor.getByRole("textbox", { name: "バンド名", exact: true }).fill("森の守り手");
+  await bandEditor.getByRole("button", { name: "閉じる", exact: true }).click();
+  await page.getByRole("heading", { name: "森の守り手", exact: true }).waitFor();
   await page
     .getByRole("button", { name: "ウォーバンド一覧へ", exact: true })
     .click();
