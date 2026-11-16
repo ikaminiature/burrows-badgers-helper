@@ -1,5 +1,5 @@
 import { openDialog, closeAllDialogs } from "./overlay-scroll.js";
-import { setWarbandNotes, setCharacterNotes, setCharacterNotes2, majorInjuries } from "./notes.js";
+import { setWarbandNotes, setCharacterNotes, setCharacterNotes2, majorInjuries, searchMajorInjuries } from "./notes.js";
 import { createCharacterPanel, bindCharacterStatusPages } from "./character-panel.js";
 import { denUpgradePicker, denUpgradeList } from "./den-upgrade-view.js";
 import { denUpgradeById, selectDenUpgrade, chooseDenEffect } from "./den-upgrades.js";
@@ -998,11 +998,10 @@ function mountAdventureMemories(c,currentBandId) {
     edit=modal.querySelector('#edit-adventure');
   let editing=false;
   const injuryLabel=key=>majorInjuries.find(item=>item.id===key)?.label??key;
-  const persist=()=>save();
   const history=()=>c.adventure??{injuries:[],rolls:[]};
   const update=(field,entries)=>{
     c.adventure={...history(),[field]:entries};
-    persist();renderHistory();
+    save();renderHistory();
   };
   function actions(field,index){
     return editing?` <button type="button" data-memory-remove="${field}" data-index="${index}" aria-label="${field==='injuries'?'重傷':'ロール'} ${index+1} を削除">削除</button>`:'';
@@ -1023,7 +1022,7 @@ function mountAdventureMemories(c,currentBandId) {
   });
   function renderMemories(){
     container.innerHTML=`<section><h3>重傷</h3><div data-injury-list></div>${editing?`<form id="adventure-injury-form" class="adventure-form">
-      <label>名前で絞り込む<input type="search" name="query" placeholder="日本語・英語" autocomplete="off"></label>
+      <label>出目・名前で絞り込む<input type="search" name="query" placeholder="例：6、胸部負傷" autocomplete="off"></label>
       <label>重傷を選ぶ<select name="injury" required></select></label><button type="submit">重傷を追加</button></form>`:''}</section>
     <section><h3>レベルアップの履歴</h3><div data-roll-list></div>${editing?`<form id="adventure-roll-form" class="adventure-form">
       <label>到達レベル<input type="number" name="level" min="1" max="100" step="1" value="${Math.max(1,c.level)}" required inputmode="numeric"></label>
@@ -1034,8 +1033,7 @@ function mountAdventureMemories(c,currentBandId) {
     if(!editing)return;
     const injury=container.querySelector('#adventure-injury-form'),select=injury.elements.injury;
     const filter=()=>{
-      const query=injury.elements.query.value.trim().normalize('NFKC').toLowerCase();
-      select.replaceChildren(new Option('選択してください',''),...majorInjuries.filter(x=>x.label.normalize('NFKC').toLowerCase().includes(query)).map(x=>new Option(x.label,x.id)));
+      select.replaceChildren(new Option('選択してください',''),...searchMajorInjuries(injury.elements.query.value).map(x=>new Option(`${x.roll} ／ ${x.label}`,x.id)));
     };
     filter();
     injury.elements.query.addEventListener('input',filter);
@@ -1054,7 +1052,7 @@ function mountAdventureMemories(c,currentBandId) {
     const input=container.querySelector('#character-notes2');
     input.value=c.notes2??'';
     input.addEventListener('input',()=>{
-      if(setCharacterNotes2(data,'roster',currentBandId,c.id,input.value))persist();
+      if(setCharacterNotes2(data,'roster',currentBandId,c.id,input.value))save();
     });
   }
   edit.addEventListener('click',()=>{
