@@ -3,51 +3,6 @@ export function horizontalSwipe(dx,dy,direction){
  return dx*direction>=60 && Math.abs(dx)>Math.abs(dy)*1.8;
 }
 const interactive='button,input,select,textarea,a,summary,label,[contenteditable="true"]';
-export function bindCharacterStatusPages(root, dialog){
- const tabs=[...root.querySelectorAll('[role="tab"]')];
- const pages=[...root.querySelectorAll('[role="tabpanel"]')];
- let current=0,gesture=null;
- function select(index,focus=false){
-  if(index!==current){
-   if(pages[current].contains(document.activeElement))document.activeElement.blur();
-   current=index;
-   tabs.forEach((tab,i)=>{
-    tab.setAttribute('aria-selected',String(i===current));
-    tab.tabIndex=i===current?0:-1;
-    pages[i].hidden=i!==current;
-   });
-   const footer=root.querySelector('[data-status-footer]');
-   if(footer)footer.hidden=current!==0;
-   dialog.scrollTop=0;
-  }
-  if(focus)tabs[index].focus({preventScroll:true});
- }
- tabs.forEach((tab,i)=>{
-  tab.addEventListener('click',()=>select(i));
-  tab.addEventListener('keydown',e=>{
-   const index=['ArrowLeft','Home'].includes(e.key)?0:['ArrowRight','End'].includes(e.key)?1:null;
-   if(index===null)return;
-   e.preventDefault();select(index,true);
-  });
- });
- root.addEventListener('pointerdown',e=>{
-  gesture=null;
-  if(e.pointerType==='touch'&&e.isPrimary&&!e.target.closest(interactive))
-   gesture={id:e.pointerId,x:e.clientX,y:e.clientY};
- });
- root.addEventListener('pointermove',e=>{
-  if(gesture?.id!==e.pointerId)return;
-  const dx=e.clientX-gesture.x,dy=e.clientY-gesture.y;
-  if(Math.abs(dy)>12&&Math.abs(dy)>Math.abs(dx))gesture=null;
- });
- root.addEventListener('pointerup',e=>{
-  const g=gesture;gesture=null;
-  if(!g||g.id!==e.pointerId)return;
-  if(horizontalSwipe(e.clientX-g.x,e.clientY-g.y,current===0?-1:1))select(1-current);
- });
- root.addEventListener('pointercancel',()=>{gesture=null;});
-}
-
 export function createCharacterPanel({getCharacter,renderContent}){
  const dialog=document.createElement('dialog');dialog.id='character-panel';dialog.className='character-panel';dialog.setAttribute('aria-label','キャラクター詳細');document.body.append(dialog);
  let origin=null,gesture=null;
