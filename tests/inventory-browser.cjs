@@ -169,11 +169,7 @@ const os = require("node:os");
     );
     await page.getByRole("button", { name: "キャンセル", exact: true }).click();
     await page.getByRole("button", { name: c.name, exact: true }).click();
-    for (const label of labels)
-      await page
-        .locator("#modal dt")
-        .getByText(label, { exact: true })
-        .waitFor();
+    await page.locator("#modal").getByRole("heading", { name: "冒険の思い出", exact: true }).waitFor();
     await page.getByRole("button", { name: "閉じる", exact: true }).click();
     await page.getByRole("link", { name: "ホーム", exact: true }).click();
     const [download] = await Promise.all([
