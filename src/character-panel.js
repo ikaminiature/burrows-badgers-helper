@@ -16,7 +16,7 @@ export function createCharacterPanel({getCharacter,renderContent}){
   dialog.querySelector('h2').textContent=character.name;
   const tabs=[['equipment','装備'],['skills','スキル'],['spells','呪文']];
   dialog.querySelector('.panel-tabs').innerHTML=tabs.map(([id,name],i)=>`<button type="button" role="tab" data-panel-tab="${id}" id="panel-tab-${id}" aria-controls="panel-content-${id}" aria-selected="${i===0}" tabindex="${i===0?0:-1}">${name}</button>`).join('');
-  dialog.querySelector('.panel-scroll').innerHTML=renderContent(character,'equipment');
+  dialog.querySelector('.panel-scroll').innerHTML=renderContent(character,'equipment',source);
   for(const section of dialog.querySelectorAll('[data-extra-category]')){section.id='panel-content-'+section.dataset.extraCategory;section.setAttribute('role','tabpanel');section.setAttribute('aria-labelledby','panel-tab-'+section.dataset.extraCategory);}
   openDialog(dialog);
   dialog.querySelector('h2').focus({preventScroll:true});
@@ -42,5 +42,11 @@ export function createCharacterPanel({getCharacter,renderContent}){
  document.addEventListener('pointerup',e=>{const g=gesture;gesture=null;if(!g||g.pointer!==e.pointerId)return;if(horizontalSwipe(e.clientX-g.x,e.clientY-g.y,g.close?-1:1)){if(g.close)close();else open(g.source,g.id);}});
  document.addEventListener('pointercancel',()=>{gesture=null;});
  window.addEventListener('hashchange',()=>{gesture=null;close();});
- return {open,close};
+ function refresh(source,id){
+  if(!dialog.open)return;
+  const pane=dialog.querySelector('.panel-scroll'),top=pane.scrollTop;
+  open(source,id);
+  dialog.querySelector('.panel-scroll').scrollTop=top;
+ }
+ return {open,close,refresh};
 }

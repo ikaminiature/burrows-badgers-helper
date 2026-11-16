@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {equipmentRules,commonEquipmentRules,equipmentTables,magicEffects,specialMagicItems,equipmentReference,equipmentReferenceNotes} from '../src/equipment-rules.js';
 import {equipmentDetails,magicDetails,magicReferenceLibrary} from '../src/equipment-view.js';
-import {parseEquipmentCatalog,searchEquipment} from '../src/equipment.js';
+import {parseEquipmentCatalog,searchEquipment,consumableInSlot,battleConsumption,consumeBattleEquipment} from '../src/equipment.js';
 import {loadData,emptyBandStatus,startGame,stats} from '../src/model.js';
 const raw=JSON.parse(readFileSync('data/bb2_general_store_ja_en.json'));
 const catalog=parseEquipmentCatalog(raw);
@@ -84,4 +84,36 @@ test('性能見出しのみ具体値、装備枠を非表示、説明本文・�
  assert.match(equipmentDetails(catalog[16]),/ストロング（2）（魔法使い・不気味に対して）/);
  assert.match(magicDetails({effects:[{id:'magic-effect-protection',bonus:3}],notes:''}),/タフ（3）/);
  assert.deepEqual(equipmentRules,before);assert.deepEqual(commonEquipmentRules,commonBefore);
+});
+
+test('使い切り装備だけを対象とし、同じ装備の戦闘とロスターの枠だけから取り除く',()=>{
+ const potion=catalog[30],charm=catalog[24],pouch=catalog[27],critter=catalog[88];
+ const c={id:'c',equipmentSlots:{item:potion.nameJa,special:charm.nameJa,weapon1:'剣'},equipmentSelections:{item:potion,special:charm},equipmentMagic:{item:{notes:'使用分'},special:{notes:'保持'}}};
+ const band={id:'w',name:'森',status:emptyBandStatus(),characters:[c]};
+ const d={game:startGame(band),warbands:[band]};
+ const battle=d.game.characters[0];battle.wounds=4;
+ assert.equal(consumableInSlot(c,'special',catalog),null);
+ for(const item of [pouch,critter,charm])assert.equal(consumableInSlot({equipmentSlots:{item:item.nameEn}},'item',catalog),null);
+ for(const item of [catalog[31],catalog[51],catalog[57]])assert.equal(consumableInSlot({equipmentSlots:{special:item.nameJa}},'special',catalog)?.id,item.id);
+ assert.equal(consumableInSlot({equipmentSlots:{item:potion.nameEn}},'item',catalog)?.id,potion.id);
+ assert.equal(battleConsumption(d,'c','item',catalog).original,c);
+ assert.equal(consumeBattleEquipment(d,'c','item',charm.id,catalog),false);
+ assert.equal(consumeBattleEquipment(d,'c','item',potion.id,catalog),true);
+ assert.equal(consumeBattleEquipment(d,'c','item',potion.id,catalog),false);
+ for(const target of [battle,c]){
+   assert.deepEqual(target.equipmentSlots,{item:'',special:charm.nameJa,weapon1:'剣'});
+   assert.deepEqual(target.equipmentSelections,{special:charm});
+   assert.deepEqual(target.equipmentMagic,{special:{notes:'保持'}});
+ }
+ assert.equal(battle.wounds,4);
+});
+test('戦闘後に別の装備に変えたロスターや一致しないバンドは変更しない',()=>{
+ const potion=catalog[30],other=catalog[29];
+ const c={id:'c',equipmentSlots:{item:potion.nameJa}};
+ const band={id:'w',name:'森',status:emptyBandStatus(),characters:[c]};
+ const d={game:startGame(band),warbands:[band]};
+ c.equipmentSlots.item=other.nameJa;
+ assert.equal(battleConsumption(d,'c','item',catalog).original,null);
+ assert.equal(consumeBattleEquipment(d,'c','item',potion.id,catalog),true);
+ assert.equal(c.equipmentSlots.item,other.nameJa);
 });

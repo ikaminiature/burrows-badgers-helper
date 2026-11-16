@@ -1,3 +1,5 @@
+import { originalCharacter } from "./notes.js";
+
 export const equipmentCategoryLabels = {
   weapon: "武器",
   armour: "鎧・盾",
@@ -116,3 +118,38 @@ export function searchEquipment(
 }
 export const equipmentDisplayName = (item) =>
   item.nameJa + (item.range ? `（${item.range}）` : "");
+
+// These items are removed permanently, unlike equipment usable once per game.
+const discardedEquipmentIds=new Set([
+  26,30,31,32,33,34,35,38,45,46,47,48,50,51,52,53,54,56,57,
+  ...Array.from({length:31},(_,i)=>58+i),
+].map(n=>'general-store-'+String(n).padStart(3,'0')));
+export function consumableInSlot(character,slot,catalog=[]) {
+  if(slot!=='item'&&slot!=='special')return null;
+  const name=character?.equipmentSlots?.[slot];
+  if(!name?.trim())return null;
+  const selected=character.equipmentSelections?.[slot];
+  if(selected?.nameJa===name)return discardedEquipmentIds.has(selected.id)?selected:null;
+  const matches=catalog.filter(item=>[item.nameJa,item.nameEn].some(value=>
+    normalizeEquipmentSearch(value)===normalizeEquipmentSearch(name)));
+  return matches.length===1&&discardedEquipmentIds.has(matches[0].id)?matches[0]:null;
+}
+export function battleConsumption(data,id,slot,catalog=[]) {
+  const game=data.game;
+  const character=game?.characters.find(c=>c.id===id);
+  const item=consumableInSlot(character,slot,catalog);
+  if(!item)return null;
+  const roster=originalCharacter(data,game,id)?.character;
+  const original=consumableInSlot(roster,slot,catalog)?.id===item.id?roster:null;
+  return {character,item,original};
+}
+export function consumeBattleEquipment(data,id,slot,expectedId,catalog=[]) {
+  const match=battleConsumption(data,id,slot,catalog);
+  if(match?.item.id!==expectedId||!match)return false;
+  for(const c of new Set([match.character,match.original].filter(Boolean))){
+    c.equipmentSlots[slot]='';
+    if(c.equipmentSelections)delete c.equipmentSelections[slot];
+    if(c.equipmentMagic)delete c.equipmentMagic[slot];
+  }
+  return true;
+}

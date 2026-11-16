@@ -46,6 +46,9 @@ import {
   searchEquipment,
   equipmentCategoryLabels,
   equipmentDisplayName,
+  consumableInSlot,
+  battleConsumption,
+  consumeBattleEquipment,
 } from "./equipment.js";
 const app = document.querySelector("#app"),
   modal = document.querySelector("#modal"),
@@ -962,10 +965,18 @@ function gameNotes() {
   const game=data.game;if(!game)return;
   notesEditor({title:game.name,description:'この戦闘だけのメモです。',value:game.notes??'',onInput:text=>{if(data.game!==game||game.notes===text)return false;game.notes=text;return true;}});
 }
-function characterExtras(c, activeTab = null) {
+function characterExtras(c, activeTab, source) {
   const inventory=characterInventory(c);
   const section=(category,label,body)=>`<section data-extra-category="${category}" ${activeTab&&activeTab!==category?'hidden':''}><h3>${label}</h3>${body}</section>`;
-  const equipment=`<dl class="status-grid equipment-detail-grid">${Object.entries(equipmentCategories).map(([key,label])=>`<div>${activeTab&&key!=="special"&&inventory.equipmentSlots[key]?"":`<dt>${label}</dt>`}<dd class="detail-text">${equipmentSlotDisplay(c,key)}</dd></div>`).join("")}</dl>${c.equipment?`<details><summary>旧装備（未分類・原文）</summary><p class="detail-text">${esc(c.equipment)}</p></details>`:''}`;
+  const battle=source==='battle',catalog=rosterAbilityCatalog||[];
+  const equipment=`<dl class="status-grid equipment-detail-grid">${Object.entries(equipmentCategories)
+    .filter(([key])=> !battle || !/^(weapon|armour)/.test(key) || inventory.equipmentSlots[key]?.trim())
+    .map(([key,label])=>{
+      const item=battle?consumableInSlot(c,key,catalog):null;
+      const consume=item?btn("使い切った", "consume-equipment",
+        `data-id="${c.id}" data-slot="${key}" class="consume-equipment" aria-label="${esc(item.nameJa)}を使い切った（${label}）"`):'';
+      return `<div>${key!=="special"&&inventory.equipmentSlots[key]?"":`<dt>${label}</dt>`}<dd class="detail-text">${equipmentSlotDisplay(c,key)}${consume}</dd></div>`;
+    }).join("")}</dl>${c.equipment?`<details><summary>旧装備（未分類・原文）</summary><p class="detail-text">${esc(c.equipment)}</p></details>`:''}`;
   const skills=`<ol>${inventory.skillEntries.map((text,i)=>skillDisplay(text,c.skillSelections?.[i])).join('')||'<li>登録なし</li>'}</ol>${c.skills?`<details><summary>移行前のスキルの原文</summary><p class="detail-text">${esc(c.skills)}</p></details>`:''}`;
   const spells=`<ol>${inventory.spellEntries.map((text,i)=>`<li class="spell-detail">${spellDetails(text,c.spellSelections?.[i])}</li>`).join('')||'<li>登録なし</li>'}</ol>${c.spells?`<details><summary>移行前の呪文の原文</summary><p class="detail-text">${esc(c.spells)}</p></details>`:''}`;
   return section('equipment','装備',equipment)+section('skills','スキル',skills)+section('spells','呪文',spells);
@@ -974,6 +985,34 @@ const characterPanel=createCharacterPanel({
   getCharacter:(source,id)=>source==='battle'&&screen==='battle'?data.game?.characters.find(c=>c.id===id):source==='roster'&&screen==='bands'?band()?.characters.find(c=>c.id===id):null,
   renderContent:characterExtras,
 });
+function confirmEquipmentConsumption(button) {
+  if(screen!=='battle')return;
+  const {id,slot}=button.dataset;
+  const catalog=rosterAbilityCatalog||[],match=battleConsumption(data,id,slot,catalog);
+  if(!match)return;
+  const {character,item,original}=match;
+  const pending=button.closest('.panel-scroll').querySelector('.consume-confirmation');
+  if(pending)pending.querySelector('[data-consume-cancel]').click();
+  const prompt=document.createElement('div');
+  prompt.className='consume-confirmation';
+  prompt.innerHTML=`<p>「${esc(item.nameJa)}」を${original?'戦闘とウォーバンドのロスター':'戦闘中の装備だけ'}から取り除きます。効果は自動で適用しません。</p><div class="actions"><button type="button" data-consume-cancel>キャンセル</button><button type="button" class="danger" data-consume-apply>確認して実行</button></div>`;
+  button.hidden=true;
+  button.after(prompt);
+  const cancel=prompt.querySelector('[data-consume-cancel]');
+  cancel.onclick=()=>{prompt.remove();button.hidden=false;button.focus({preventScroll:true});};
+  prompt.querySelector('[data-consume-apply]').onclick=()=>{
+    if(!consumeBattleEquipment(data,id,slot,item.id,catalog)){cancel.click();return;}
+    save();
+    const sources=battleCard(character)?.querySelector('.ability-sources');
+    if(sources){
+      const open=new Set([...sources.querySelectorAll('details[open]')].map(node=>node.dataset.ability));
+      sources.innerHTML=abilitySourcesHtml(deriveAbilitySources(character,catalog));
+      for(const node of sources.querySelectorAll('details'))node.open=open.has(node.dataset.ability);
+    }
+    characterPanel.refresh('battle',id);
+  };
+  cancel.focus();
+}
 function openAdventureMemories(c) {
   if(!c)return;
   show(
@@ -1153,6 +1192,9 @@ document.addEventListener("click", (e) => {
       break;
     case "game-notes":
       gameNotes();
+      break;
+    case "consume-equipment":
+      confirmEquipmentConsumption(b);
       break;
     case "character-panel":
       characterPanel.open(b.dataset.source,b.dataset.id);
