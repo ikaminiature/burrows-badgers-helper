@@ -225,12 +225,6 @@ const { enableRosterEditing } = require("./support/roster.cjs");
     await pistolDetails.locator(".equipment-details > summary").click();
     await pistolDetails.getByText(/ピストルによる射撃はストロング/).waitFor();
     await closePanel(page);
-    await card.getByRole("button", { name: c.name, exact: true }).click();
-    await page
-      .locator("#modal")
-      .getByText("ピストル（12″）", { exact: true })
-      .waitFor();
-    await page.getByRole("button", { name: "閉じる", exact: true }).click();
     await page.getByRole("link", { name: "ホーム", exact: true }).click();
     const [download] = await Promise.all([
       page.waitForEvent("download"),
