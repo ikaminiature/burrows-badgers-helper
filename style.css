@@ -965,3 +965,5 @@ dialog { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 #adventure-memories li button { margin-block: 4px; }
 
 .consume-equipment { margin-block: 6px; font-size: 14px; }
+.consume-equipment[hidden] { display: none; }
+.consume-confirmation { white-space: normal; margin-block: 6px; }

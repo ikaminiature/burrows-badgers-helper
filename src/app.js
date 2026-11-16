@@ -985,26 +985,33 @@ const characterPanel=createCharacterPanel({
   getCharacter:(source,id)=>source==='battle'&&screen==='battle'?data.game?.characters.find(c=>c.id===id):source==='roster'&&screen==='bands'?band()?.characters.find(c=>c.id===id):null,
   renderContent:characterExtras,
 });
-function confirmEquipmentConsumption(id,slot) {
+function confirmEquipmentConsumption(button) {
   if(screen!=='battle')return;
+  const {id,slot}=button.dataset;
   const catalog=rosterAbilityCatalog||[],match=battleConsumption(data,id,slot,catalog);
   if(!match)return;
   const {character,item,original}=match;
-  confirmAction(
-    "使い切ったアイテムを取り除く",
-    `「${esc(character.name)}」の「${esc(item.nameJa)}」を${original?'戦闘とウォーバンドのロスター':'戦闘中の装備だけ'}から取り除きます。効果は自動で適用しません。`,
-    ()=>{
-      if(!consumeBattleEquipment(data,id,slot,item.id,catalog))return;
-      save();
-      const sources=battleCard(character)?.querySelector('.ability-sources');
-      if(sources){
-        const open=new Set([...sources.querySelectorAll('details[open]')].map(node=>node.dataset.ability));
-        sources.innerHTML=abilitySourcesHtml(deriveAbilitySources(character,catalog));
-        for(const node of sources.querySelectorAll('details'))node.open=open.has(node.dataset.ability);
-      }
-      characterPanel.refresh('battle',id);
-    },
-  );
+  const pending=button.closest('.panel-scroll').querySelector('.consume-confirmation');
+  if(pending)pending.querySelector('[data-consume-cancel]').click();
+  const prompt=document.createElement('div');
+  prompt.className='consume-confirmation';
+  prompt.innerHTML=`<p>「${esc(item.nameJa)}」を${original?'戦闘とウォーバンドのロスター':'戦闘中の装備だけ'}から取り除きます。効果は自動で適用しません。</p><div class="actions"><button type="button" data-consume-cancel>キャンセル</button><button type="button" class="danger" data-consume-apply>確認して実行</button></div>`;
+  button.hidden=true;
+  button.after(prompt);
+  const cancel=prompt.querySelector('[data-consume-cancel]');
+  cancel.onclick=()=>{prompt.remove();button.hidden=false;button.focus({preventScroll:true});};
+  prompt.querySelector('[data-consume-apply]').onclick=()=>{
+    if(!consumeBattleEquipment(data,id,slot,item.id,catalog)){cancel.click();return;}
+    save();
+    const sources=battleCard(character)?.querySelector('.ability-sources');
+    if(sources){
+      const open=new Set([...sources.querySelectorAll('details[open]')].map(node=>node.dataset.ability));
+      sources.innerHTML=abilitySourcesHtml(deriveAbilitySources(character,catalog));
+      for(const node of sources.querySelectorAll('details'))node.open=open.has(node.dataset.ability);
+    }
+    characterPanel.refresh('battle',id);
+  };
+  cancel.focus();
 }
 function openAdventureMemories(c) {
   if(!c)return;
@@ -1187,7 +1194,7 @@ document.addEventListener("click", (e) => {
       gameNotes();
       break;
     case "consume-equipment":
-      confirmEquipmentConsumption(b.dataset.id,b.dataset.slot);
+      confirmEquipmentConsumption(b);
       break;
     case "character-panel":
       characterPanel.open(b.dataset.source,b.dataset.id);
