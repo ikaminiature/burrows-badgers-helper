@@ -139,14 +139,9 @@ const os = require("node:os");
       await card.locator('[data-point="experience"]:checked').count(),
       5,
     );
-    // Selecting the name opens full information and the existing edit form.
+    // The roster card's edit button still opens the normal character form.
     await enableRosterEditing(page);
-    await card.getByRole("button", { name, exact: true }).click();
-    await page
-      .getByRole("button", { name: "編集", exact: true })
-      .filter({ visible: true })
-      .last()
-      .click();
+    await card.getByRole("button", { name: "編集", exact: true }).click();
     assert.equal(
       await page.locator('[data-form-point="fate"]:checked').count(),
       3,
