@@ -1,6 +1,6 @@
 import { openDialog, closeAllDialogs } from "./overlay-scroll.js";
-import { setWarbandNotes, setCharacterNotes, setCharacterNotes2, majorInjuries, searchMajorInjuries } from "./notes.js";
-import { createCharacterPanel, bindCharacterStatusPages } from "./character-panel.js";
+import { setWarbandNotes, setCharacterNotes, setCharacterNotes2, majorInjuries } from "./notes.js";
+import { createCharacterPanel } from "./character-panel.js";
 import { denUpgradePicker, denUpgradeList } from "./den-upgrade-view.js";
 import { denUpgradeById, selectDenUpgrade, chooseDenEffect } from "./den-upgrades.js";
 import { questSlotHtml, selectQuest, selectWildQuest } from "./side-quest-view.js";
@@ -264,7 +264,7 @@ function bandView(w) {
     )
     .join(
       "",
-    )}<div class="row between"><h2>メモ</h2>${btn("メモ", "band-notes", 'aria-haspopup="dialog"')}</div><p class="detail-text band-notes-text">${esc(s.notes) || "—"}</p></section><div class="row between"><h2>登録キャラクター</h2>${btn(rosterEditMode ? "編集を終了" : "編集モード", "toggle-roster-edit", `aria-pressed="${rosterEditMode}"`)}</div>${w.characters.map((c, i) => `<article class="card roster-card" data-character-id="${c.id}" data-panel-source="roster"><div class="roster-top"><div class="roster-photo">${portrait(c)}${characterRole(c) !== "none" ? `<span class="character-role">${characterRoles[characterRole(c)]}</span>` : ""}<span class="level">Lv. ${String(c.level).padStart(2, "0")}</span></div><div class="roster-info"><div class="identity"><h3>${btn(esc(c.name), "roster-detail", `data-id="${c.id}" class="character-name" title="${esc(c.name)}"`)}</h3><span class="muted">${esc(c.species)}</span></div><div class="point-trackers">${points(c, "fate", "運命点")}${points(c, "experience", "経験値")}</div></div></div><div class="card-stats">${cardStats.map((pair) => (pair ? `<span aria-label="${pair[1]} ${esc(c.stats[pair[1]])}">${pair[0]}${esc(c.stats[pair[1]].replace(/^D/, ""))}</span>` : '<span aria-hidden="true"></span>')).join("")}</div><div class="ability-sources" data-character-id="${c.id}" aria-label="${esc(c.name)}のスキル・装備由来の能力値">${abilitySourcesHtml(deriveAbilitySources(c, rosterAbilityCatalog || []))}</div>${characterButtons(c,"roster")}${rosterEditMode ? `<div class="actions">${btn("編集", "edit-character", `data-id="${c.id}"`)}${btn("複製", "duplicate", `data-id="${c.id}"`)}${btn("↑", "up", `data-id="${c.id}" aria-label="${esc(c.name)}を上へ" ${i === 0 ? "disabled" : ""}`)}${btn("↓", "down", `data-id="${c.id}" aria-label="${esc(c.name)}を下へ" ${i === w.characters.length - 1 ? "disabled" : ""}`)}${btn("削除", "delete-character", `data-id="${c.id}" class="danger"`)}</div>` : ""}</article>`).join("") || '<p class="empty">キャラクターは未登録です。</p>'}<section class="card"><h2>管理・編集メニュー</h2><div class="actions">${btn("ウォーバンド編集", "band-status", 'aria-haspopup="dialog"')}${btn("＋ キャラクター登録", "new-character", 'class="primary"')}${btn("ウォーバンド削除", "delete-band", 'class="danger"')}</div></section>`;
+    )}<div class="row between"><h2>メモ</h2>${btn("メモ", "band-notes", 'aria-haspopup="dialog"')}</div><p class="detail-text band-notes-text">${esc(s.notes) || "—"}</p></section><div class="row between"><h2>登録キャラクター</h2>${btn(rosterEditMode ? "編集を終了" : "編集モード", "toggle-roster-edit", `aria-pressed="${rosterEditMode}"`)}</div>${w.characters.map((c, i) => `<article class="card roster-card" data-character-id="${c.id}" data-panel-source="roster"><div class="roster-top"><div class="roster-photo">${portrait(c)}${characterRole(c) !== "none" ? `<span class="character-role">${characterRoles[characterRole(c)]}</span>` : ""}<span class="level">Lv. ${String(c.level).padStart(2, "0")}</span></div><div class="roster-info"><div class="identity"><h3>${btn(esc(c.name), "roster-adventure", `data-id="${c.id}" class="character-name" title="${esc(c.name)}"`)}</h3><span class="muted">${esc(c.species)}</span></div><div class="point-trackers">${points(c, "fate", "運命点")}${points(c, "experience", "経験値")}</div></div></div><div class="card-stats">${cardStats.map((pair) => (pair ? `<span aria-label="${pair[1]} ${esc(c.stats[pair[1]])}">${pair[0]}${esc(c.stats[pair[1]].replace(/^D/, ""))}</span>` : '<span aria-hidden="true"></span>')).join("")}</div><div class="ability-sources" data-character-id="${c.id}" aria-label="${esc(c.name)}のスキル・装備由来の能力値">${abilitySourcesHtml(deriveAbilitySources(c, rosterAbilityCatalog || []))}</div>${characterButtons(c,"roster")}${rosterEditMode ? `<div class="actions">${btn("編集", "edit-character", `data-id="${c.id}"`)}${btn("複製", "duplicate", `data-id="${c.id}"`)}${btn("↑", "up", `data-id="${c.id}" aria-label="${esc(c.name)}を上へ" ${i === 0 ? "disabled" : ""}`)}${btn("↓", "down", `data-id="${c.id}" aria-label="${esc(c.name)}を下へ" ${i === w.characters.length - 1 ? "disabled" : ""}`)}${btn("削除", "delete-character", `data-id="${c.id}" class="danger"`)}</div>` : ""}</article>`).join("") || '<p class="empty">キャラクターは未登録です。</p>'}<section class="card"><h2>管理・編集メニュー</h2><div class="actions">${btn("ウォーバンド編集", "band-status", 'aria-haspopup="dialog"')}${btn("＋ キャラクター登録", "new-character", 'class="primary"')}${btn("ウォーバンド削除", "delete-band", 'class="danger"')}</div></section>`;
 }
 function freeEffects(c) {
   return c.effects.map(e=>`<div class="effect" data-effect-id="${e.id}"><strong>${esc(e.name)}</strong><p class="detail-text">${esc(e.description)}</p><div class="actions">${btn("編集", "edit-effect", `data-id="${c.id}" data-effect="${e.id}" aria-label="${esc(e.name)}を編集"`)}${btn("削除", "remove-effect", `data-id="${c.id}" data-effect="${e.id}" aria-label="${esc(e.name)}を削除"`)}</div></div>`).join("") || '<p class="muted">登録なし</p>';
@@ -974,24 +974,16 @@ const characterPanel=createCharacterPanel({
   getCharacter:(source,id)=>source==='battle'&&screen==='battle'?data.game?.characters.find(c=>c.id===id):source==='roster'&&screen==='bands'?band()?.characters.find(c=>c.id===id):null,
   renderContent:characterExtras,
 });
-function detail(c, editable = false) {
-  const currentBandId=bandId;
+function openAdventureMemories(c) {
+  if(!c)return;
   show(
-    `<div class="character-status-pages"><div class="row">${portrait(c)}<div><h2>${esc(c.name)}</h2><p>${esc(c.species)} · Lv.${c.level}</p></div></div>
-    <div class="panel-tabs" role="tablist" aria-label="キャラクターの表示">
-      <button type="button" role="tab" id="character-status-tab" aria-controls="character-status-page" aria-selected="true">ステータス</button>
-      <button type="button" role="tab" id="character-notes2-tab" aria-controls="character-notes2-page" aria-selected="false" tabindex="-1">冒険の思い出</button>
-    </div>
-    <section id="character-status-page" role="tabpanel" aria-labelledby="character-status-tab"><div class="stats">${stats.map((s) => `<div><span class="muted">${s}</span><br><strong>${esc(c.stats[s])}</strong></div>`).join("")}</div>${characterExtras(c)}${editable ? btn("編集", "edit-character", `data-id="${c.id}"`) : ""}</section>
-    <section id="character-notes2-page" role="tabpanel" aria-labelledby="character-notes2-tab" hidden>
-      <div id="adventure-memories"></div>
-      <div class="actions"><button type="button" id="edit-adventure" aria-expanded="false" aria-controls="adventure-memories">編集</button>${btn("閉じる", "close")}</div>
-    </section>
-    <div data-status-footer>${btn("閉じる", "close")}</div></div>`,
+    `<h2>冒険の思い出</h2><div class="row">${portrait(c)}<div><h3>${esc(c.name)}</h3><p>${esc(c.species)} · Lv.${c.level}</p></div></div>
+    <div id="adventure-memories"></div>
+    <div class="actions"><button type="button" id="edit-adventure" aria-expanded="false" aria-controls="adventure-memories">編集</button>${btn("閉じる", "close")}</div>`,
     {focusHeading:true},
   );
-  mountAdventureMemories(c,currentBandId);
-  bindCharacterStatusPages(modal.querySelector('.character-status-pages'),modal);
+  modal.scrollTop=0;
+  mountAdventureMemories(c,bandId);
 }
 function mountAdventureMemories(c,currentBandId) {
   const container=modal.querySelector('#adventure-memories'),
@@ -1022,7 +1014,6 @@ function mountAdventureMemories(c,currentBandId) {
   });
   function renderMemories(){
     container.innerHTML=`<section><h3>重傷</h3><div data-injury-list></div>${editing?`<form id="adventure-injury-form" class="adventure-form">
-      <label>出目・名前で絞り込む<input type="search" name="query" placeholder="例：6、胸部負傷" autocomplete="off"></label>
       <label>重傷を選ぶ<select name="injury" required></select></label><button type="submit">重傷を追加</button></form>`:''}</section>
     <section><h3>レベルアップの履歴</h3><div data-roll-list></div>${editing?`<form id="adventure-roll-form" class="adventure-form">
       <label>到達レベル<input type="number" name="level" min="1" max="100" step="1" value="${Math.max(1,c.level)}" required inputmode="numeric"></label>
@@ -1032,11 +1023,7 @@ function mountAdventureMemories(c,currentBandId) {
     renderHistory();
     if(!editing)return;
     const injury=container.querySelector('#adventure-injury-form'),select=injury.elements.injury;
-    const filter=()=>{
-      select.replaceChildren(new Option('選択してください',''),...searchMajorInjuries(injury.elements.query.value).map(x=>new Option(`${x.roll} ／ ${x.label}`,x.id)));
-    };
-    filter();
-    injury.elements.query.addEventListener('input',filter);
+    select.replaceChildren(new Option('選択してください',''),...majorInjuries.map(x=>new Option(`${x.roll} ／ ${x.label}`,x.id)));
     injury.onsubmit=e=>{
       e.preventDefault();if(!editing||!majorInjuries.some(x=>x.id===select.value))return;
       update('injuries',[...history().injuries,select.value]);
@@ -1184,8 +1171,8 @@ document.addEventListener("click", (e) => {
       bandId = undefined;
       render();
       break;
-    case "roster-detail":
-      detail(wc, rosterEditMode);
+    case "roster-adventure":
+      openAdventureMemories(wc);
       break;
     case "band-status":
       bandStatusForm(w);

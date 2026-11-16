@@ -132,13 +132,10 @@ const os = require("node:os");
     await page.locator("#character-panel").getByRole("heading",{name:second.name,exact:true}).waitFor();
     await closePanel(page);
     await first.getByRole("button", { name: c.name, exact: true }).click();
-    assert.equal(
-      await page
-        .locator("#modal")
-        .getByRole("button", { name: "編集", exact: true })
-        .count(),
-      0,
-    );
+    const memories = page.locator("#modal");
+    await memories.getByRole("heading", { name: "冒険の思い出", exact: true }).waitFor();
+    assert.equal(await memories.getByRole("tab").count(), 0);
+    assert.equal(await memories.getByRole("button", { name: "編集", exact: true }).count(), 1);
     await page.getByRole("button", { name: "閉じる", exact: true }).click();
     for (const width of [390, 320]) {
       await page.setViewportSize({ width, height: 844 });

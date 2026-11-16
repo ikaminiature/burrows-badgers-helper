@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {stats,startGame,emptyBandStatus,loadData,nextRound,validateData} from '../src/model.js';
-import {setCharacterNotes,setCharacterNotes2,setWarbandNotes,majorInjuries,searchMajorInjuries} from '../src/notes.js';
+import {setCharacterNotes,setCharacterNotes2,setWarbandNotes,majorInjuries} from '../src/notes.js';
 const character=id=>({id,name:id,species:'マウス',level:1,fate:1,experience:0,photo:'',stats:Object.fromEntries(stats.map(s=>[s,'D6'])),equipment:'剣',skills:'',spells:'',notes:'元のメモ'});
 function fixture(){const w={id:'w',name:'バンド',status:{...emptyBandStatus(),rating:2},characters:[character('c'),character('other')]};return {version:2,warbands:[w],game:startGame(w)};}
 test('双方向同期はnotesだけを更新し、戦闘の負傷等や別キャラを維持',()=>{
@@ -57,12 +57,10 @@ test('冒険の思い出は別項目として保存・復元し、不正なレ�
  }
 });
 
-test('第2版の重傷表は全出目に対応し、出目と名前で検索できる',()=>{
+test('第2版の重傷表は全出目を順番に表示する',()=>{
  assert.equal(majorInjuries.length,19);
  assert.equal(new Set(majorInjuries.map(v=>v.id)).size,19);
- for(let i=1;i<=20;i++)assert.equal(searchMajorInjuries(String(i)).length,1);
- assert.deepEqual(searchMajorInjuries('６').map(v=>v.label),['胸部負傷']);
- assert.deepEqual(searchMajorInjuries('胸部').map(v=>v.roll),['6']);
- assert.deepEqual(searchMajorInjuries('Chest Wound').map(v=>v.roll),['6']);
- assert.deepEqual(searchMajorInjuries('19-20').map(v=>v.label),['見た目ほどひどくはない']);
+ assert.deepEqual(majorInjuries.map(v=>v.roll),[...Array.from({length:18},(_,i)=>String(i+1)),'19–20']);
+ assert.equal(majorInjuries[5].label,'胸部負傷');
+ assert.equal(majorInjuries.at(-1).label,'見た目ほどひどくはない');
 });
