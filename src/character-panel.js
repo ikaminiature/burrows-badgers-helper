@@ -16,6 +16,8 @@ export function bindCharacterStatusPages(root, dialog){
     tab.tabIndex=i===current?0:-1;
     pages[i].hidden=i!==current;
    });
+   const footer=root.querySelector('[data-status-footer]');
+   if(footer)footer.hidden=current!==0;
    dialog.scrollTop=0;
   }
   if(focus)tabs[index].focus({preventScroll:true});

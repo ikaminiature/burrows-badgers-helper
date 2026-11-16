@@ -242,6 +242,12 @@ export function validateData(d) {
       !stats.every((s) => dice.includes(c.stats[s])) ||
       !["equipment", "skills", "spells", "notes"].every((k) => str(c[k])) ||
       (c.notes2 !== undefined && !str(c.notes2)) ||
+      (c.adventure !== undefined &&
+        (!c.adventure || !Array.isArray(c.adventure.injuries) ||
+          !c.adventure.injuries.every(v=>str(v,200) && v.trim()) ||
+          !Array.isArray(c.adventure.rolls) ||
+          !c.adventure.rolls.every(v=>v && Number.isSafeInteger(v.level) && v.level>=1 && v.level<=100 &&
+            Number.isSafeInteger(v.result) && v.result>=1))) ||
       (c.equipmentSelections !== undefined &&
         (!c.equipmentSelections ||
           typeof c.equipmentSelections !== "object" ||

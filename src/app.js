@@ -1,5 +1,5 @@
 import { openDialog, closeAllDialogs } from "./overlay-scroll.js";
-import { setWarbandNotes, setCharacterNotes, setCharacterNotes2 } from "./notes.js";
+import { setWarbandNotes, setCharacterNotes, setCharacterNotes2, majorInjuries } from "./notes.js";
 import { createCharacterPanel, bindCharacterStatusPages } from "./character-panel.js";
 import { denUpgradePicker, denUpgradeList } from "./den-upgrade-view.js";
 import { denUpgradeById, selectDenUpgrade, chooseDenEffect } from "./den-upgrades.js";
@@ -888,6 +888,7 @@ function characterForm(c) {
       spells: c?.spells || "",
       notes: f.get("notes"),
       ...(c?.notes2 !== undefined ? {notes2:c.notes2} : {}),
+      ...(c?.adventure !== undefined ? {adventure:c.adventure} : {}),
       ...(magicTouched || c?.equipmentMagic !== undefined ? {equipmentMagic: structuredClone(equipmentMagic)} : {}),
       equipmentSlots: Object.fromEntries(
         Object.keys(equipmentCategories).map((k) => [k, f.get("slot-" + k)]),
@@ -979,19 +980,90 @@ function detail(c, editable = false) {
     `<div class="character-status-pages"><div class="row">${portrait(c)}<div><h2>${esc(c.name)}</h2><p>${esc(c.species)} · Lv.${c.level}</p></div></div>
     <div class="panel-tabs" role="tablist" aria-label="キャラクターの表示">
       <button type="button" role="tab" id="character-status-tab" aria-controls="character-status-page" aria-selected="true">ステータス</button>
-      <button type="button" role="tab" id="character-notes2-tab" aria-controls="character-notes2-page" aria-selected="false" tabindex="-1">メモ2</button>
+      <button type="button" role="tab" id="character-notes2-tab" aria-controls="character-notes2-page" aria-selected="false" tabindex="-1">冒険の思い出</button>
     </div>
     <section id="character-status-page" role="tabpanel" aria-labelledby="character-status-tab"><div class="stats">${stats.map((s) => `<div><span class="muted">${s}</span><br><strong>${esc(c.stats[s])}</strong></div>`).join("")}</div>${characterExtras(c)}${editable ? btn("編集", "edit-character", `data-id="${c.id}"`) : ""}</section>
-    <section id="character-notes2-page" role="tabpanel" aria-labelledby="character-notes2-tab" hidden><p class="muted">レベルアップの履歴などを自由に記録できます。入力は自動保存されます。</p><label>メモ2<textarea id="character-notes2" maxlength="20000" rows="8"></textarea></label></section>
-    ${btn("閉じる", "close")}</div>`,
+    <section id="character-notes2-page" role="tabpanel" aria-labelledby="character-notes2-tab" hidden>
+      <div id="adventure-memories"></div>
+      <div class="actions"><button type="button" id="edit-adventure" aria-expanded="false" aria-controls="adventure-memories">編集</button>${btn("閉じる", "close")}</div>
+    </section>
+    <div data-status-footer>${btn("閉じる", "close")}</div></div>`,
     {focusHeading:true},
   );
-  const input=modal.querySelector('#character-notes2');
-  input.value=c.notes2??'';
-  input.addEventListener('input',()=>{
-    if(setCharacterNotes2(data,'roster',currentBandId,c.id,input.value))save();
-  });
+  mountAdventureMemories(c,currentBandId);
   bindCharacterStatusPages(modal.querySelector('.character-status-pages'),modal);
+}
+function mountAdventureMemories(c,currentBandId) {
+  const container=modal.querySelector('#adventure-memories'),
+    edit=modal.querySelector('#edit-adventure');
+  let editing=false;
+  const injuryLabel=key=>majorInjuries.find(item=>item.id===key)?.label??key;
+  const persist=()=>save();
+  const history=()=>c.adventure??{injuries:[],rolls:[]};
+  const update=(field,entries)=>{
+    c.adventure={...history(),[field]:entries};
+    persist();renderHistory();
+  };
+  function actions(field,index){
+    return editing?` <button type="button" data-memory-remove="${field}" data-index="${index}" aria-label="${field==='injuries'?'重傷':'ロール'} ${index+1} を削除">削除</button>`:'';
+  }
+  function renderHistory(){
+    const {injuries,rolls}=history();
+    container.querySelector('[data-injury-list]').innerHTML=injuries.length
+      ? `<ul>${injuries.map((key,i)=>`<li>${esc(injuryLabel(key))}${actions('injuries',i)}</li>`).join('')}</ul>` : '<p class="muted">記録なし</p>';
+    container.querySelector('[data-roll-list]').innerHTML=rolls.length
+      ? `<ol>${rolls.map(({level,result},i)=>`<li>Lv.${level} ／ 出目 ${result}${actions('rolls',i)}</li>`).join('')}</ol>` : '<p class="muted">記録なし</p>';
+  }
+  container.addEventListener('click',e=>{
+    const button=e.target.closest('[data-memory-remove]');
+    if(!editing||!button)return;
+    const field=button.dataset.memoryRemove;
+    update(field,history()[field].filter((_,i)=>i!==Number(button.dataset.index)));
+    container.querySelector(field==='injuries'?'[name=injury]':'[name=result]')?.focus({preventScroll:true});
+  });
+  function renderMemories(){
+    container.innerHTML=`<section><h3>重傷</h3><div data-injury-list></div>${editing?`<form id="adventure-injury-form" class="adventure-form">
+      <label>名前で絞り込む<input type="search" name="query" placeholder="日本語・英語" autocomplete="off"></label>
+      <label>重傷を選ぶ<select name="injury" required></select></label><button type="submit">重傷を追加</button></form>`:''}</section>
+    <section><h3>レベルアップの履歴</h3><div data-roll-list></div>${editing?`<form id="adventure-roll-form" class="adventure-form">
+      <label>到達レベル<input type="number" name="level" min="1" max="100" step="1" value="${Math.max(1,c.level)}" required inputmode="numeric"></label>
+      <label>ダイスの出目<input type="number" name="result" min="1" max="${Number.MAX_SAFE_INTEGER}" step="1" required inputmode="numeric"></label>
+      <button type="submit">ロールを追加</button></form>`:''}</section>
+    <section><h3>記録メモ</h3>${editing?'<label>記録メモ<textarea id="character-notes2" maxlength="20000" rows="5"></textarea></label>':`<p class="detail-text">${esc(c.notes2)||'記録なし'}</p>`}</section>`;
+    renderHistory();
+    if(!editing)return;
+    const injury=container.querySelector('#adventure-injury-form'),select=injury.elements.injury;
+    const filter=()=>{
+      const query=injury.elements.query.value.trim().normalize('NFKC').toLowerCase();
+      select.replaceChildren(new Option('選択してください',''),...majorInjuries.filter(x=>x.label.normalize('NFKC').toLowerCase().includes(query)).map(x=>new Option(x.label,x.id)));
+    };
+    filter();
+    injury.elements.query.addEventListener('input',filter);
+    injury.onsubmit=e=>{
+      e.preventDefault();if(!editing||!majorInjuries.some(x=>x.id===select.value))return;
+      update('injuries',[...history().injuries,select.value]);
+      select.value='';
+    };
+    const rolls=container.querySelector('#adventure-roll-form');
+    rolls.onsubmit=e=>{
+      e.preventDefault();
+      const level=rolls.elements.level.valueAsNumber,result=rolls.elements.result.valueAsNumber;
+      if(!editing||!Number.isSafeInteger(level)||level<1||level>100||!Number.isSafeInteger(result)||result<1)return;
+      update('rolls',[...history().rolls,{level,result}]);rolls.elements.result.value='';
+    };
+    const input=container.querySelector('#character-notes2');
+    input.value=c.notes2??'';
+    input.addEventListener('input',()=>{
+      if(setCharacterNotes2(data,'roster',currentBandId,c.id,input.value))persist();
+    });
+  }
+  edit.addEventListener('click',()=>{
+    editing=!editing;edit.textContent=editing?'編集を終了':'編集';
+    edit.setAttribute('aria-expanded',String(editing));
+    renderMemories();
+    if(editing)container.scrollIntoView({block:'start'});
+  });
+  renderMemories();
 }
 function download() {
   const blob = new Blob([JSON.stringify(data, null, 2)], {

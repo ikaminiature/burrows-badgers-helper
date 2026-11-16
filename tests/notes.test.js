@@ -46,3 +46,13 @@ test('メモ2は別項目として保存・復元され、旧データや通常�
  assert.throws(()=>setCharacterNotes2(d,'roster','w','c','x'.repeat(20001)));
  d.warbands[0].characters[0].notes2=42;assert.throws(()=>validateData(d));
 });
+
+test('冒険の思い出は別項目として保存・復元し、不正なレベルと出目は拒否する',()=>{
+ const d=fixture(),c=d.warbands[0].characters[0];
+ c.adventure={injuries:['chest-wound','chest-wound'],rolls:[{level:2,result:8}]};
+ assert.deepEqual(loadData(JSON.parse(JSON.stringify(d))),d);
+ assert.equal(c.notes,'元のメモ');
+ for(const invalid of [{level:0,result:8},{level:2,result:0},{level:2,result:1.5}]){
+  c.adventure.rolls=[invalid];assert.throws(()=>validateData(d));
+ }
+});

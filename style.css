@@ -959,3 +959,9 @@ dialog { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 
 .character-status-pages { touch-action: pan-y pinch-zoom; }
 .character-status-pages .panel-tabs { padding-inline: 0; }
+
+.adventure-form { display: grid; gap: 6px; margin-block: 10px; }
+.adventure-form label { margin-block: 0; }
+.adventure-form button { justify-self: start; }
+#adventure-memories > section { margin-block: 14px; }
+#adventure-memories li button { margin-block: 4px; }

@@ -31,3 +31,9 @@ export function setWarbandNotes(data, bandId, text) {
  w.status.notes=text;
  return true;
 }
+
+// Major Injuries, B&B 2e. These entries are confirmed by the May 2025 FAQ.
+export const majorInjuries = [
+ {id:'chest-wound',label:'胸部の負傷 / Chest Wound'},
+ {id:'enfeebled',label:'衰弱 / Enfeebled'},
+];
