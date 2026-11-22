@@ -1,4 +1,4 @@
-const VERSION = "33";
+const VERSION = "34";
 const PREFIX = "bb-helper:" + self.registration.scope + ":";
 const CACHE = PREFIX + VERSION;
 const FILES = [
@@ -29,6 +29,7 @@ const FILES = [
   "./src/update.js",
   "./src/warband-share.js",
   "./src/qrcode.js",
+  "./src/jsqr-vendor.js",
   "./manifest.webmanifest",
   "./icon.svg",
   "./apple-touch-icon.png",
