@@ -999,3 +999,15 @@ dialog { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 .shared-import-person .portrait { flex-shrink:0; }
 .shared-import-person > div { min-width:0; }
 .shared-warband-card .actions { margin-top:8px; }
+
+/* Saveable single-sheet QR collection for each warband and its members. */
+.encountered-bands { margin-top: 30px; border-top: 2px solid var(--line); padding-top: 16px; }
+.share-sheet-grid { display:grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap:9px; padding:8px; background:#fff; color:#111; border-radius:10px; }
+.share-sheet-item { min-width:0; padding:5px; border:1px solid #ddd; border-radius:5px; text-align:center; }
+.share-sheet-item h4 { color:#111; overflow-wrap:anywhere; font-size:12px; margin:2px 0 5px; }
+.share-sheet-item svg { display:block; width:100%; height:auto; aspect-ratio:1; }
+.share-sheet-item button { padding:4px 8px; font-size:12px; margin-top:4px; }
+@media print {
+  header,nav,#editing-indicator,.share-sheet-item button, #share-sheet-content ~ .actions { display:none!important; }
+  .share-sheet-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
