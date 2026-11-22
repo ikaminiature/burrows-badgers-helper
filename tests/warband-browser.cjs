@@ -297,6 +297,7 @@ const os = require("node:os");
       alliance: "自由な仲間",
       archetype: "探検隊",
       notes: "第一行\n第二行",
+      lore: "",
       stash: backup.warbands[0].status.stash,
       upgrades: backup.warbands[0].status.upgrades,
       denUpgrades: [{id:"library",choice:null}],
