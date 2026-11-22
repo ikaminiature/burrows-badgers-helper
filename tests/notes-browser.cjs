@@ -21,7 +21,7 @@ const {openPanel,closePanel}=require('./support/panel.cjs');
  await card.getByRole('button',{name:'メモ',exact:true}).scrollIntoViewIfNeeded();let input=await note(card.getByRole('button',{name:'メモ',exact:true}),c.notes);assert.deepEqual(await stored(),data); // Opening does not write or migrate storage.
  await input.fill('登録画面から共有');await saved();assert.equal(await input.evaluate(n=>document.activeElement===n),true);await close();
  expected.warbands[0].characters[0].notes=expected.game.characters[0].notes='登録画面から共有';assert.deepEqual(await stored(),expected);
- // The name opens Adventure Memories directly, without tabs or the old status screen.
+ // The name opens Adventure Memories with separate history and lore tabs.
  const statusDialog=page.locator('#modal');
  const adventure=statusDialog.locator('#adventure-memories');
  const adventureEdit=statusDialog.locator('#edit-adventure');
@@ -43,7 +43,7 @@ const {openPanel,closePanel}=require('./support/panel.cjs');
  assert.equal(await statusDialog.locator('.stats,.character-extra').count(),0);
  const memo2=statusDialog.getByRole('textbox',{name:'記録メモ',exact:true});
  assert.equal(await memo2.count(),0);
- assert.equal(await page.evaluate(()=>document.activeElement.tagName),'H2');
+ assert.equal(await page.evaluate(()=>document.activeElement.tagName),'BUTTON');
  await adventureEdit.click();
  assert.equal(await statusDialog.getByRole('heading',{name:'キャラクター編集',exact:true}).count(),0);
  assert.equal(await memo2.inputValue(),'');
