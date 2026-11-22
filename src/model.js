@@ -124,6 +124,7 @@ export function loadData(input) {
     }
   }
   if (d.game && typeof d.game === "object" && !Array.isArray(d.game)) {
+    if (d.game.status && d.game.status.lore === undefined) d.game.status.lore = "";
     if (d.game.notes === undefined) d.game.notes = "";
     if (d.game.vp === undefined) d.game.vp = 0;
     if (d.game.sideQuests === undefined) d.game.sideQuests = ["", ""];
