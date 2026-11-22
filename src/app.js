@@ -40,6 +40,7 @@ import {
 } from "./model.js";
 import { read, write } from "./db.js";
 import { createUpdater } from "./update.js";
+import { makeShareUrl, readShareToken, makeShareSvg, exportShareJson, readShareJson } from "./warband-share.js";
 import { speciesGroups, speciesPresets, presetValues } from "./species.js";
 import {
   loadEquipmentCatalog,
@@ -60,6 +61,10 @@ let data,
   failed = false,
   pending = 0;
 let rosterEditMode = false;
+let sharedId;
+let sharedImportCandidate = null;
+const sharePreviews = new Map();
+const shareRoot = () => new URL("./", location.href).href.split("#")[0];
 function resetRosterView() {
   rosterEditMode = false;
 }
@@ -148,9 +153,14 @@ function confirmAction(title, message, action) {
 function navigate() {
   closeAllDialogs();
   const route = location.hash.slice(1) || "home";
+  if(route.startsWith("share=")) {
+    resetRosterView(); bandId=undefined;sharedId=undefined;screen="bands";render();
+    receiveShareLink(route.slice(6));
+    return;
+  }
   if (route !== screen) {
     resetRosterView();
-    if (route === "bands") bandId = undefined;
+    if (route === "bands") {bandId = undefined;sharedId=undefined;}
   }
   screen = ["home", "bands", "battle", "choose"].includes(route)
     ? route
@@ -174,24 +184,26 @@ function render() {
       ),
     );
   if (screen === "home")
-    app.innerHTML = `<div class="hero"><div class="eyebrow">BURROWS & BADGERS · 2ND EDITION</div><h1>小さな戦士たちの、<br>次の冒険へ。</h1><div class="stack"><a class="button primary" href="#choose">ゲームを開始</a>${data.game ? `<a class="button" href="#battle">${esc(data.game.name)} · ラウンド ${data.game.round} を再開</a>` : ""}</div></div>${updater.html()}<h2>冒険の準備</h2><section class="card"><h2>データのバックアップ</h2><p class="muted">データと写真はこの端末・ブラウザ内に保存されます。定期的に写真を含む JSON を保管してください。</p><div class="actions">${btn("JSON を書き出す", "export")}${btn("JSON から復元", "import")}</div><input id="restore-file" type="file" accept="application/json,.json" hidden></section><details class="card"><summary>オフラインで使う・ホーム画面に追加</summary><p>一度オンラインで開き、読み込みを終えてから使ってください。iPhone は Safari の共有メニューから「ホーム画面に追加」を選びます。</p><p class="muted">非公式の補助ツールです。ルールの自動判定は負傷管理のみ。ブラウザのデータ削除で保存内容が消えるため、バックアップを推奨します。</p></details><figure class="app-share"><a href="https://ikaminiature.github.io/burrows-badgers-helper/" target="_blank" rel="noopener noreferrer" aria-label="アプリを共有（公開サイトを開く）"><img src="./share-qr.png" width="164" height="164" alt="アプリ共有用QRコード"></a><figcaption>アプリを共有</figcaption><p class="muted">読み取る端末でアプリを開くには、インターネット接続が必要です。</p></figure>`;
+    app.innerHTML = `<div class="hero"><div class="eyebrow">BURROWS & BADGERS · 2ND EDITION</div><h1>小さな戦士たちの、<br>次の冒険へ。</h1><div class="stack"><a class="button primary" href="#choose">ゲームを開始</a>${data.game ? `<a class="button" href="#battle">${esc(data.game.name)} · ラウンド ${data.game.round} を再開</a>` : ""}</div></div>${updater.html()}<h2>冒険の準備</h2><section class="card"><h2>データのバックアップ</h2><p class="muted">データと写真はこの端末・ブラウザ内に保存されます。定期的に写真を含む JSON を保管してください。</p><div class="actions">${btn("JSON を書き出す", "export")}${btn("JSON から復元", "import")}</div><input id="restore-file" type="file" accept="application/json,.json" hidden><input id="shared-roster-file" type="file" accept="application/json,.json" hidden></section><details class="card"><summary>オフラインで使う・ホーム画面に追加</summary><p>一度オンラインで開き、読み込みを終えてから使ってください。iPhone は Safari の共有メニューから「ホーム画面に追加」を選びます。</p><p class="muted">非公式の補助ツールです。ルールの自動判定は負傷管理のみ。ブラウザのデータ削除で保存内容が消えるため、バックアップを推奨します。</p></details><figure class="app-share"><a href="https://ikaminiature.github.io/burrows-badgers-helper/" target="_blank" rel="noopener noreferrer" aria-label="アプリを共有（公開サイトを開く）"><img src="./share-qr.png" width="164" height="164" alt="アプリ共有用QRコード"></a><figcaption>アプリを共有</figcaption><p class="muted">読み取る端末でアプリを開くには、インターネット接続が必要です。</p></figure>`;
   if (screen === "bands")
     app.innerHTML = band()
       ? bandView(band())
-      : `<div class="eyebrow">WARBANDS</div><h1>ウォーバンド管理</h1>${btn("＋ ウォーバンドを登録", "new-band", 'class="primary"')}${
+      : sharedId ? sharedWarbandView((data.sharedWarbands||[]).find(s=>s.id===sharedId)) :
+        `<div class="eyebrow">WARBANDS</div><h1>ウォーバンド管理</h1><div class="actions">${btn("＋ ウォーバンドを登録", "new-band", 'class="primary"')}${btn("共有を読み込む", "share-paste")}${btn("共有JSONを読み込む", "share-file")}</div>${
           data.warbands
             .map((w) => {
               const leader = w.characters.find(
                 (c) => characterRole(c) === "leader",
               );
-              return `<section class="card warband-card"><div class="row">${portrait(leader || { name: "", photo: "" })}<div class="identity"><h2 id="band-title-${w.id}">${esc(w.name)}</h2><p>${esc(w.status.alliance) || "アライアンス未設定"}</p><p>${leader ? "リーダー：" + esc(leader.name) : "リーダー未設定"}</p><p>${w.characters.length} キャラクター</p></div></div>${btn("開く", "open-band", `data-id="${w.id}" class="warband-open" aria-describedby="band-title-${w.id}" title="${esc(w.name)}を開く"`)}</section>`;
+              return `<section class="card warband-card"><div class="row warband-list-main"><div class="warband-share-column">${portrait(leader || { name: "", photo: "" })}<div class="warband-qr-preview" data-warband-qr="${w.id}"><span class="muted">QR作成中…</span></div></div><div class="identity"><h2 id="band-title-${w.id}">${esc(w.name)}</h2><p>${esc(w.status.alliance) || "アライアンス未設定"}</p><p>${leader ? "リーダー：" + esc(leader.name) : "リーダー未設定"}</p><p>${w.characters.length} キャラクター</p></div></div>${btn("開く", "open-band", `data-id="${w.id}" class="warband-open" aria-describedby="band-title-${w.id}" title="${esc(w.name)}を開く"`)}</section>`;
             })
             .join("") ||
           '<p class="empty">最初のウォーバンドを登録しましょう。</p>'
-        }`;
+        }${sharedWarbandList()}`;
   if (screen === "choose")
     app.innerHTML = `<div class="eyebrow">NEW GAME</div><h1>出陣するウォーバンド</h1>${data.game ? '<p class="muted">進行中のゲームがあります。新しく開始する場合は確認後に置き換えます。</p>' : ""}${data.warbands.map((w) => `<section class="card"><h2>${esc(w.name)}</h2><p>${w.characters.length} キャラクター</p>${btn("このウォーバンドで開始", "start", `class="primary" data-id="${w.id}" ${w.characters.length ? "" : "disabled"}`)}</section>`).join("") || '<p class="empty">ウォーバンドとキャラクターを登録してください。</p>'}<a class="button" href="#bands">ウォーバンド管理へ</a>`;
   if (screen === "bands" && band()) loadRosterAbilityCatalog();
+  if (screen === "bands" && !band() && !sharedId) renderShareQrs();
   if (screen === "battle")
     app.innerHTML = data.game
       ? battleView()
@@ -957,9 +969,9 @@ function bandNotes() {
 }
 function bandLore() {
   const w=band();if(!w)return;
-  show(`<h2>ロア（物語）</h2><h3>${esc(w.name)}</h3>
+  show(`<h2>ロア</h2><h3>${esc(w.name)}</h3>
     <p class="detail-text" id="band-lore-preview">${esc(w.status.lore)||"まだ物語は登録されていません。"}</p>
-    <label id="band-lore-editor" hidden>ロア（物語）<textarea id="band-lore-input" maxlength="20000" rows="12"></textarea></label>
+    <label id="band-lore-editor" hidden>ロア<textarea id="band-lore-input" maxlength="20000" rows="12"></textarea></label>
     <div class="actions"><button type="button" id="edit-band-lore" aria-expanded="false">編集</button>${btn("閉じる","close")}</div>`,{focusHeading:true});
   const preview=modal.querySelector('#band-lore-preview'),editor=modal.querySelector('#band-lore-editor'),
     input=modal.querySelector('#band-lore-input'),edit=modal.querySelector('#edit-band-lore');
@@ -1043,7 +1055,7 @@ function openAdventureMemories(c) {
     `<h2 id="character-story-heading">冒険の思い出</h2><div class="row">${portrait(c)}<div><h3>${esc(c.name)}</h3><p>${esc(c.species)} · Lv.${c.level}</p></div></div>
     <div class="row adventure-tabs" role="tablist" aria-label="キャラクターの記録">
       <button type="button" role="tab" id="adventure-history-tab" aria-controls="adventure-memories" aria-selected="true">冒険の思い出</button>
-      <button type="button" role="tab" id="adventure-lore-tab" aria-controls="character-lore-page" aria-selected="false">ロア（物語）</button>
+      <button type="button" role="tab" id="adventure-lore-tab" aria-controls="character-lore-page" aria-selected="false">ロア</button>
     </div>
     <div id="adventure-memories" role="tabpanel" aria-labelledby="adventure-history-tab"></div>
     <div id="character-lore-page" role="tabpanel" aria-labelledby="adventure-lore-tab" hidden></div>
@@ -1067,7 +1079,7 @@ function openAdventureMemories(c) {
     lore.hidden=!showLore;
     historyEdit.hidden=showLore;
     loreEdit.hidden=!showLore;
-    heading.textContent=showLore?'ロア（物語）':'冒険の思い出';
+    heading.textContent=showLore?'ロア':'冒険の思い出';
   };
   historyTab.addEventListener('click',()=>select(false));
   loreTab.addEventListener('click',()=>select(true));
@@ -1085,7 +1097,7 @@ function mountCharacterLore(c,currentBandId){
   let editing=false;
   function renderLore(){
     container.innerHTML=editing
-      ? `<label>ロア（物語）<textarea id="character-lore-input" maxlength="20000" rows="12"></textarea></label>`
+      ? `<label>ロア<textarea id="character-lore-input" maxlength="20000" rows="12"></textarea></label>`
       : `<p class="detail-text">${esc(c.lore)||'まだ物語は登録されていません。'}</p>`;
     if(!editing)return;
     const input=container.querySelector('#character-lore-input');
@@ -1476,6 +1488,8 @@ document.addEventListener("change", (e) => {
   }
   if (e.target.id === "restore-file" && e.target.files[0])
     restore(e.target.files[0]);
+  if (e.target.id === "shared-roster-file" && e.target.files[0])
+    readSharedFile(e.target.files[0]);
 });
 window.addEventListener("hashchange", navigate);
 window.addEventListener("beforeunload", (e) => {
