@@ -247,6 +247,7 @@ export function validateData(d) {
       !stats.every((s) => dice.includes(c.stats[s])) ||
       !["equipment", "skills", "spells", "notes"].every((k) => str(c[k])) ||
       (c.notes2 !== undefined && !str(c.notes2)) ||
+      (c.lore !== undefined && !str(c.lore)) ||
       (c.adventure !== undefined &&
         (!c.adventure || !Array.isArray(c.adventure.injuries) ||
           !c.adventure.injuries.every(v=>str(v,200) && v.trim()) ||
