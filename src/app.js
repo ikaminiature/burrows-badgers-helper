@@ -203,7 +203,7 @@ function render() {
               const leader = w.characters.find(
                 (c) => characterRole(c) === "leader",
               );
-              return `<section class="card warband-card"><div class="row warband-list-main"><div class="warband-share-column">${portrait(leader || { name: "", photo: "" })}<div class="warband-qr-preview" data-warband-qr="${w.id}"><span class="muted">QR作成中…</span></div></div><div class="identity"><h2 id="band-title-${w.id}">${esc(w.name)}</h2><p>${esc(w.status.alliance) || "アライアンス未設定"}</p><p>${leader ? "リーダー：" + esc(leader.name) : "リーダー未設定"}</p><p>${w.characters.length} キャラクター</p></div></div>${btn("開く", "open-band", `data-id="${w.id}" class="warband-open" aria-describedby="band-title-${w.id}" title="${esc(w.name)}を開く"`)}</section>`;
+              return `<section class="card warband-card"><div class="row warband-list-main"><div class="warband-share-column">${portrait(leader || { name: "", photo: "" })}<div class="warband-qr-preview" data-warband-qr="${w.id}"><button type="button" class="share-qr-button" data-action="show-warband-qr" data-id="${esc(w.id)}" aria-label="${esc(w.name)}の共有QR一覧を表示">QRを表示</button></div></div><div class="identity"><h2 id="band-title-${w.id}">${esc(w.name)}</h2><p>${esc(w.status.alliance) || "アライアンス未設定"}</p><p>${leader ? "リーダー：" + esc(leader.name) : "リーダー未設定"}</p><p>${w.characters.length} キャラクター</p></div></div>${btn("開く", "open-band", `data-id="${w.id}" class="warband-open" aria-describedby="band-title-${w.id}" title="${esc(w.name)}を開く"`)}</section>`;
             })
             .join("") ||
           '<p class="empty">最初のウォーバンドを登録しましょう。</p>'
@@ -235,7 +235,7 @@ function renderShareQrs() {
     makeShareUrl(w).then(shared=>{
       if(!place.isConnected)return;
       sharePreviews.set(w.id,{...shared});
-      place.innerHTML=`<button type="button" class="share-qr-button" data-action="show-warband-qr" data-id="${esc(w.id)}" aria-label="${esc(w.name)}の共有QR一覧を表示">${makeShareSvg(shared.url)}<span>共有QR</span></button>`;
+      place.innerHTML=`<button type="button" class="share-qr-button" data-action="show-warband-qr" data-id="${esc(w.id)}" aria-label="${esc(w.name)}の共有QR一覧を表示">QRを表示</button>`;
     }).catch(err=>{
       if(!place.isConnected)return;
       sharePreviews.set(w.id,{error:err.message});
