@@ -209,6 +209,102 @@ function render() {
       ? battleView()
       : `<h1>戦闘管理</h1><p class="empty">進行中のゲームはありません。</p><a class="button primary" href="#choose">ゲームを開始</a>`;
 }
+// Share-only rosters never become combat warbands or replace existing game data.
+function sharedWarbandList() {
+  const list=data.sharedWarbands||[];
+  if(!list.length)return "";
+  return `<h2>共有されたウォーバンド</h2><p class="muted">ロアと写真だけの閲覧用データです。戦闘用のウォーバンドとは別に保存されます。</p>${list.map(record=>`<section class="card shared-warband-card"><div class="row"><div class="shared-thumbnail">${portrait({name:record.members[0]?.name||"",photo:record.members[0]?.photo||""})}</div><div><h3>${esc(record.name)}</h3><p>${record.members.length} キャラクター</p></div></div><div class="actions">${btn("閲覧", "open-shared-band", `data-id="${record.id}"`)}${btn("削除", "remove-shared-band", `data-id="${record.id}" class="danger"`)}</div></section>`).join("")}`;
+}
+function sharedWarbandView(record) {
+  if(!record)return '<h2>共有ウォーバンドが見つかりません。</h2>';
+  return `${btn("共有ウォーバンド一覧へ", "close-shared-band")}<section class="card"><h1>${esc(record.name)}</h1><h2>ロア</h2><p class="detail-text">${esc(record.lore)||"記録なし"}</p></section><h2>所属メンバー</h2>${record.members.map(c=>`<section class="card shared-member"><div class="row">${portrait(c)}<h3>${esc(c.name)}</h3></div><h4>ロア</h4><p class="detail-text">${esc(c.lore)||"記録なし"}</p></section>`).join("")||'<p class="muted">メンバー未登録</p>'}`;
+}
+function renderShareQrs() {
+  for(const w of data.warbands) {
+    const place=app.querySelector('[data-warband-qr="'+CSS.escape(w.id)+'"]');
+    if(!place)continue;
+    makeShareUrl(w).then(shared=>{
+      if(!place.isConnected)return;
+      sharePreviews.set(w.id,{...shared});
+      place.innerHTML=`<button type="button" class="share-qr-button" data-action="show-warband-qr" data-id="${esc(w.id)}" aria-label="${esc(w.name)}の共有QRを拡大">${makeShareSvg(shared.url)}<span>共有QR</span></button>`;
+    }).catch(err=>{
+      if(!place.isConnected)return;
+      sharePreviews.set(w.id,{error:err.message});
+      place.innerHTML=`<span class="muted qr-too-large">QR容量超過</span><button type="button" data-action="share-json" data-id="${esc(w.id)}">共有JSON</button>`;
+    });
+  }
+}
+function openShareQr(id) {
+  const w=data.warbands.find(x=>x.id===id),shared=sharePreviews.get(id);
+  if(!w||!shared)return;
+  if(shared.error) {
+    show(`<h2>QRに収まりません</h2><p>${esc(shared.error)}</p>${btn("共有JSONを書き出す","share-json",`data-id="${esc(id)}"`)}${btn("閉じる","close")}`);
+    return;
+  }
+  show(`<h2>ウォーバンド共有QR</h2><h3>${esc(w.name)}</h3><div class="share-qr-large">${makeShareSvg(shared.url)}</div><p>読み取った人はロアとメンバーの名前・縮小写真・ロアを受け取れます。能力値や装備は共有しません。</p><p class="muted">QRでは写真を約${shared.photoSize}pxに縮小しています。元の画質で渡す場合は共有JSONを利用してください。</p><div class="actions">${btn("リンクをコピー","copy-warband-share",`data-id="${esc(id)}"`)}${btn("共有JSONを書き出す","share-json",`data-id="${esc(id)}"`)}${btn("閉じる","close")}</div>`,{focusHeading:true});
+}
+function downloadSharedJson(id) {
+  const w=data.warbands.find(x=>x.id===id);
+  if(!w)return;
+  const blob=new Blob([exportShareJson(w)],{type:"application/json"});
+  const link=document.createElement("a"),url=URL.createObjectURL(blob);
+  link.href=url;
+  link.download="bb-warband-lore-"+w.id+".json";
+  link.click();
+  setTimeout(()=>URL.revokeObjectURL(url),15000);
+}
+function showShareImport(packet) {
+  sharedImportCandidate=packet;
+  const exists=(data.sharedWarbands||[]).some(x=>x.sourceId===packet.sourceId);
+  show(`<h2>共有ウォーバンドの登録</h2><h3>${esc(packet.name)}</h3><p>${packet.members.length}人のメンバー</p><h4>ロア</h4><p class="detail-text">${esc(packet.lore)||"記録なし"}</p><h4>所属メンバー</h4>${packet.members.map(c=>`<div class="row shared-import-person">${portrait(c)}<div><strong>${esc(c.name)}</strong><p class="detail-text">${esc(c.lore)||"記録なし"}</p></div></div>`).join("")}<p class="muted">${exists?"以前取り込んだ同じウォーバンドの共有内容を更新します。":"ウォーバンド本体や戦闘データには追加せず、閲覧用として端末内に保存します。"}</p><div class="actions">${btn(exists?"共有データを更新":"共有ウォーバンドを登録","accept-shared-band",'class="primary"')}${btn("閉じる","close")}</div>`,{focusHeading:true});
+}
+function acceptSharedBand() {
+  const packet=sharedImportCandidate;
+  if(!packet)return;
+  const list=data.sharedWarbands||[];
+  const original=list.find(x=>x.sourceId===packet.sourceId);
+  const entry={id:original?.id||id(),...packet};
+  data.sharedWarbands=[...list.filter(x=>x.sourceId!==packet.sourceId),entry];
+  sharedImportCandidate=null;
+  save();
+  modal.close();
+  screen="bands";bandId=undefined;sharedId=entry.id;
+  if(location.hash!=="#bands")location.hash="bands";
+  else render();
+}
+async function receiveShareLink(token) {
+  try {
+    const packet=await readShareToken(token);
+    if(location.hash!=="#share="+token)return;
+    showShareImport(packet);
+  } catch(error) {
+    if(location.hash!=="#share="+token)return;
+    show(`<h2>共有リンクを読み込めませんでした</h2><p>${esc(error.message)}</p>${btn("閉じる","close")}`);
+  }
+}
+function sharePasteDialog() {
+  show(`<h2>共有リンクを読み込む</h2><p>他のプレイヤーから届いた共有リンクを貼り付けてください。</p><label>共有リンク<textarea id="paste-share-link" rows="4" maxlength="15000"></textarea></label><p id="share-import-error" role="status"></p><div class="actions">${btn("読み込む","parse-share-link",'class="primary"')}${btn("閉じる","close")}</div>`);
+}
+async function parsePastedShare() {
+  const value=modal.querySelector('#paste-share-link')?.value.trim()||"";
+  const match=value.match(/(?:^|#)share=([zj][A-Za-z0-9_-]+)$/);
+  const error=modal.querySelector('#share-import-error');
+  if(!match) {if(error)error.textContent="共有リンクの形式が違います。";return;}
+  try {
+    const packet=await readShareToken(match[1]);
+    if(!modal.open||!modal.querySelector('#paste-share-link'))return;
+    showShareImport(packet);
+  }catch(e){if(error)error.textContent=e.message;}
+}
+async function readSharedFile(file){
+  try{
+    if(file.size>20*1024*1024)throw Error("共有ファイルは20MB以下にしてください");
+    showShareImport(readShareJson(await file.text()));
+  }catch(error){
+    show(`<h2>共有JSONを読み込めませんでした</h2><p>${esc(error.message)}</p>${btn("閉じる","close")}`);
+  }
+}
+
 // Display-only catalog data. Update the current cards without rebuilding them,
 // so a late catalog response preserves open equipment and character disclosures.
 let rosterAbilityCatalog, rosterAbilityLoading = false;
