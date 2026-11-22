@@ -40,7 +40,7 @@ try{
  assert.equal(await receiver.getByText("森にまつわる昔話",{exact:true}).count(),1);
  await receiver.getByRole("button",{name:"共有ウォーバンドを登録"}).click();
  await receiver.getByRole("heading",{name:"所属メンバー"}).waitFor();
- assert.equal(await receiver.getByText("森からやってきた",{exact:true}).count(),1);
+ assert.equal(await receiver.locator(".shared-member").getByText("森からやってきた",{exact:true}).count(),1);
  assert.equal(await receiver.getByText("秘密メモ",{exact:true}).count(),0);
  const received=await receiver.evaluate(()=>new Promise(resolve=>{const r=indexedDB.open("bb-helper",1);r.onsuccess=()=>{const db=r.result,q=db.transaction("data").objectStore("data").get("app");q.onsuccess=()=>{resolve(q.result);db.close();};};}));
  assert.equal(received.warbands.length,0);
