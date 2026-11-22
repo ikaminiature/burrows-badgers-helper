@@ -256,7 +256,7 @@ function downloadSharedJson(id) {
 function showShareImport(packet) {
   sharedImportCandidate=packet;
   const exists=(data.sharedWarbands||[]).some(x=>x.sourceId===packet.sourceId);
-  show(`<h2>共有ウォーバンドの登録</h2><h3>${esc(packet.name)}</h3><p>${packet.members.length}人のメンバー</p><h4>ロア</h4><p class="detail-text">${esc(packet.lore)||"記録なし"}</p><h4>所属メンバー</h4>${packet.members.map(c=>`<div class="row shared-import-person">${portrait(c)}<div><strong>${esc(c.name)}</strong><p class="detail-text">${esc(c.lore)||"記録なし"}</p></div></div>`).join("")}<p class="muted">${exists?"以前取り込んだ同じウォーバンドの共有内容を更新します。":"ウォーバンド本体や戦闘データには追加せず、閲覧用として端末内に保存します。"}</p><div class="actions">${btn(exists?"共有データを更新":"共有ウォーバンドを登録","accept-shared-band",'class="primary"')}${btn("閉じる","close")}</div>`,{focusHeading:true});
+  show(`<h2>共有ウォーバンドの登録</h2><h3>${esc(packet.name)}</h3><p>${packet.members.length}人のメンバー</p><h4>ロア</h4><p class="detail-text">${esc(packet.lore)||"記録なし"}</p><h4>所属メンバー</h4>${packet.members.map(c=>`<div class="row shared-import-person">${portrait(c)}<div><strong>${esc(c.name)}</strong><p class="detail-text">${esc(c.lore)||"記録なし"}</p></div></div>`).join("")}<p class="muted">${exists?"以前取り込んだ同じウォーバンドの共有内容を更新します。":"ウォーバンド本体や戦闘データには追加せず、閲覧用として端末内に保存します。"}</p>${location.hash.startsWith("#share=")?`<p class="muted">iPhoneのSafariとホーム画面に追加したアプリは保存先が別です。ホーム画面版に入れる場合はリンクをコピーし、ホーム画面版の「共有を読み込む」に貼り付けてください。</p>`:""}<div class="actions">${btn(exists?"共有データを更新":"共有ウォーバンドを登録","accept-shared-band",'class="primary"')}${location.hash.startsWith("#share=")?btn("共有リンクをコピー","copy-received-link"):""}${btn("閉じる","close")}</div>`,{focusHeading:true});
 }
 function acceptSharedBand() {
   const packet=sharedImportCandidate;
@@ -1417,6 +1417,12 @@ document.addEventListener("click", (e) => {
       break;
     case "parse-share-link":
       parsePastedShare();
+      break;
+    case "copy-received-link":
+      navigator.clipboard.writeText(location.href).then(()=>{b.textContent="コピーしました";}).catch(()=>{
+        const value=location.href;
+        show(`<h2>共有リンク</h2><p>リンクを選択してコピーしてください。</p><textarea rows="5" readonly>${esc(value)}</textarea>${btn("閉じる","close")}`);
+      });
       break;
     case "accept-shared-band":
       acceptSharedBand();
