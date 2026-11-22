@@ -1011,3 +1011,7 @@ dialog { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
   header,nav,#editing-indicator,.share-sheet-item button, #share-sheet-content ~ .actions { display:none!important; }
   .share-sheet-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
 }
+
+/* In-app QR camera view, with a photo picker as fallback on iOS. */
+.qr-scanner-frame {background:#111; border-radius:12px; overflow:hidden; margin:12px 0; aspect-ratio:3/4; max-height:56vh; display:flex; align-items:center; justify-content:center; }
+.qr-scanner-frame video {display:block; width:100%; height:100%; object-fit:cover; }
