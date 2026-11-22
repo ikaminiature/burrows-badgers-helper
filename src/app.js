@@ -312,20 +312,62 @@ function downloadSharedJson(id) {
 }
 function showShareImport(packet) {
   sharedImportCandidate=packet;
-  const exists=(data.sharedWarbands||[]).some(x=>x.sourceId===packet.sourceId);
-  show(`<h2>共有ウォーバンドの登録</h2><h3>${esc(packet.name)}</h3><p>${packet.members.length}人のメンバー</p><h4>ロア</h4><p class="detail-text">${esc(packet.lore)||"記録なし"}</p><h4>所属メンバー</h4>${packet.members.map(c=>`<div class="row shared-import-person">${portrait(c)}<div><strong>${esc(c.name)}</strong><p class="detail-text">${esc(c.lore)||"記録なし"}</p></div></div>`).join("")}<p class="muted">${exists?"以前取り込んだ同じウォーバンドの共有内容を更新します。":"ウォーバンド本体や戦闘データには追加せず、閲覧用として端末内に保存します。"}</p>${location.hash.startsWith("#share=")?`<p class="muted">iPhoneのSafariとホーム画面に追加したアプリは保存先が別です。ホーム画面版に入れる場合はリンクをコピーし、ホーム画面版の「共有を読み込む」に貼り付けてください。</p>`:""}<div class="actions">${btn(exists?"出会ったバンドを更新":"出会ったバンドに登録","accept-shared-band",'class="primary"')}${location.hash.startsWith("#share=")?btn("共有リンクをコピー","copy-received-link"):""}${btn("閉じる","close")}</div>`,{focusHeading:true});
+  const exists=(data.sharedWarbands||[]).some(x=>x.sourceId===(packet.kind==="character"?packet.bandSourceId:packet.sourceId));
+  const character=packet.kind==="character";
+  const message=character? (exists?
+    "対応する出会ったバンドのメンバーに写真とロアを追加・更新します。" :
+    "先にキャラクターだけ保存し、あとからウォーバンドQRを読み込むと自動で所属します。")
+   : (exists?"この出会ったバンドの名前・ロアとメンバー一覧を更新します。既に受け取ったメンバーの写真とロアは残します。":
+      "出会ったバンドとして保存します。各メンバーのQRを読み取ると写真とロアが追加されます。");
+  show(`<h2>${character?"キャラクターQRを登録":"出会ったバンドに登録"}</h2><h3>${esc(packet.name)}</h3>${character?`<div class="row">${portrait(packet)}<p>${esc(packet.species)}</p></div><h4>ロア</h4><p class="detail-text">${esc(packet.lore)||"記録なし"}</p>`
+    :`<p>${packet.members.length}人のメンバー</p><h4>ロア</h4><p class="detail-text">${esc(packet.lore)||"記録なし"}</p><h4>所属メンバー</h4>${packet.members.map(c=>`<p>${esc(c.name)}</p>`).join("")}`}
+    <p class="muted">${message}</p>${location.hash.startsWith("#share=")?`<p class="muted">Safariとホーム画面版の保存先は別です。ホーム画面版に登録するにはリンクをコピーして「共有を読み込む」に貼り付けてください。</p>`:""}
+    <div class="actions">${btn(character?"キャラクターを登録":exists?"出会ったバンドを更新":"出会ったバンドに登録","accept-shared-band",'class="primary"')}${location.hash.startsWith("#share=")?btn("共有リンクをコピー","copy-received-link"):""}${btn("閉じる","close")}</div>`,{focusHeading:true});
+}
+function mergeEncounteredBand(packet) {
+  const list=data.sharedWarbands||[];
+  const previous=list.find(x=>x.sourceId===packet.sourceId);
+  const waiting=(data.pendingSharedCharacters||[]).filter(c=>c.bandSourceId===packet.sourceId);
+  const allPrevious=previous?.members||[];
+  const members=packet.members.map(member=>{
+    const existing=allPrevious.find(c=>c.sourceId===member.sourceId);
+    const pending=waiting.find(c=>c.sourceId===member.sourceId);
+    return pending?{...member,...pending}:existing?{...member,...existing}:member;
+  });
+  const entry={id:previous?.id||id(),sourceId:packet.sourceId,name:packet.name,lore:packet.lore,members};
+  data.sharedWarbands=[...list.filter(x=>x.sourceId!==packet.sourceId),entry];
+  data.pendingSharedCharacters=(data.pendingSharedCharacters||[]).filter(c=>c.bandSourceId!==packet.sourceId||!members.some(m=>m.sourceId===c.sourceId));
+  return entry;
+}
+function mergeEncounteredCharacter(packet) {
+  const list=data.sharedWarbands||[];
+  const band=list.find(x=>x.sourceId===packet.bandSourceId);
+  if(!band){
+    const waiting=data.pendingSharedCharacters||[];
+    data.pendingSharedCharacters=[...waiting.filter(c=>!(c.bandSourceId===packet.bandSourceId&&c.sourceId===packet.sourceId)),packet];
+    return null;
+  }
+  const index=band.members.findIndex(c=>c.sourceId===packet.sourceId);
+  if(index<0){
+    // Never add members outside the roster encoded by the owning warband.
+    throw Error("このキャラクターは共有ウォーバンドの所属メンバーに見つかりません。ウォーバンドQRを読み直してください。");
+  }
+  band.members[index]={...band.members[index],...packet};
+  return band;
 }
 function acceptSharedBand() {
   const packet=sharedImportCandidate;
   if(!packet)return;
-  const list=data.sharedWarbands||[];
-  const original=list.find(x=>x.sourceId===packet.sourceId);
-  const entry={id:original?.id||id(),...packet};
-  data.sharedWarbands=[...list.filter(x=>x.sourceId!==packet.sourceId),entry];
+  let entry;
+  try{
+    entry=packet.kind==="character"?mergeEncounteredCharacter(packet):mergeEncounteredBand(packet);
+  }catch(error){
+    show(`<h2>登録できませんでした</h2><p>${esc(error.message)}</p>${btn("閉じる","close")}`);
+    return;
+  }
   sharedImportCandidate=null;
-  save();
-  modal.close();
-  screen="bands";bandId=undefined;sharedId=entry.id;
+  save();modal.close();
+  screen="bands";bandId=undefined;sharedId=entry?.id;
   if(location.hash!=="#bands")location.hash="bands";
   else render();
 }
@@ -1454,6 +1496,16 @@ document.addEventListener("click", (e) => {
       break;
     case "show-warband-qr":
       openShareQr(b.dataset.id);
+      break;
+    case "save-share-sheet":
+      b.disabled=true;
+      saveShareSheet().catch(e=>show(`<h2>画像を保存できませんでした</h2><p>${esc(e.message)}</p>${btn("閉じる","close")}`)).finally(()=>{if(b.isConnected)b.disabled=false;});
+      break;
+    case "expand-shared-qr":
+      expandShareQr(Number(b.dataset.index));
+      break;
+    case "return-share-sheet":
+      if(shareSheetBandId)openShareQr(shareSheetBandId);
       break;
     case "copy-warband-share": {
       const link=sharePreviews.get(b.dataset.id)?.url;
