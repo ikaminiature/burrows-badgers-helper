@@ -23,10 +23,10 @@ try{
  assert.equal(await page.getByRole("button",{name:"共有JSONを読み込む"}).count(),0);
 
  const card=page.locator(".warband-card");
- await card.locator(".warband-qr-preview svg").waitFor({timeout:15000});
+ await card.locator(".warband-qr-preview .share-qr-button").waitFor({timeout:15000});
  assert.ok(await card.locator(".warband-share-column .portrait").count());
- const svg=card.locator(".warband-qr-preview svg");
- assert.ok((await svg.locator("path").count())>0);
+ assert.equal(await card.locator(".warband-qr-preview svg").count(),0);
+ assert.equal(await card.getByRole("button",{name:/共有QR一覧を表示/}).textContent(),"QRを表示");
  await card.getByRole("button",{name:/共有QR一覧を表示/}).click();
  await page.getByRole("heading",{name:"共有QR一覧"}).waitFor();
  await page.locator(".share-sheet-item svg").first().waitFor({timeout:15000});
