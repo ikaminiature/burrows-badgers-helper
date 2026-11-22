@@ -189,7 +189,7 @@ function render() {
     app.innerHTML = band()
       ? bandView(band())
       : sharedId ? sharedWarbandView((data.sharedWarbands||[]).find(s=>s.id===sharedId)) :
-        `<div class="eyebrow">WARBANDS</div><h1>ウォーバンド管理</h1><div class="actions">${btn("＋ ウォーバンドを登録", "new-band", 'class="primary"')}${btn("共有を読み込む", "share-paste")}${btn("共有JSONを読み込む", "share-file")}</div>${
+        `<div class="eyebrow">WARBANDS</div><h1>ウォーバンド管理</h1><div class="actions">${btn("＋ ウォーバンドを登録", "new-band", 'class="primary"')}${btn("共有を読み込む", "share-paste")}${btn("共有JSONを読み込む", "share-file")}</div><input id="shared-roster-file" type="file" accept="application/json,.json" hidden>${
           data.warbands
             .map((w) => {
               const leader = w.characters.find(
@@ -1395,6 +1395,48 @@ document.addEventListener("click", (e) => {
       resetRosterView();
       nameForm();
       break;
+    case "show-warband-qr":
+      openShareQr(b.dataset.id);
+      break;
+    case "copy-warband-share": {
+      const link=sharePreviews.get(b.dataset.id)?.url;
+      if(!link)break;
+      navigator.clipboard.writeText(link).then(()=>{b.textContent="コピーしました";}).catch(()=>{
+        show(`<h2>共有リンク</h2><p>次のリンクをコピーしてください。</p><textarea rows="5" readonly>${esc(link)}</textarea>${btn("閉じる","close")}`);
+      });
+      break;
+    }
+    case "share-json":
+      downloadSharedJson(b.dataset.id);
+      break;
+    case "share-file":
+      document.querySelector("#shared-roster-file")?.click();
+      break;
+    case "share-paste":
+      sharePasteDialog();
+      break;
+    case "parse-share-link":
+      parsePastedShare();
+      break;
+    case "accept-shared-band":
+      acceptSharedBand();
+      break;
+    case "open-shared-band":
+      sharedId=b.dataset.id;
+      render();
+      break;
+    case "close-shared-band":
+      sharedId=undefined;
+      render();
+      break;
+    case "remove-shared-band": {
+      const toRemove=(data.sharedWarbands||[]).find(x=>x.id===b.dataset.id);
+      if(toRemove)confirmAction("共有ウォーバンドを削除",esc(toRemove.name)+" の共有記録を削除します。元のウォーバンドには影響しません。",()=>{
+        data.sharedWarbands=(data.sharedWarbands||[]).filter(x=>x.id!==toRemove.id);
+        sharedId=undefined;save();render();
+      });
+      break;
+    }
     case "open-band":
       resetRosterView();
       bandId = b.dataset.id;
