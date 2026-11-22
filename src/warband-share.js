@@ -37,24 +37,56 @@ async function tinyPortrait(source,size) {
   return canvas.toDataURL("image/webp",0.38);
 }
 function parsePacket(packet) {
+  if (packet?.v === 2 && packet.t === "w") {
+    if(!validText(packet.id,100)||!packet.id||!validText(packet.n,200)||!packet.n.trim()||
+       !validText(packet.l,20000)||!Array.isArray(packet.c)||packet.c.length>10||
+       !packet.c.every(c=>c&&validText(c.id,100)&&c.id&&validText(c.n,200)&&c.n.trim()&&validText(c.s,200)))throw Error("ウォーバンドの共有データが不正です");
+    const ids=packet.c.map(c=>c.id);
+    if(new Set(ids).size!==ids.length)throw Error("メンバーIDが重複しています");
+    return {kind:"warband",sourceId:packet.id,name:packet.n,lore:packet.l,
+      members:packet.c.map(c=>({sourceId:c.id,name:c.n,species:c.s,lore:"",photo:"",received:false}))};
+  }
+  if (packet?.v === 2 && packet.t === "c") {
+    if(!validText(packet.w,100)||!packet.w||!validText(packet.id,100)||!packet.id||
+       !validText(packet.n,200)||!packet.n.trim()||!validText(packet.s,200)||
+       !validText(packet.l,20000)||!validPhoto(packet.p))throw Error("キャラクターの共有データが不正です");
+    return {kind:"character",bandSourceId:packet.w,sourceId:packet.id,name:packet.n,
+      species:packet.s,lore:packet.l,photo:packet.p,received:true};
+  }
+  // Preserve compatibility with already-issued single-QR links.
   if(!packet || packet.v!==1 || !validText(packet.id,100) || !packet.id ||
      !validText(packet.n,200) || !packet.n.trim() || !validText(packet.l,20000) ||
      !Array.isArray(packet.c) || packet.c.length>100 ||
      !packet.c.every(c=>c && validText(c.n,200) && c.n.trim() && validText(c.l,20000) && validPhoto(c.p))) {
     throw Error("共有データが不正です");
   }
-  return {sourceId:packet.id,name:packet.n,lore:packet.l,members:packet.c.map(c=>({name:c.n,lore:c.l,photo:c.p}))};
+  return {kind:"warband",sourceId:packet.id,name:packet.n,lore:packet.l,
+    members:packet.c.map((c,i)=>({sourceId:"legacy-"+i,name:c.n,species:"",lore:c.l,photo:c.p,received:true}))};
+}
+async function encodePacket(packet) {
+  const origin=new URL("./",location.href).href.split("#")[0];
+  const {prefix,bytes}=await bytesCompressed(JSON.stringify(packet));
+  const url=origin+"#share="+prefix+base64url(bytes);
+  if(url.length>MAX_QR_URL)throw Error("QRコードの容量を超えています。文章を短くして試してください。");
+  return {url,preview:parsePacket(packet)};
 }
 export async function makeShareUrl(w) {
-  const origin=new URL("./",location.href).href.split("#")[0];
-  for(const size of [32,24,16,12]) {
-    const members=await Promise.all(w.characters.map(async c=>({n:c.name,l:c.lore||"",p:await tinyPortrait(c.photo,size)})));
-    const packet={v:1,id:w.id,n:w.name,l:w.status.lore||"",c:members};
-    const {prefix,bytes}=await bytesCompressed(JSON.stringify(packet));
-    const url=origin+"#share="+prefix+base64url(bytes);
-    if(url.length<=MAX_QR_URL) return {url,preview:parsePacket(packet),photoSize:size};
+  if(w.characters.length>10)throw Error("QR共有は最大10人までです");
+  return encodePacket({v:2,t:"w",id:w.id,n:w.name,l:w.status.lore||"",
+    c:w.characters.map(c=>({id:c.id,n:c.name,s:c.species||""}))});
+}
+export async function makeCharacterShareUrl(w,c) {
+  for(const size of [96,80,64,48,32,24,16]) {
+    const photo=await tinyPortrait(c.photo,size);
+    try {
+      const result=await encodePacket({v:2,t:"c",w:w.id,id:c.id,n:c.name,
+        s:c.species||"",l:c.lore||"",p:photo});
+      return {...result,photoSize:size};
+    }catch(e){
+      if(!/QRコードの容量/.test(e.message))throw e;
+    }
   }
-  throw Error("ロアや写真の情報量がQRコード1枚の容量を超えています。共有JSONで送ってください。");
+  throw Error("写真とロアがQRコードに収まりません。文章を短くして試してください。");
 }
 export async function readShareToken(token) {
   return parsePacket(await unpack(token));
