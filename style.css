@@ -975,3 +975,25 @@ dialog { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 .adventure-tabs [role="tab"][aria-selected="true"] { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
 #character-lore-page { margin-block: 16px; }
 #character-lore-page .detail-text, #band-lore-preview { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* Warband sharing: leader portrait above a tappable QR miniature. */
+.warband-card .warband-list-main { align-items: flex-start; }
+.warband-share-column { display:flex; flex-direction:column; align-items:center; flex:0 0 102px; gap:7px; transform:translateY(-5px); }
+.warband-share-column > .portrait { flex:0 0 auto; }
+.warband-qr-preview { width:98px; min-height:98px; text-align:center; }
+.warband-qr-preview .muted { font-size:11px; line-height:1.4; }
+.warband-qr-preview button.share-qr-button { display:block; width:98px; min-height:98px; padding:4px; border:1px solid var(--line); background:#fff; color:#111; border-radius:8px; font-size:10px; line-height:1.2; }
+.warband-qr-preview .share-qr-button svg { width:100%; aspect-ratio:1; height:auto; display:block; }
+.warband-qr-preview .share-qr-button span { display:block; color:#333; margin-top:3px; }
+.warband-qr-preview .qr-too-large { display:block; }
+.warband-qr-preview > button:not(.share-qr-button) { font-size:11px; padding:4px; }
+.warband-card .warband-open { position:static; display:block; width:100%; height:auto; inset:auto; padding:8px 10px; font-size:14px; background:var(--accent); border:1px solid var(--accent); color:white; margin-top:10px; }
+.warband-card .warband-open:hover { background:var(--accent); filter:brightness(.95); }
+.share-qr-large { background:#fff; padding:12px; border-radius:8px; max-width:350px; margin:12px auto; }
+.share-qr-large svg { width:100%; height:auto; display:block; }
+.shared-warband-card .row, .shared-member .row, .shared-import-person { align-items:center; gap:12px; }
+.shared-member .detail-text, .shared-warband-card .detail-text, .shared-import-person .detail-text { white-space:pre-wrap; overflow-wrap:anywhere; }
+.shared-import-person { margin-block:12px; padding-block:10px; border-bottom:1px solid var(--line); }
+.shared-import-person .portrait { flex-shrink:0; }
+.shared-import-person > div { min-width:0; }
+.shared-warband-card .actions { margin-top:8px; }
