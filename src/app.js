@@ -65,6 +65,10 @@ let sharedId;
 let sharedImportCandidate = null;
 let shareSheetData = [];
 let shareSheetBandId = null;
+let qrCameraStream = null;
+let qrScanFrame = 0;
+let qrScanActive = false;
+let jsQrLoading = null;
 const sharePreviews = new Map();
 const shareRoot = () => new URL("./", location.href).href.split("#")[0];
 function resetRosterView() {
@@ -88,6 +92,7 @@ const updater = createUpdater({
     else if (modal.open) modal.close();
   },
 });
+modal.addEventListener("close", () => stopQrScanner());
 modal.addEventListener("cancel", (e) => {
   if (updateBusy) e.preventDefault();
 });
@@ -153,6 +158,7 @@ function confirmAction(title, message, action) {
   };
 }
 function navigate() {
+  stopQrScanner();
   closeAllDialogs();
   const route = location.hash.slice(1) || "home";
   if(route.startsWith("share=")) {
@@ -191,7 +197,7 @@ function render() {
     app.innerHTML = band()
       ? bandView(band())
       : sharedId ? sharedWarbandView((data.sharedWarbands||[]).find(s=>s.id===sharedId)) :
-        `<div class="eyebrow">WARBANDS</div><h1>ウォーバンド管理</h1><div class="actions">${btn("＋ ウォーバンドを登録", "new-band", 'class="primary"')}${btn("共有を読み込む", "share-paste")}${btn("共有JSONを読み込む", "share-file")}</div><input id="shared-roster-file" type="file" accept="application/json,.json" hidden>${
+        `<div class="eyebrow">WARBANDS</div><h1>ウォーバンド管理</h1><div class="actions">${btn("＋ ウォーバンドを登録", "new-band", 'class="primary"')}${btn("QRを読み取る", "scan-qr", 'class="primary"')}${btn("共有リンクを読み込む", "share-paste")}</div>${
           data.warbands
             .map((w) => {
               const leader = w.characters.find(
@@ -380,6 +386,121 @@ async function receiveShareLink(token) {
     if(location.hash!=="#share="+token)return;
     show(`<h2>共有リンクを読み込めませんでした</h2><p>${esc(error.message)}</p>${btn("閉じる","close")}`);
   }
+}
+function stopQrScanner() {
+  qrScanActive=false;
+  if(qrScanFrame)cancelAnimationFrame(qrScanFrame);
+  qrScanFrame=0;
+  if(qrCameraStream)qrCameraStream.getTracks().forEach(track=>track.stop());
+  qrCameraStream=null;
+  const video=modal.querySelector("#qr-camera-preview");
+  if(video){video.pause();video.srcObject=null;}
+}
+function loadJsQr() {
+  if(typeof window.jsQR==="function")return Promise.resolve(window.jsQR);
+  if(!jsQrLoading)jsQrLoading=new Promise((resolve,reject)=>{
+    const script=document.createElement("script");
+    script.src="./src/jsqr-vendor.js";
+    script.async=true;
+    script.onload=()=>typeof window.jsQR==="function"?resolve(window.jsQR):reject(Error("QRの読み取り機能を読み込めませんでした"));
+    script.onerror=()=>reject(Error("QRの読み取り機能を読み込めませんでした。通信状態を確認してください"));
+    document.head.appendChild(script);
+  }).catch(error=>{jsQrLoading=null;throw error;});
+  return jsQrLoading;
+}
+function extractQrShareToken(value) {
+  try{
+    const url=new URL(value);
+    const appRoot=new URL("./",location.href);
+    if(url.origin!==appRoot.origin||url.pathname!==appRoot.pathname)throw Error("このアプリのQRコードではありません");
+    const match=url.hash.match(/^#share=([zj][A-Za-z0-9_-]+)$/);
+    if(!match)throw Error("ウォーバンドまたはキャラクターの共有QRではありません");
+    return match[1];
+  }catch(error){throw Error(error.message||"QRコードの形式が正しくありません");}
+}
+async function finishQrScan(value){
+  stopQrScanner();
+  try{
+    const packet=await readShareToken(extractQrShareToken(value));
+    if(!modal.open)return;
+    showShareImport(packet);
+  }catch(error){
+    if(!modal.open)return;
+    const status=modal.querySelector("#qr-scan-status");
+    if(status)status.textContent=error.message+"。別のQRを読み取ってください。";
+    startQrCamera();
+  }
+}
+function qrScannerDialog(){
+  stopQrScanner();
+  show(`<h2>QRを読み取る</h2><p>ウォーバンドまたはキャラクターのQRをカメラに映してください。読み取った内容を確認してから登録できます。</p>
+    <div class="qr-scanner-frame"><video id="qr-camera-preview" autoplay playsinline muted aria-label="QR読み取り用カメラ映像"></video></div>
+    <p id="qr-scan-status" class="muted" role="status">カメラを準備しています…</p>
+    <div class="actions">${btn("カメラを再試行","restart-qr")}${btn("写真から読み取る","choose-qr-photo")}${btn("閉じる","close")}</div>
+    <input type="file" id="qr-photo-file" accept="image/*" hidden>`,{focusHeading:true});
+  startQrCamera();
+}
+async function startQrCamera(){
+  if(!modal.querySelector("#qr-camera-preview"))return;
+  stopQrScanner();
+  const video=modal.querySelector("#qr-camera-preview");
+  const status=modal.querySelector("#qr-scan-status");
+  if(!window.isSecureContext || !navigator.mediaDevices?.getUserMedia){
+    if(status)status.textContent="カメラを使えません。HTTPSで開くか「写真から読み取る」をお試しください。";
+    return;
+  }
+  try{
+    const decode=await loadJsQr();
+    if(!video.isConnected)return;
+    const stream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}}});
+    if(!video.isConnected){stream.getTracks().forEach(t=>t.stop());return;}
+    qrCameraStream=stream;
+    video.srcObject=stream;
+    await video.play();
+    if(!video.isConnected){stopQrScanner();return;}
+    qrScanActive=true;
+    if(status)status.textContent="QRをカメラの中央に合わせてください。";
+    const canvas=document.createElement("canvas"),ctx=canvas.getContext("2d",{willReadFrequently:true});
+    let previous=0;
+    const scan=now=>{
+      if(!qrScanActive||!video.isConnected)return;
+      if(now-previous>=180 && video.readyState>=2 && video.videoWidth){
+        previous=now;
+        const scale=Math.min(1,900/video.videoWidth);
+        canvas.width=Math.round(video.videoWidth*scale);canvas.height=Math.round(video.videoHeight*scale);
+        ctx.drawImage(video,0,0,canvas.width,canvas.height);
+        const frame=ctx.getImageData(0,0,canvas.width,canvas.height);
+        const qr=decode(frame.data,frame.width,frame.height,{inversionAttempts:"attemptBoth"});
+        if(qr?.data){finishQrScan(qr.data);return;}
+      }
+      qrScanFrame=requestAnimationFrame(scan);
+    };
+    qrScanFrame=requestAnimationFrame(scan);
+  }catch(error){
+    stopQrScanner();
+    if(status?.isConnected)status.textContent=error.name==="NotAllowedError"?
+      "カメラの使用が許可されていません。iPhoneの設定で許可するか、写真から読み取ってください。":
+      "カメラを開始できませんでした。写真から読み取ることもできます。";
+  }
+}
+async function readQrPhoto(file){
+  const status=modal.querySelector("#qr-scan-status");
+  if(!file||!status)return;
+  stopQrScanner();status.textContent="写真のQRコードを解析しています…";
+  try{
+    const decode=await loadJsQr();
+    const bitmap=await createImageBitmap(file);
+    const canvas=document.createElement("canvas");
+    const scale=Math.min(1,2400/Math.max(bitmap.width,bitmap.height));
+    canvas.width=Math.max(1,Math.round(bitmap.width*scale));canvas.height=Math.max(1,Math.round(bitmap.height*scale));
+    const ctx=canvas.getContext("2d",{willReadFrequently:true});
+    ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);
+    bitmap.close();
+    const frame=ctx.getImageData(0,0,canvas.width,canvas.height);
+    const result=decode(frame.data,frame.width,frame.height,{inversionAttempts:"attemptBoth"});
+    if(!result?.data)throw Error("写真からQRを検出できませんでした。個別QRを大きくして撮影してください。");
+    await finishQrScan(result.data);
+  }catch(error){if(status.isConnected)status.textContent=error.message;}
 }
 function sharePasteDialog() {
   show(`<h2>共有リンクを読み込む</h2><p>他のプレイヤーから届いた共有リンクを貼り付けてください。</p><label>共有リンク<textarea id="paste-share-link" rows="4" maxlength="15000"></textarea></label><p id="share-import-error" role="status"></p><div class="actions">${btn("読み込む","parse-share-link",'class="primary"')}${btn("閉じる","close")}</div>`);
@@ -1518,6 +1639,15 @@ document.addEventListener("click", (e) => {
     case "share-json":
       downloadSharedJson(b.dataset.id);
       break;
+    case "scan-qr":
+      qrScannerDialog();
+      break;
+    case "restart-qr":
+      startQrCamera();
+      break;
+    case "choose-qr-photo":
+      modal.querySelector("#qr-photo-file")?.click();
+      break;
     case "share-file":
       document.querySelector("#shared-roster-file")?.click();
       break;
@@ -1741,6 +1871,8 @@ document.addEventListener("change", (e) => {
   }
   if (e.target.id === "restore-file" && e.target.files[0])
     restore(e.target.files[0]);
+  if (e.target.id === "qr-photo-file" && e.target.files[0])
+    readQrPhoto(e.target.files[0]);
   if (e.target.id === "shared-roster-file" && e.target.files[0])
     readSharedFile(e.target.files[0]);
 });
