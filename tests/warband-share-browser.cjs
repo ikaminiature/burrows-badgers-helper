@@ -22,6 +22,7 @@ try{
  assert.ok((await svg.locator("path").count())>0);
  await card.getByRole("button",{name:/共有QR一覧を表示/}).click();
  await page.getByRole("heading",{name:"共有QR一覧"}).waitFor();
+ await page.locator(".share-sheet-item svg").first().waitFor({timeout:15000});
  assert.equal(await page.locator(".share-sheet-item svg").count(),2);
  await page.getByRole("button",{name:"閉じる",exact:true}).click();
  const link=await page.evaluate(async()=>{
