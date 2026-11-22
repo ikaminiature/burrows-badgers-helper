@@ -102,6 +102,7 @@ export const emptyBandStatus = () => ({
   alliance: "",
   archetype: "",
   notes: "",
+  lore: "",
   stash: [],
   upgrades: [],
 });
@@ -115,11 +116,13 @@ export function loadData(input) {
       if (w && w.status === undefined) w.status = emptyBandStatus();
     d.version = 2;
   }
-  for (const w of d.warbands)
+  for (const w of d.warbands) {
+    if (w.status && w.status.lore === undefined) w.status.lore = "";
     for (const c of w.characters || []) {
       if (c.fate === undefined) c.fate = 0;
       if (c.experience === undefined) c.experience = 0;
     }
+  }
   if (d.game && typeof d.game === "object" && !Array.isArray(d.game)) {
     if (d.game.notes === undefined) d.game.notes = "";
     if (d.game.vp === undefined) d.game.vp = 0;
@@ -204,6 +207,7 @@ export function validateData(d) {
         (k) => typeof s[k] === "number" && Number.isFinite(s[k]),
       ) ||
       !Object.keys(bandTexts).every((k) => str(s[k])) ||
+      !str(s.lore) ||
       (s.denUpgrades !== undefined &&
         (!Array.isArray(s.denUpgrades) || new Set(s.denUpgrades.map(v=>v?.id)).size !== s.denUpgrades.length ||
           !s.denUpgrades.every(v=>v && str(v.id,200) && v.id.length>0 &&
