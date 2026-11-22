@@ -957,12 +957,27 @@ function bandNotes() {
 }
 function bandLore() {
   const w=band();if(!w)return;
-  notesEditor({heading:"ロア（物語）",title:w.name,description:"ウォーバンドの背景や冒険の物語を自由に記録できます。",value:w.status.lore||"",onInput:text=>{
-    if(!data.warbands.some(entry=>entry.id===w.id))return false;
-    w.status.lore=text;
-    const preview=app.querySelector(".band-lore-text");if(bandId===w.id&&preview)preview.textContent=text||"まだ物語は登録されていません。";
-    return true;
-  }});
+  show(`<h2>ロア（物語）</h2><h3>${esc(w.name)}</h3>
+    <p class="detail-text" id="band-lore-preview">${esc(w.status.lore)||"まだ物語は登録されていません。"}</p>
+    <label id="band-lore-editor" hidden>ロア（物語）<textarea id="band-lore-input" maxlength="20000" rows="12"></textarea></label>
+    <div class="actions"><button type="button" id="edit-band-lore" aria-expanded="false">編集</button>${btn("閉じる","close")}</div>`,{focusHeading:true});
+  const preview=modal.querySelector('#band-lore-preview'),editor=modal.querySelector('#band-lore-editor'),
+    input=modal.querySelector('#band-lore-input'),edit=modal.querySelector('#edit-band-lore');
+  input.value=w.status.lore||"";
+  input.addEventListener('input',()=>{
+    if(!data.warbands.some(entry=>entry.id===w.id))return;
+    w.status.lore=input.value;
+    save();
+  });
+  edit.addEventListener('click',()=>{
+    const editing=editor.hidden;
+    editor.hidden=!editing;
+    preview.hidden=editing;
+    if(!editing)preview.textContent=w.status.lore||"まだ物語は登録されていません。";
+    edit.textContent=editing?"編集を終了":"編集";
+    edit.setAttribute('aria-expanded',String(editing));
+    if(editing)input.focus({preventScroll:true});
+  });
 }
 function characterNotes(source,id) {
   const c=source==='battle'?data.game?.characters.find(c=>c.id===id):band()?.characters.find(c=>c.id===id);
@@ -1025,13 +1040,70 @@ function confirmEquipmentConsumption(button) {
 function openAdventureMemories(c) {
   if(!c)return;
   show(
-    `<h2>冒険の思い出</h2><div class="row">${portrait(c)}<div><h3>${esc(c.name)}</h3><p>${esc(c.species)} · Lv.${c.level}</p></div></div>
-    <div id="adventure-memories"></div>
-    <div class="actions"><button type="button" id="edit-adventure" aria-expanded="false" aria-controls="adventure-memories">編集</button>${btn("閉じる", "close")}</div>`,
+    `<h2 id="character-story-heading">冒険の思い出</h2><div class="row">${portrait(c)}<div><h3>${esc(c.name)}</h3><p>${esc(c.species)} · Lv.${c.level}</p></div></div>
+    <div class="row adventure-tabs" role="tablist" aria-label="キャラクターの記録">
+      <button type="button" role="tab" id="adventure-history-tab" aria-controls="adventure-memories" aria-selected="true">冒険の思い出</button>
+      <button type="button" role="tab" id="adventure-lore-tab" aria-controls="character-lore-page" aria-selected="false">ロア（物語）</button>
+    </div>
+    <div id="adventure-memories" role="tabpanel" aria-labelledby="adventure-history-tab"></div>
+    <div id="character-lore-page" role="tabpanel" aria-labelledby="adventure-lore-tab" hidden></div>
+    <div class="actions"><button type="button" id="edit-adventure" aria-expanded="false" aria-controls="adventure-memories">編集</button><button type="button" id="edit-character-lore" aria-expanded="false" aria-controls="character-lore-page" hidden>編集</button>${btn("閉じる", "close")}</div>`,
     {focusHeading:true},
   );
   modal.scrollTop=0;
   mountAdventureMemories(c,bandId);
+  mountCharacterLore(c,bandId);
+  const historyTab=modal.querySelector('#adventure-history-tab'),
+    loreTab=modal.querySelector('#adventure-lore-tab'),
+    memories=modal.querySelector('#adventure-memories'),
+    lore=modal.querySelector('#character-lore-page'),
+    historyEdit=modal.querySelector('#edit-adventure'),
+    loreEdit=modal.querySelector('#edit-character-lore'),
+    heading=modal.querySelector('#character-story-heading');
+  const select=(showLore)=>{
+    historyTab.setAttribute('aria-selected',String(!showLore));
+    loreTab.setAttribute('aria-selected',String(showLore));
+    memories.hidden=showLore;
+    lore.hidden=!showLore;
+    historyEdit.hidden=showLore;
+    loreEdit.hidden=!showLore;
+    heading.textContent=showLore?'ロア（物語）':'冒険の思い出';
+  };
+  historyTab.addEventListener('click',()=>select(false));
+  loreTab.addEventListener('click',()=>select(true));
+  const tabs=[historyTab,loreTab];
+  for(let i=0;i<tabs.length;i++)tabs[i].addEventListener('keydown',event=>{
+    if(!['ArrowLeft','ArrowRight'].includes(event.key))return;
+    event.preventDefault();
+    const next=event.key==='ArrowRight'?1-i:1-i;
+    select(next===1);tabs[next].focus({preventScroll:true});
+  });
+}
+function mountCharacterLore(c,currentBandId){
+  const container=modal.querySelector('#character-lore-page'),
+    edit=modal.querySelector('#edit-character-lore');
+  let editing=false;
+  function renderLore(){
+    container.innerHTML=editing
+      ? `<label>ロア（物語）<textarea id="character-lore-input" maxlength="20000" rows="12"></textarea></label>`
+      : `<p class="detail-text">${esc(c.lore)||'まだ物語は登録されていません。'}</p>`;
+    if(!editing)return;
+    const input=container.querySelector('#character-lore-input');
+    input.value=c.lore||'';
+    input.addEventListener('input',()=>{
+      if(!data.warbands.some(w=>w.id===currentBandId&&w.characters.some(x=>x.id===c.id)))return;
+      c.lore=input.value;
+      save();
+    });
+  }
+  edit.addEventListener('click',()=>{
+    editing=!editing;
+    edit.textContent=editing?'編集を終了':'編集';
+    edit.setAttribute('aria-expanded',String(editing));
+    renderLore();
+    if(editing)container.querySelector('textarea')?.focus({preventScroll:true});
+  });
+  renderLore();
 }
 function mountAdventureMemories(c,currentBandId) {
   const container=modal.querySelector('#adventure-memories'),
@@ -1067,7 +1139,6 @@ function mountAdventureMemories(c,currentBandId) {
       <label>到達レベル<input type="number" name="level" min="1" max="100" step="1" value="${Math.max(1,c.level)}" required inputmode="numeric"></label>
       <label>ダイスの出目<input type="number" name="result" min="1" max="${Number.MAX_SAFE_INTEGER}" step="1" required inputmode="numeric"></label>
       <button type="submit">ロールを追加</button></form>`:''}</section>
-    <section><h3>ロア（物語）</h3>${editing?'<label>ロア（物語）<textarea id="character-lore" maxlength="20000" rows="8"></textarea></label>':`<p class="detail-text">${esc(c.lore)||'まだ物語は登録されていません。'}</p>`}</section>
     <section><h3>記録メモ</h3>${editing?'<label>記録メモ<textarea id="character-notes2" maxlength="20000" rows="5"></textarea></label>':`<p class="detail-text">${esc(c.notes2)||'記録なし'}</p>`}</section>`;
     renderHistory();
     if(!editing)return;
@@ -1085,13 +1156,6 @@ function mountAdventureMemories(c,currentBandId) {
       if(!editing||!Number.isSafeInteger(level)||level<1||level>100||!Number.isSafeInteger(result)||result<1)return;
       update('rolls',[...history().rolls,{level,result}]);rolls.elements.result.value='';
     };
-    const loreInput=container.querySelector('#character-lore');
-    loreInput.value=c.lore??'';
-    loreInput.addEventListener('input',()=>{
-      if(!data.warbands.some(w=>w.id===currentBandId&&w.characters.some(x=>x.id===c.id)))return;
-      c.lore=loreInput.value;
-      save();
-    });
     const input=container.querySelector('#character-notes2');
     input.value=c.notes2??'';
     input.addEventListener('input',()=>{
