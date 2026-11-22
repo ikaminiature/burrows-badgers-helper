@@ -15,6 +15,13 @@ try{
  await page.evaluate(d=>new Promise(resolve=>{const r=indexedDB.open("bb-helper",1);r.onsuccess=()=>{const db=r.result,t=db.transaction("data","readwrite");t.objectStore("data").put(d,"app");t.oncomplete=()=>{db.close();resolve();};};}),original);
  await page.reload();await page.getByRole("heading",{name:"冒険の準備"}).waitFor();
  await page.getByRole("link",{name:"ウォーバンド",exact:true}).click();
+ await page.getByRole("button",{name:"QRを読み取る"}).click();
+ await page.getByRole("heading",{name:"QRを読み取る"}).waitFor();
+ assert.ok(await page.locator("#qr-camera-preview").count());
+ assert.ok(await page.getByRole("button",{name:"写真から読み取る"}).count());
+ await page.getByRole("button",{name:"閉じる",exact:true}).click();
+ assert.equal(await page.getByRole("button",{name:"共有JSONを読み込む"}).count(),0);
+
  const card=page.locator(".warband-card");
  await card.locator(".warband-qr-preview svg").waitFor({timeout:15000});
  assert.ok(await card.locator(".warband-share-column .portrait").count());
