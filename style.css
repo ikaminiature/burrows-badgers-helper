@@ -967,3 +967,11 @@ dialog { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 .consume-equipment { margin-block: 6px; font-size: 14px; }
 .consume-equipment[hidden] { display: none; }
 .consume-confirmation { white-space: normal; margin-block: 6px; }
+
+/* Character history and lore are separate, independently edited pages. */
+#modal [hidden] { display: none !important; }
+.adventure-tabs { display: flex; gap: 8px; margin-block: 14px; }
+.adventure-tabs [role="tab"] { flex: 1 1 0; min-width: 0; }
+.adventure-tabs [role="tab"][aria-selected="true"] { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
+#character-lore-page { margin-block: 16px; }
+#character-lore-page .detail-text, #band-lore-preview { white-space: pre-wrap; overflow-wrap: anywhere; }
