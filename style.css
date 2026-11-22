@@ -971,7 +971,7 @@ dialog { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 /* Character history and lore are separate, independently edited pages. */
 #modal [hidden] { display: none !important; }
 .adventure-tabs { display: flex; gap: 8px; margin-block: 14px; }
-.adventure-tabs [role="tab"] { flex: 1 1 0; min-width: 0; }
+.adventure-tabs [role="tab"] { flex: 1 1 0; min-width: 0; white-space:nowrap; font-size:clamp(11px, 3.2vw, 14px); padding-inline:4px; letter-spacing:-0.03em; }
 .adventure-tabs [role="tab"][aria-selected="true"] { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
 #character-lore-page { margin-block: 16px; }
 #character-lore-page .detail-text, #band-lore-preview { white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -980,9 +980,9 @@ dialog { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 .warband-card .warband-list-main { align-items: flex-start; }
 .warband-share-column { display:flex; flex-direction:column; align-items:center; flex:0 0 102px; gap:7px; transform:translateY(-5px); }
 .warband-share-column > .portrait { flex:0 0 auto; }
-.warband-qr-preview { width:98px; min-height:98px; text-align:center; }
+.warband-qr-preview { width:98px; text-align:center; }
 .warband-qr-preview .muted { font-size:11px; line-height:1.4; }
-.warband-qr-preview button.share-qr-button { display:block; width:98px; min-height:98px; padding:4px; border:1px solid var(--line); background:#fff; color:#111; border-radius:8px; font-size:10px; line-height:1.2; }
+.warband-qr-preview button.share-qr-button { display:block; width:98px; min-height:36px; padding:7px 5px; border:1px solid var(--line); background:var(--surface, #fff); color:var(--text, #111); border-radius:8px; font-size:12px; font-weight:700; line-height:1.25; }
 .warband-qr-preview .share-qr-button svg { width:100%; aspect-ratio:1; height:auto; display:block; }
 .warband-qr-preview .share-qr-button span { display:block; color:#333; margin-top:3px; }
 .warband-qr-preview .qr-too-large { display:block; }
