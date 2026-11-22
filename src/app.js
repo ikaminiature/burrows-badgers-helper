@@ -40,7 +40,7 @@ import {
 } from "./model.js";
 import { read, write } from "./db.js";
 import { createUpdater } from "./update.js";
-import { makeShareUrl, readShareToken, makeShareSvg, exportShareJson, readShareJson } from "./warband-share.js";
+import { makeShareUrl, makeCharacterShareUrl, readShareToken, makeShareSvg, exportShareJson, readShareJson } from "./warband-share.js";
 import { speciesGroups, speciesPresets, presetValues } from "./species.js";
 import {
   loadEquipmentCatalog,
@@ -63,6 +63,8 @@ let data,
 let rosterEditMode = false;
 let sharedId;
 let sharedImportCandidate = null;
+let shareSheetData = [];
+let shareSheetBandId = null;
 const sharePreviews = new Map();
 const shareRoot = () => new URL("./", location.href).href.split("#")[0];
 function resetRosterView() {
@@ -212,12 +214,13 @@ function render() {
 // Share-only rosters never become combat warbands or replace existing game data.
 function sharedWarbandList() {
   const list=data.sharedWarbands||[];
-  if(!list.length)return "";
-  return `<h2>共有されたウォーバンド</h2><p class="muted">ロアと写真だけの閲覧用データです。戦闘用のウォーバンドとは別に保存されます。</p>${list.map(record=>`<section class="card shared-warband-card"><div class="row"><div class="shared-thumbnail">${portrait({name:record.members[0]?.name||"",photo:record.members[0]?.photo||""})}</div><div><h3>${esc(record.name)}</h3><p>${record.members.length} キャラクター</p></div></div><div class="actions">${btn("閲覧", "open-shared-band", `data-id="${record.id}"`)}${btn("削除", "remove-shared-band", `data-id="${record.id}" class="danger"`)}</div></section>`).join("")}`;
+  const waiting=(data.pendingSharedCharacters||[]).length;
+  if(!list.length&&!waiting)return "";
+  return `<section class="encountered-bands"><h2>出会ったバンド</h2><p class="muted">ほかのプレイヤーから受け取った、閲覧専用のウォーバンドです。自分の戦闘データには影響しません。</p>${list.map(record=>`<section class="card shared-warband-card"><div class="row"><div class="shared-thumbnail">${portrait({name:record.members.find(c=>c.photo)?.name||"",photo:record.members.find(c=>c.photo)?.photo||""})}</div><div><h3>${esc(record.name)}</h3><p>${record.members.filter(c=>c.received).length} / ${record.members.length} 人のQRを受信</p></div></div><div class="actions">${btn("閲覧","open-shared-band",`data-id="${esc(record.id)}"`)}${btn("削除","remove-shared-band",`data-id="${esc(record.id)}" class="danger"`)}</div></section>`).join("")}${waiting?`<p class="muted">ウォーバンドQRの受信待ち：${waiting}人</p>`:""}</section>`;
 }
 function sharedWarbandView(record) {
-  if(!record)return '<h2>共有ウォーバンドが見つかりません。</h2>';
-  return `${btn("共有ウォーバンド一覧へ", "close-shared-band")}<section class="card"><h1>${esc(record.name)}</h1><h2>ロア</h2><p class="detail-text">${esc(record.lore)||"記録なし"}</p></section><h2>所属メンバー</h2>${record.members.map(c=>`<section class="card shared-member"><div class="row">${portrait(c)}<h3>${esc(c.name)}</h3></div><h4>ロア</h4><p class="detail-text">${esc(c.lore)||"記録なし"}</p></section>`).join("")||'<p class="muted">メンバー未登録</p>'}`;
+  if(!record)return '<h2>出会ったバンドが見つかりません。</h2>';
+  return `${btn("出会ったバンド一覧へ","close-shared-band")}<section class="card"><h1>${esc(record.name)}</h1><h2>ロア</h2><p class="detail-text">${esc(record.lore)||"記録なし"}</p></section><h2>所属メンバー</h2>${record.members.map(c=>`<section class="card shared-member"><div class="row">${portrait(c)}<div><h3>${esc(c.name)}</h3><p class="muted">${esc(c.species||"")}</p></div></div>${c.received===false?'<p class="muted">キャラクターQR未受信</p>':`<h4>ロア</h4><p class="detail-text">${esc(c.lore)||"記録なし"}</p>`}</section>`).join("")||'<p class="muted">メンバー未登録</p>'}`;
 }
 function renderShareQrs() {
   for(const w of data.warbands) {
@@ -226,22 +229,76 @@ function renderShareQrs() {
     makeShareUrl(w).then(shared=>{
       if(!place.isConnected)return;
       sharePreviews.set(w.id,{...shared});
-      place.innerHTML=`<button type="button" class="share-qr-button" data-action="show-warband-qr" data-id="${esc(w.id)}" aria-label="${esc(w.name)}の共有QRを拡大">${makeShareSvg(shared.url)}<span>共有QR</span></button>`;
+      place.innerHTML=`<button type="button" class="share-qr-button" data-action="show-warband-qr" data-id="${esc(w.id)}" aria-label="${esc(w.name)}の共有QR一覧を表示">${makeShareSvg(shared.url)}<span>共有QR</span></button>`;
     }).catch(err=>{
       if(!place.isConnected)return;
       sharePreviews.set(w.id,{error:err.message});
-      place.innerHTML=`<span class="muted qr-too-large">QR容量超過</span><button type="button" data-action="share-json" data-id="${esc(w.id)}">共有JSON</button>`;
+      place.innerHTML=`<button type="button" data-action="show-warband-qr" data-id="${esc(w.id)}" class="share-qr-button"><span class="muted">QRを表示</span></button>`;
     });
   }
 }
-function openShareQr(id) {
-  const w=data.warbands.find(x=>x.id===id),shared=sharePreviews.get(id);
-  if(!w||!shared)return;
-  if(shared.error) {
-    show(`<h2>QRに収まりません</h2><p>${esc(shared.error)}</p>${btn("共有JSONを書き出す","share-json",`data-id="${esc(id)}"`)}${btn("閉じる","close")}`);
-    return;
+async function openShareQr(id) {
+  const w=data.warbands.find(x=>x.id===id);
+  if(!w)return;
+  shareSheetBandId=id;shareSheetData=[];
+  show(`<h2>共有QR一覧</h2><h3>${esc(w.name)}</h3><p class="muted">ウォーバンドと各キャラクターのQRを1枚にまとめます。撮影・保存した画像を拡大して読み取れます。</p><div id="share-sheet-content"><p>QRコードを作成中…</p></div><div class="actions"><button type="button" data-action="save-share-sheet" disabled>QR一覧を画像で保存</button>${btn("閉じる","close")}</div>`,{focusHeading:true});
+  const body=modal.querySelector('#share-sheet-content'),exportBtn=modal.querySelector('[data-action="save-share-sheet"]');
+  const entries=[];
+  try{
+    const primary=await makeShareUrl(w);
+    entries.push({title:"ウォーバンド",name:w.name,...primary});
+    for(const c of w.characters){
+      try{
+        const item=await makeCharacterShareUrl(w,c);
+        entries.push({title:c.name,name:c.name,...item});
+      }catch(e){entries.push({title:c.name,name:c.name,error:e.message});}
+    }
+    if(!body.isConnected||shareSheetBandId!==id)return;
+    shareSheetData=entries;
+    body.innerHTML=`<div class="share-sheet-grid">${entries.map((item,i)=>`<section class="share-sheet-item"><h4>${esc(item.title)}</h4>${item.url?makeShareSvg(item.url):`<p class="muted">${esc(item.error)}</p>`}${item.url?btn("拡大", "expand-shared-qr",`data-index="${i}"`):""}</section>`).join("")}</div>`;
+    exportBtn.disabled=!entries.every(item=>item.url);
+    if(exportBtn.disabled)body.insertAdjacentHTML("beforeend",'<p class="muted">一部のQRが容量を超えています。ロアを短くして再度開いてください。</p>');
+  }catch(e){
+    if(body.isConnected)body.innerHTML=`<p>${esc(e.message)}</p>`;
   }
-  show(`<h2>ウォーバンド共有QR</h2><h3>${esc(w.name)}</h3><div class="share-qr-large">${makeShareSvg(shared.url)}</div><p>読み取った人はロアとメンバーの名前・縮小写真・ロアを受け取れます。能力値や装備は共有しません。</p><p class="muted">QRでは写真を約${shared.photoSize}pxに縮小しています。元の画質で渡す場合は共有JSONを利用してください。</p><div class="actions">${btn("リンクをコピー","copy-warband-share",`data-id="${esc(id)}"`)}${btn("共有JSONを書き出す","share-json",`data-id="${esc(id)}"`)}${btn("閉じる","close")}</div>`,{focusHeading:true});
+}
+async function saveShareSheet(){
+  const entries=shareSheetData;
+  if(!entries.length||entries.some(item=>!item.url))return;
+  const columns=3,size=310,header=90,cell=390,rows=Math.ceil(entries.length/columns),margin=26;
+  const canvas=document.createElement("canvas");
+  canvas.width=columns*cell+margin*2;
+  canvas.height=rows*cell+header+margin*2;
+  const ctx=canvas.getContext("2d");
+  ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle="#111";ctx.font="bold 28px sans-serif";ctx.fillText("ウォーバンド共有QR",margin,52);
+  const title=data.warbands.find(w=>w.id===shareSheetBandId)?.name||"";
+  ctx.font="20px sans-serif";ctx.fillText(title.slice(0,30),margin,80);
+  for(let i=0;i<entries.length;i++){
+    const item=entries[i],x=margin+(i%columns)*cell,y=header+margin+Math.floor(i/columns)*cell;
+    ctx.font="bold 20px sans-serif";ctx.fillStyle="#111";ctx.fillText(item.title.slice(0,19),x+10,y+25);
+    const image=new Image();
+    const svg=makeShareSvg(item.url).replace(/<svg /,'<svg ');
+    image.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
+    await image.decode();
+    ctx.drawImage(image,x+12,y+38,size,size);
+    ctx.strokeStyle="#ccc";ctx.strokeRect(x+4,y+4,cell-12,cell-12);
+  }
+  const blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/png"));
+  if(!blob)throw Error("画像を作成できませんでした");
+  const file=new File([blob],"bb-qr-sheet.png",{type:"image/png"});
+  if(navigator.canShare?.({files:[file]})){
+    try{await navigator.share({files:[file],title:"ウォーバンド共有QR"});return;}catch(e){if(e.name==="AbortError")return;}
+  }
+  const url=URL.createObjectURL(blob),link=document.createElement("a");
+  link.href=url;link.download=file.name;link.click();setTimeout(()=>URL.revokeObjectURL(url),15000);
+}
+function expandShareQr(index){
+  const entry=shareSheetData[index];
+  if(!entry?.url)return;
+  const original=shareSheetBandId;
+  show(`<h2>${esc(entry.title)}のQR</h2><div class="share-qr-large">${makeShareSvg(entry.url)}</div><div class="actions">${btn("QR一覧に戻る","return-share-sheet")}${btn("閉じる","close")}</div>`,{focusHeading:true});
+  shareSheetBandId=original;
 }
 function downloadSharedJson(id) {
   const w=data.warbands.find(x=>x.id===id);
@@ -256,7 +313,7 @@ function downloadSharedJson(id) {
 function showShareImport(packet) {
   sharedImportCandidate=packet;
   const exists=(data.sharedWarbands||[]).some(x=>x.sourceId===packet.sourceId);
-  show(`<h2>共有ウォーバンドの登録</h2><h3>${esc(packet.name)}</h3><p>${packet.members.length}人のメンバー</p><h4>ロア</h4><p class="detail-text">${esc(packet.lore)||"記録なし"}</p><h4>所属メンバー</h4>${packet.members.map(c=>`<div class="row shared-import-person">${portrait(c)}<div><strong>${esc(c.name)}</strong><p class="detail-text">${esc(c.lore)||"記録なし"}</p></div></div>`).join("")}<p class="muted">${exists?"以前取り込んだ同じウォーバンドの共有内容を更新します。":"ウォーバンド本体や戦闘データには追加せず、閲覧用として端末内に保存します。"}</p>${location.hash.startsWith("#share=")?`<p class="muted">iPhoneのSafariとホーム画面に追加したアプリは保存先が別です。ホーム画面版に入れる場合はリンクをコピーし、ホーム画面版の「共有を読み込む」に貼り付けてください。</p>`:""}<div class="actions">${btn(exists?"共有データを更新":"共有ウォーバンドを登録","accept-shared-band",'class="primary"')}${location.hash.startsWith("#share=")?btn("共有リンクをコピー","copy-received-link"):""}${btn("閉じる","close")}</div>`,{focusHeading:true});
+  show(`<h2>共有ウォーバンドの登録</h2><h3>${esc(packet.name)}</h3><p>${packet.members.length}人のメンバー</p><h4>ロア</h4><p class="detail-text">${esc(packet.lore)||"記録なし"}</p><h4>所属メンバー</h4>${packet.members.map(c=>`<div class="row shared-import-person">${portrait(c)}<div><strong>${esc(c.name)}</strong><p class="detail-text">${esc(c.lore)||"記録なし"}</p></div></div>`).join("")}<p class="muted">${exists?"以前取り込んだ同じウォーバンドの共有内容を更新します。":"ウォーバンド本体や戦闘データには追加せず、閲覧用として端末内に保存します。"}</p>${location.hash.startsWith("#share=")?`<p class="muted">iPhoneのSafariとホーム画面に追加したアプリは保存先が別です。ホーム画面版に入れる場合はリンクをコピーし、ホーム画面版の「共有を読み込む」に貼り付けてください。</p>`:""}<div class="actions">${btn(exists?"出会ったバンドを更新":"出会ったバンドに登録","accept-shared-band",'class="primary"')}${location.hash.startsWith("#share=")?btn("共有リンクをコピー","copy-received-link"):""}${btn("閉じる","close")}</div>`,{focusHeading:true});
 }
 function acceptSharedBand() {
   const packet=sharedImportCandidate;
